@@ -1,4 +1,4 @@
-import { NodeData } from "./TreeViewNodeData";
+import { TreeViewNodeData } from "./TreeViewNodeData";
 
 export enum NodeDataActionTypes {
   SET_NODES = 'SET',
@@ -10,7 +10,7 @@ export enum NodeDataActionTypes {
 
 export type SetNodesAction = {
   type: NodeDataActionTypes.SET_NODES;
-  payload: NodeData;
+  payload: TreeViewNodeData;
 };
 
 export type ExpandNodeAction = {
@@ -25,7 +25,7 @@ export type AddNodeAction = {
   type: NodeDataActionTypes.ADD_NODE;
   payload: {
     parentId: string;
-    newNode: NodeData;
+    newNode: TreeViewNodeData;
   }
 }
 
@@ -36,7 +36,7 @@ export type RemoveNodeAction = {
 
 export type UpdateNodeAction = {
   type: NodeDataActionTypes.UPDATE_NODE;
-  newNode: NodeData;
+  newNode: TreeViewNodeData;
 }
 
 export type TreeNodeActions =

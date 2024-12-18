@@ -23,7 +23,7 @@ function HorisontalSidebar({children, initialHeight = 820}: React.PropsWithChild
   }, []);
 
   return (
-    <div className=" bg-red-400">
+    <div className="">
       <div style={{ height: `${height / 16}rem` }} className="">
         {children}
       </div>

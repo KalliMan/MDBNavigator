@@ -1,16 +1,19 @@
 import { useTreeViewContext } from "./TreeViewContextProvider";
 import TreeViewIExpandedIcon from "./TreeViewIExpandedIcon";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
-import { NodeData } from "./TreeViewNodeData";
+import { TreeViewNodeData } from "./TreeViewNodeData";
 
 export interface Props {
-  node: NodeData;
+  node: TreeViewNodeData;
+  onExpand: (id: string, expanded: boolean) => void;
 }
 
-export function TreeViewNode({node}: Props) {
+export function TreeViewNode({node, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
 
   function handleSetIsExpanded() {
+    onExpand(node.id, !node.isExpanded);
+
     dispatch({
       type: NodeDataActionTypes.EXPAND_NODE,
       payload: {
@@ -21,27 +24,32 @@ export function TreeViewNode({node}: Props) {
   }
 
   const hasChildNodes = node.nodes && node.nodes?.length > 0;
+  const iconExpanded = node.IconExpanded ?? node.Icon;
 
   return (
     <>
-      <div className="flex">
+      <div className={`flex hover:bg-sky-200 ${node.isExpanded ? 'z-auto' : 'z-0'}`}>
         {hasChildNodes && <TreeViewIExpandedIcon isExpanded={node.isExpanded} onExpand={handleSetIsExpanded}/>}
-        <p
-          className="select-none hover:bg-sky-200 w-fit pl-2 pr-3"
+        <div
+          className="flex select-none w-fit pl-2 pr-3"
         >
-          {node.nodeName}
-        </p>
+          <div className="mt-1">
+            {iconExpanded ?? (<span >{iconExpanded}</span>)}
+          </div>
+
+          <span className="ml-1 ">{node.nodeName}</span>
+        </div>
       </div>
 
       <div
         className={`${
-          node.isExpanded ? "opacity-100" : "opacity-0"
-        } transition-opacity ease-in-out delay-150 duration-150`}
+          node.isExpanded ? "opacity-100 max-h-40 " : "opacity-0 max-h-0"
+        } transition-all ease-in-out delay-150 duration-150`}
       >
         <ul className="ml-5">
           {node.nodes?.map((childNode) => (
             <li className="" key={childNode.id}>
-              <TreeViewNode node={childNode}  />
+              <TreeViewNode node={childNode} onExpand={(id, expanded) => onExpand(id, expanded)} />
             </li>
           ))}
         </ul>

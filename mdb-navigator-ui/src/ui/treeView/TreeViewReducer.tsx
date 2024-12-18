@@ -1,57 +1,14 @@
 import { NodeDataActionTypes, TreeNodeActions } from "./TreeViewNodeActionTypes";
-import { NodeData } from "./TreeViewNodeData";
+import { TreeViewNodeData } from "./TreeViewNodeData";
+import { addNode, expandNode } from "./treeViewUtils";
 
 export type NodeDataState = {
-  nodeData: NodeData | null;
+  nodeData: TreeViewNodeData | null;
 }
 
 export const initialState: NodeDataState = {
   nodeData: null
 };
-
-function expandNode(root: NodeData, id: string, expand: boolean): void {
-  const node = findNode(root, id);
-  if (node) {
-    node.isExpanded = expand;
-  }
-}
-
-function findNode(root: NodeData, id: string): NodeData | null {
-  if (root.id === id) {
-    return root;
-  }
-
-  if (!root.nodes?.length) {
-    return null;
-  }
-
-  for(const node of root.nodes) {
-    const result = findNode(node, id);
-
-    if (result) {
-      return result;
-    }
-  }
-
-  return null;
-}
-
-function addNode(nodeData: NodeData, parentId: string, newNode: NodeData): NodeData {
-
-  const parentNode = findNode(nodeData,parentId);
-
-  if (!parentNode) {
-    return nodeData;
-  }
-
-  if (!parentNode.nodes) {
-    parentNode.nodes = [newNode];
-  } else {
-    parentNode.nodes.push(newNode);
-  }
-
-  return nodeData;
-}
 
 export function treeReducer(state: NodeDataState, action: TreeNodeActions): NodeDataState {
   switch(action.type) {

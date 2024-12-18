@@ -1,14 +1,15 @@
 import { useEffect } from "react";
-import { NodeData } from "./TreeViewNodeData";
+import { TreeViewNodeData } from "./TreeViewNodeData";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
 import { useTreeViewContext } from "./TreeViewContextProvider";
 import { TreeViewNode } from "./TreeViewNode";
 
 export interface Props {
-  root: NodeData;
+  root: TreeViewNodeData;
+  onExpand: (id: string, expanded: boolean) => void;
 }
 
-export function TreeViewRoot({root}: Props) {
+export function TreeViewRoot({root, onExpand}: Props) {
   const {dispatch, state} = useTreeViewContext();
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export function TreeViewRoot({root}: Props) {
 
   return (
     <div className="w-fit text-left cursor-pointer">
-      <TreeViewNode node={state.nodeData!}/>
+      <TreeViewNode node={state.nodeData!} onExpand={(id, expanded) => onExpand(id, expanded)}/>
     </div>
   );
 }

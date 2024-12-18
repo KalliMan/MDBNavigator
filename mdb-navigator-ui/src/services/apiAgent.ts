@@ -1,7 +1,8 @@
 import axios, { AxiosResponse } from 'axios'
 import LocalSessionStorage from '../utils/localSessionStorage';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
-import { DatabaseConnectionInfo } from '../models/connect/databaseConnectInfo';
+import { TablesDetails } from '../models/schema/tablesDetails';
+import { DatabasesDetails } from '../models/schema/databasesDetails';
 
 // import { ConnectionSettings } from '../models/connectionSettings';
 // import { Database } from '../models/database';
@@ -11,7 +12,7 @@ import { DatabaseConnectionInfo } from '../models/connect/databaseConnectInfo';
 // import LocalSessionStorage from '../common/utils/localSessionStorage';
 // import { DatabaseCommantResult } from '../models/databaseCommantResul';
 
-axios.defaults.baseURL = 'https://localhost:7145/api';
+axios.defaults.baseURL = 'https://localhost:7262/api';
 
 axios.interceptors.request.use((config) => {
   // const token = store.commonStore.token;
@@ -32,13 +33,14 @@ const requests = {
 };
 
 const databaseConnectionApi = {
-  connect: (connectionSettings: ConnectionSettings): Promise<DatabaseConnectionInfo> => requests.post<DatabaseConnectionInfo>('/DatabaseConnection/connect', connectionSettings),
+  connect: (connectionSettings: ConnectionSettings): Promise<boolean> =>
+    requests.post<boolean>('/DatabaseConnection/connect', connectionSettings),
 }
 
-// const databaseSchemaApi = {
-//   fetchDatabases: () => requests.get<Database[]>('/DatabaseSchema/databases'),
-//   fetchTables: (databaseName: string) => requests.get<TablesDetails>(`/DatabaseSchema/tables/${databaseName}`)
-// };
+const databaseSchemaApi = {
+  fetchDatabases: () => requests.get<DatabasesDetails>('/DatabaseSchema/databases'),
+  fetchTables: (databaseName: string) => requests.get<TablesDetails>(`/DatabaseSchema/tables/${databaseName}`)
+};
 
 // const databaseCommandApi = {
 //   execute: (cmdQuery: CommandQuery) => requests.post<DatabaseCommantResult>('/DatabaseCommand', cmdQuery)
@@ -46,7 +48,7 @@ const databaseConnectionApi = {
 
 const agent = {
   databaseConnectionApi,
-//  databaseSchemaApi,
+  databaseSchemaApi,
 //  databaseCommandApi
 };
 

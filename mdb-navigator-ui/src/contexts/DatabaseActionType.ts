@@ -1,11 +1,17 @@
-import { DatabaseConnectionInfo } from "../models/connect/databaseConnectInfo";
-import { AppGlobalState } from "../types/AppGlobalState";
+import { ConnectionSettings } from "../models/connect/connectionSettings";
+import { DatabasesDetails } from "../models/schema/databasesDetails";
+import { TablesDetails } from "../models/schema/tablesDetails";
 
 export enum DatabaseActionTypes {
   Loading = 'loading',
   DatabaseConnected = 'database/connected',
-  Connect = 'database/connect',
+//  Connect = 'database/connect',
+  FetchedDatabases = 'database/fetchedDatabases',
+  FetchedTables = 'database/fetchedtables',
+
+
   Execute = 'database/execute',
+  Error = 'error'
   // ADD_NODE = 'ADD',
   // REMOVE_NODE = 'REMOVE',
   // UPDATE_NODE = 'UPDATE'
@@ -13,12 +19,21 @@ export enum DatabaseActionTypes {
 
 export type LoadingAction = {
   type: DatabaseActionTypes.Loading;
-  payload: AppGlobalState;
 };
 
 export type DatabaseConnected = {
   type: DatabaseActionTypes.DatabaseConnected;
-  payload: DatabaseConnectionInfo;
+  payload: ConnectionSettings;
+};
+
+export type FetchedDatabases = {
+  type: DatabaseActionTypes.FetchedDatabases;
+  payload: DatabasesDetails;
+};
+
+export type FetchedTables = {
+  type: DatabaseActionTypes.FetchedTables;
+  payload: TablesDetails;
 };
 
 export type ExecuiteAction = {
@@ -26,9 +41,17 @@ export type ExecuiteAction = {
   payload: string;
 };
 
+export type ErrorAction = {
+  type: DatabaseActionTypes.Error;
+  payload: string;
+};
+
 
 export type DatabaseActions =
   LoadingAction
   | DatabaseConnected
-  | ExecuiteAction;
+  | FetchedDatabases
+  | FetchedTables
+  | ExecuiteAction
+  | ErrorAction;
 

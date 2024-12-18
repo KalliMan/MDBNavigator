@@ -1,17 +1,29 @@
-import { DatabaseConnectionInfo } from "../models/connect/databaseConnectInfo";
-import { AppGlobalState } from "../types/AppGlobalState";
+import { ConnectionSettings } from "../models/connect/connectionSettings";
+import { DatabasesDetails } from "../models/schema/databasesDetails";
+import { TablesDetails } from "../models/schema/tablesDetails";
 import { DatabaseActions, DatabaseActionTypes } from "./DatabaseActionType";
 
 export type DatabaseState = {
-  appState: AppGlobalState;
-  databaseConnectionInfo?: DatabaseConnectionInfo | null;
+  //appState: AppGlobalState;
+  isConnectedToDB: boolean;
   isLoading: boolean;
+
+  connectionSettings: ConnectionSettings | null;
+  error: string | null;
+
+  databasesDetails: DatabasesDetails | null;
+  tablesDetails: TablesDetails | null;
 }
 
 export const databaseInitialState: DatabaseState = {
-  appState: AppGlobalState.Initial,
-  databaseConnectionInfo: null,
+  isConnectedToDB: false,
   isLoading: false,
+
+  connectionSettings: null,
+  error: null,
+
+  databasesDetails: null,
+  tablesDetails: null
 };
 
 export type DatabaseContextType = {
@@ -24,15 +36,34 @@ export function databaseReducer(state: DatabaseState, action: DatabaseActions): 
     case DatabaseActionTypes.Loading:
       return {
         ...state,
-        appState: action.payload
+        isLoading: true
       }
     case DatabaseActionTypes.DatabaseConnected:
       return {
         ...state,
-        appState: AppGlobalState.Connected,
-        databaseConnectionInfo: action.payload
+        isLoading: false,
+        isConnectedToDB: true,
+        connectionSettings: action.payload
+      };
+    case DatabaseActionTypes.FetchedDatabases:
+      return {
+        ...state,
+        isLoading: false,
+        databasesDetails: action.payload
+      };
+      case DatabaseActionTypes.FetchedTables:
+        return {
+          ...state,
+          isLoading: false,
+          tablesDetails: action.payload
+        };
+    case DatabaseActionTypes.Error:
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload
       }
     default:
-      throw new Error('Unsupported Action type');
+      throw new Error(`Unsupported Action type: ${action.type}`);
   }
 }

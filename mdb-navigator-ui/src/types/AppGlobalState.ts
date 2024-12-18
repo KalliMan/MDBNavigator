@@ -1,6 +1,9 @@
-export enum AppGlobalState {
-  Initial,
-  Connecting,
-  Connected,
-  Executing,
-}
+// export enum AppGlobalState {
+//   Initial,
+//   Error,
+//   DatabaseReady,
+//   Connecting,
+//   Connected,
+//   FetchingSchema,
+//   Executing,
+// }

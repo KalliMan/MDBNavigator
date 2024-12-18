@@ -1,16 +1,13 @@
 import { useDatabaseContext } from "./contexts/DatabaseContextProvider";
 import ConnectToServer from "./features/connect/ConnectToServer";
 import NavBar from "./layout/NavBar";
-import { AppGlobalState } from "./types/AppGlobalState";
 import Loader from "./ui/loader/Loader";
 import ModalWindow from "./ui/modalWindow/ModalWindow";
 import HorisontalSidebar from "./ui/sidebar/HorisontalSidebar";
 import VerticalSidebar from "./ui/sidebar/VerticalSidebar";
 
 function App() {
-  const {appState, connect} = useDatabaseContext();
-  const isLoading = [AppGlobalState.Connecting].includes(appState);
-
+  const {isLoading, connect} = useDatabaseContext();
   return (
     <div>
       {isLoading && <Loader />}
@@ -26,9 +23,9 @@ function App() {
         </VerticalSidebar>
         <div className="h-full w-fill grid grid-rows-[max-content_auto]">
           <HorisontalSidebar>
-            <div className="h-full w-fill bg-gray-600 ">Main Content</div>
+            <div className="h-full w-fill">Main Content</div>
           </HorisontalSidebar>
-          <div className="bg-slate-400">Player</div>
+          <div className="">Player</div>
         </div>
       </div>
     </div>

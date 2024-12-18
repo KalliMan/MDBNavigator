@@ -23,7 +23,7 @@ function VerticalSidebar({children, initialWidth = 350}: React.PropsWithChildren
   }, []);
 
   return (
-    <div className="flex h-full bg-blue-600">
+    <div className="flex h-full">
       <div style={{ width: `${width / 16}rem` }} className="">
         {children}
       </div>

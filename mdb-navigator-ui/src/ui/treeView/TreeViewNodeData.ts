@@ -1,7 +1,13 @@
-export interface NodeData {
+export interface TreeViewNodeData {
   id: string;
   nodeName: string;
   isExpanded?: boolean;
 
-  nodes?: NodeData[];
+  Icon?: JSX.Element;
+  IconExpanded?: JSX.Element;
+  type?: string;
+  metaData?: string;
+
+  nodes?: TreeViewNodeData[];
+  parentNode?: TreeViewNodeData;
 }
