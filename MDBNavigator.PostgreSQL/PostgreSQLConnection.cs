@@ -2,6 +2,7 @@
 using MDBNavigator.DAL.Interfaces;
 using Models;
 using Npgsql;
+using System.Data;
 
 namespace MDBNavigator.PostgreSQL
 {
@@ -69,9 +70,20 @@ namespace MDBNavigator.PostgreSQL
             return result;
         }
 
-/*        public  async Task<DatabaseCommandResultRaw> ExecuteQuery(string script)
+        public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string databaseName, string schema, string table, int? recordsNumber)
         {
-            using var reader = await _connection.ExecuteReaderAsync(script);            
+            var script = $"SELECT * FROM ${schema}.\"${table}\" ";
+            if (recordsNumber.HasValue && recordsNumber.Value > -1)
+            {
+                script += $"LIMIT ${recordsNumber}";
+            }
+
+            return await ExecuteQuery(script);
+        }       
+
+        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string script)
+        {
+            using var reader = await _connection.ExecuteReaderAsync(script);
             DataTable dt = new DataTable();
 
             if (reader.HasRows)
@@ -80,11 +92,10 @@ namespace MDBNavigator.PostgreSQL
             }
 
             return new DatabaseCommandResultRaw()
-            {                
+            {
                 Result = dt
             };
         }
-        */
     }
 }
 

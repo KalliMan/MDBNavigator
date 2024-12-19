@@ -5,16 +5,10 @@ import { TablesDetails } from "../models/schema/tablesDetails";
 export enum DatabaseActionTypes {
   Loading = 'loading',
   DatabaseConnected = 'database/connected',
-//  Connect = 'database/connect',
   FetchedDatabases = 'database/fetchedDatabases',
   FetchedTables = 'database/fetchedtables',
-
-
   Execute = 'database/execute',
   Error = 'error'
-  // ADD_NODE = 'ADD',
-  // REMOVE_NODE = 'REMOVE',
-  // UPDATE_NODE = 'UPDATE'
 }
 
 export type LoadingAction = {

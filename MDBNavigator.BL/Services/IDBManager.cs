@@ -8,6 +8,7 @@ namespace MDBNavigator.BL.Services
         Task<DatabasesDetailsDto> GetDatabases(string sessionId);
         Task<TablesDetailsDto> GetTables(string sessionId, string databaseName);
 
+        Task<DatabaseCommandResultDto> GetTopNTableRecords(string sessionId, string databaseName, string schema, string table, int? recordsNumber);
         //Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, Guid id, string databaseName, string script);
     }
 }

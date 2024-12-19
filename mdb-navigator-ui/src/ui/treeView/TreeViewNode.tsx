@@ -1,3 +1,4 @@
+import { CoordPosition } from "../../types/coordPosition";
 import { useTreeViewContext } from "./TreeViewContextProvider";
 import TreeViewIExpandedIcon from "./TreeViewIExpandedIcon";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
@@ -5,11 +6,19 @@ import { TreeViewNodeData } from "./TreeViewNodeData";
 
 export interface Props {
   node: TreeViewNodeData;
+  onNodeClick: (node: TreeViewNodeData, target: CoordPosition) => void;
   onExpand: (id: string, expanded: boolean) => void;
 }
 
-export function TreeViewNode({node, onExpand}: Props) {
+export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
+
+  function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    onNodeClick(node, {
+      x: e.pageX,
+      y: e.pageY
+    });
+  }
 
   function handleSetIsExpanded() {
     onExpand(node.id, !node.isExpanded);
@@ -28,8 +37,12 @@ export function TreeViewNode({node, onExpand}: Props) {
 
   return (
     <>
-      <div className={`flex hover:bg-sky-200 ${node.isExpanded ? 'z-auto' : 'z-0'}`}>
-        {hasChildNodes && <TreeViewIExpandedIcon isExpanded={node.isExpanded} onExpand={handleSetIsExpanded}/>}
+      <div
+        className={`flex hover:bg-sky-200 ${node.isExpanded ? 'z-auto' : 'z-0'}`}>
+        {hasChildNodes && <TreeViewIExpandedIcon
+          isExpanded={node.isExpanded}
+          onExpand={handleSetIsExpanded}
+        />}
         <div
           className="flex select-none w-fit pl-2 pr-3"
         >
@@ -37,7 +50,7 @@ export function TreeViewNode({node, onExpand}: Props) {
             {iconExpanded ?? (<span >{iconExpanded}</span>)}
           </div>
 
-          <span className="ml-1 ">{node.nodeName}</span>
+          <span className="ml-1" onClick={handleOnClick}>{node.nodeName}</span>
         </div>
       </div>
 
@@ -49,7 +62,9 @@ export function TreeViewNode({node, onExpand}: Props) {
         <ul className="ml-5">
           {node.nodes?.map((childNode) => (
             <li className="" key={childNode.id}>
-              <TreeViewNode node={childNode} onExpand={(id, expanded) => onExpand(id, expanded)} />
+              <TreeViewNode node={childNode}
+                onNodeClick={onNodeClick}
+                onExpand={(id, expanded) => onExpand(id, expanded)} />
             </li>
           ))}
         </ul>

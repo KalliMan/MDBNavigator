@@ -4,7 +4,6 @@ import { TablesDetails } from "../models/schema/tablesDetails";
 import { DatabaseActions, DatabaseActionTypes } from "./DatabaseActionType";
 
 export type DatabaseState = {
-  //appState: AppGlobalState;
   isConnectedToDB: boolean;
   isLoading: boolean;
 
@@ -51,12 +50,12 @@ export function databaseReducer(state: DatabaseState, action: DatabaseActions): 
         isLoading: false,
         databasesDetails: action.payload
       };
-      case DatabaseActionTypes.FetchedTables:
-        return {
-          ...state,
-          isLoading: false,
-          tablesDetails: action.payload
-        };
+    case DatabaseActionTypes.FetchedTables:
+      return {
+        ...state,
+        isLoading: false,
+        tablesDetails: action.payload
+      };
     case DatabaseActionTypes.Error:
       return {
         ...state,

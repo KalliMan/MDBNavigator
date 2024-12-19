@@ -2,42 +2,29 @@ import { useEffect, useRef, useState } from "react";
 import { useDatabaseContext } from "../../contexts/DatabaseContextProvider";
 import TreeView from "../../ui/treeView/TreeView"
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
-import { createDatabaseNode, createDatabasesFolderNode, createServerNode, createTableNode, getDatabaseNode, getTablesFolderNode } from "./dbTreeViewUtils";
+import { createDatabaseNode, createDatabasesFolderNode, createServerNode, createTableNode, getDatabaseNode, getTablesFolderNode, hasLoaderNode } from "./dbTreeViewUtils";
 import { findFirstParentOfType, findNode } from "../../ui/treeView/treeViewUtils";
 import { NodeType } from "./NodeType";
-/*
-const root: NodeData = {
-  id: '1',
-  nodeName: "KalliMan's Server",
-  isExpanded: true,
-  nodes: [{
-    id: '11',
-    nodeName: 'Databases',
-    isExpanded: true,
-    nodes: [{
-      id: '111',
-      nodeName: 'BookStoreDB',
-      nodes: [{
-          id: '1111',
-          nodeName: 'Tables',
-          nodes: [{
-            id:'table1',
-            nodeName: 'AspNetUserClaims',
-          },
-          {
-            id:'table2',
-            nodeName: 'AspNetUserLogins',
-          }]
-      }]
-    }]
-  }]
-}
-*/
+import { CoordPosition, EmptyPosition } from "../../types/coordPosition";
+import Menus from "../../ui/contextMenu/Menus";
+import { PiRows } from "react-icons/pi";
+
 
 function DBTreeView() {
-  const {isConnectedToDB, connectionSettings, databasesDetails, tablesDetails, fetchDatabases, fetchTables} = useDatabaseContext();
+  const {isConnectedToDB,
+    connectionSettings,
+    databasesDetails,
+    tablesDetails,
+    fetchDatabases,
+    fetchTables,
+    getTopNTableRecords
+  } = useDatabaseContext();
+
   const [root, setRoot] = useState<TreeViewNodeData | null>();
   const databasesLoaded = useRef(false);
+
+  const [contextMenuTarget, setContextMenuTarget] = useState(EmptyPosition);
+  const [currentNode, setCurrentNode] = useState<TreeViewNodeData>();
 
   useEffect(() => {
     if (!databasesLoaded.current && isConnectedToDB && connectionSettings) {
@@ -55,30 +42,38 @@ function DBTreeView() {
       databasesDetails?.databases.forEach(db => databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes)));
 
       databasesLoaded.current = true;
+
       setRoot(r => {
         return {
           ...r!, nodes: [databaseFolderNodes]
         };
       });
+
     }
   }, [isConnectedToDB, root, databasesDetails]);
 
-  // useEffect(() => {
-  //   if(root && databasesLoaded.current && tablesDetails?.tables?.length) {
-  //     const copy = {...root};
-  //     const databaseNode = getDatabaseNode(copy, tablesDetails.databaseName);
-  //     if (databaseNode){
-  //       const tablesFoldersNode = getTablesFolderNode(databaseNode);
+  useEffect(() => {
+    if(root && databasesLoaded.current && tablesDetails?.tables?.length) {
+      const databaseNode = getDatabaseNode(root, tablesDetails.databaseName);
+      if (databaseNode) {
+        const tablesFoldersNode = getTablesFolderNode(databaseNode);
+        if (tablesFoldersNode && hasLoaderNode(tablesFoldersNode)){
+          tablesFoldersNode.nodes = [];
+          tablesDetails?.tables.forEach(t => tablesFoldersNode?.nodes?.push(createTableNode(t.databaseSchema, t.name, tablesFoldersNode)));
 
-  //       tablesDetails?.tables.forEach(t => tablesFoldersNode?.nodes?.push(createTableNode(t.databaseSchema, t.name, tablesFoldersNode)));
+          setRoot({
+            ...root,
+           isExpanded: true
+          });
+        }
+      }
+    }
+  }, [root, tablesDetails]);
 
-  //       setRoot(copy);
-  //     }
-  //   }
-  // }, [root, tablesDetails]);
-
-  if (!root) {
-    return null;
+  function handleOnNodeClick(node: TreeViewNodeData, e: CoordPosition) {
+    console.log("clicked", node, e);
+    setCurrentNode(node);
+    setContextMenuTarget(e);
   }
 
   function handleExpand(id: string, expanded: boolean) {
@@ -87,12 +82,17 @@ function DBTreeView() {
     }
 
     const targetNode = findNode(root, id);
-    if (expanded && targetNode) {
-      switch(targetNode.type) {
+    if (targetNode && expanded) {
+      switch (targetNode.type) {
         case NodeType.Tables: {
-          const databaseNode = findFirstParentOfType(targetNode, NodeType.Database);
-          if (databaseNode) {
-            fetchTables(databaseNode.nodeName);
+          if (hasLoaderNode(targetNode)) {
+            const databaseNode = findFirstParentOfType(
+              targetNode,
+              NodeType.Database
+            );
+            if (databaseNode) {
+              fetchTables(databaseNode.nodeName);
+            }
           }
           break;
         }
@@ -100,8 +100,51 @@ function DBTreeView() {
     }
   }
 
-  return (
-    <TreeView root={root} onExpand={handleExpand}/>
+  function handleSelectTop100Records(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    selectTopNRecords(targetNode, 1000);
+  }
+
+  function handleSelectAllRecords(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    selectTopNRecords(targetNode, -1);
+  }
+
+  function selectTopNRecords(targetNode: TreeViewNodeData | undefined, recordsNumber: number) {
+    if (root && targetNode) {
+      const databaseNode = findFirstParentOfType(
+        targetNode,
+        NodeType.Database
+      );
+      if (databaseNode){
+        getTopNTableRecords(
+          databaseNode.nodeName,
+          targetNode.metaData || '',
+          targetNode.nodeName,
+          recordsNumber);
+      }
+    }
+  }
+
+  if (!root) {
+    return null;
+  }
+
+  const currentNodeType = currentNode?.type as NodeType;
+
+  return (<>
+    <TreeView root={root} onNodeClick={handleOnNodeClick} onExpand={handleExpand}/>
+
+    <Menus targetPosition={contextMenuTarget} id="TestMenu" clickedOutside={() => setContextMenuTarget(EmptyPosition)}>
+      {currentNodeType === NodeType.Table && (<>
+          <Menus.MenuItem icon={<PiRows />} onClick={() => handleSelectTop100Records(currentNode)}>Select TOP 100 Records</Menus.MenuItem>
+          <Menus.MenuItem icon={<PiRows />} onClick={() => handleSelectAllRecords(currentNode)}>Select All Records</Menus.MenuItem>
+        </>
+      )}
+    </Menus>
+  </>
+
+
   )
 }
 

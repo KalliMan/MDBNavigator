@@ -14,6 +14,7 @@ namespace MDBNavigator.DAL.Interfaces
         //Task<IEnumerable<DatabaseSchemaDto>> GetDatabaseSchemas();
 
         Task<IEnumerable<TableDto>> GetTables(string databaseName);
+        Task<DatabaseCommandResultRaw> GetTopNTableRecords(string databaseName, string schema, string table, int? recordsNumber);
         //Task<DatabaseCommandResultRaw> ExecuteQuery(string script);
     }
 }

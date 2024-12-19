@@ -3,6 +3,8 @@ import LocalSessionStorage from '../utils/localSessionStorage';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
 import { TablesDetails } from '../models/schema/tablesDetails';
 import { DatabasesDetails } from '../models/schema/databasesDetails';
+import { CommandQuery } from '../models/command/commandQuery';
+import { DatabaseCommantResult } from '../models/command/databaseCommantResul';
 
 // import { ConnectionSettings } from '../models/connectionSettings';
 // import { Database } from '../models/database';
@@ -42,14 +44,16 @@ const databaseSchemaApi = {
   fetchTables: (databaseName: string) => requests.get<TablesDetails>(`/DatabaseSchema/tables/${databaseName}`)
 };
 
-// const databaseCommandApi = {
-//   execute: (cmdQuery: CommandQuery) => requests.post<DatabaseCommantResult>('/DatabaseCommand', cmdQuery)
-// }
+const databaseCommandApi = {
+  getTopNTableRecords: (databaseName: string, schema: string, table: string, recordsNumber: number) =>
+    requests.get<DatabaseCommantResult>(`/DatabaseCommand/tableRecords/${databaseName}/${schema}/${table}/${recordsNumber}`),
+    execute: (cmdQuery: CommandQuery) => requests.post<DatabaseCommantResult>('/DatabaseCommand', cmdQuery)
+}
 
 const agent = {
   databaseConnectionApi,
   databaseSchemaApi,
-//  databaseCommandApi
+  databaseCommandApi
 };
 
 export default agent;

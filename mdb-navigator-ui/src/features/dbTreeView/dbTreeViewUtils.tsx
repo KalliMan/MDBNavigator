@@ -106,6 +106,10 @@ export function createProgrammabilityFoldersNode(parentNode: TreeViewNodeData): 
   return result;
 }
 
+export function hasLoaderNode(databaseNode: TreeViewNodeData): boolean {
+  return databaseNode?.nodes?.length === 1 && databaseNode?.nodes?.[0].type === NodeType.Loader;
+}
+
 export function getDatabaseNode(serverNode: TreeViewNodeData, databaseName: string): TreeViewNodeData | undefined {
 //  const targetServerNode = serverNodes.find(node => node.nodeName === serverName);
   if (serverNode?.nodes?.length) {

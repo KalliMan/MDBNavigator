@@ -3,7 +3,6 @@ import { ConnectionSettings } from "../models/connect/connectionSettings";
 import { DatabaseActionTypes } from "./DatabaseActionType";
 import { DatabaseContextType, databaseReducer, databaseInitialState } from "./DatabaseReducer";
 import agent from "../services/apiAgent";
-//import { AppGlobalState } from "../types/appGlobalState";
 
 
 const DatabaseContext = createContext<DatabaseContextType | null>(null);
@@ -69,11 +68,30 @@ export function useDatabaseContext() {
       type: DatabaseActionTypes.FetchedTables,
       payload: result
     });
+  }
 
+  async function getTopNTableRecords(databaseName: string, schema: string, table: string, recordsNumber: number) {
+    context!.dispatch({
+      type: DatabaseActionTypes.Loading,
+    });
+
+    const result = await agent.databaseCommandApi.getTopNTableRecords(databaseName, schema, table, recordsNumber);
+    console.log(result);
   }
 
   const {isLoading, isConnectedToDB, error, connectionSettings, databasesDetails, tablesDetails} = context.state;
 
-  return {isLoading, isConnectedToDB, error, connectionSettings, databasesDetails, tablesDetails, connect, fetchDatabases, fetchTables};
+  return {
+    isLoading,
+    isConnectedToDB,
+    error,
+    connectionSettings,
+    databasesDetails,
+    tablesDetails,
+    connect,
+    fetchDatabases,
+    fetchTables,
+    getTopNTableRecords
+  };
 }
 

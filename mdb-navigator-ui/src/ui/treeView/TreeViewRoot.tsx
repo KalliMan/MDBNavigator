@@ -3,13 +3,15 @@ import { TreeViewNodeData } from "./TreeViewNodeData";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
 import { useTreeViewContext } from "./TreeViewContextProvider";
 import { TreeViewNode } from "./TreeViewNode";
+import { CoordPosition } from "../../types/coordPosition";
 
 export interface Props {
   root: TreeViewNodeData;
+  onNodeClick: (node: TreeViewNodeData, target: CoordPosition) => void;
   onExpand: (id: string, expanded: boolean) => void;
 }
 
-export function TreeViewRoot({root, onExpand}: Props) {
+export function TreeViewRoot({root, onNodeClick, onExpand}: Props) {
   const {dispatch, state} = useTreeViewContext();
 
   useEffect(() => {
@@ -22,7 +24,9 @@ export function TreeViewRoot({root, onExpand}: Props) {
 
   return (
     <div className="w-fit text-left cursor-pointer">
-      <TreeViewNode node={state.nodeData!} onExpand={(id, expanded) => onExpand(id, expanded)}/>
+      <TreeViewNode node={state.nodeData!}
+        onNodeClick={onNodeClick}
+        onExpand={onExpand}/>
     </div>
   );
 }
