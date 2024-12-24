@@ -4,14 +4,13 @@ import Tabs from '../ui/tabs/Tabs';
 import { v4 as uuidv4 } from 'uuid';
 import { useDatabaseContext } from '../contexts/DatabaseContextProvider';
 import DatabaseCommandAndResult from '../features/databaseCommand/DatabaseCommandAndResult';
-import { DatabaseCommandQueryBase } from '../models/databaseCommand/query/databaseCommandQueryBase';
+import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
 
 interface TabData {
   id: string;
   name: string;
 
-  databaseCommandQuery: DatabaseCommandQueryBase;
-//  databaseCommandResult: DatabaseCommantResult;
+  databaseCommandQuery: DatabaseSQLCommandQuery;
 }
 
 function Mainbar() {
@@ -23,13 +22,13 @@ function Mainbar() {
     return null;
   }
 
-  const newDatabaseCommandRequest = databaseCommandQueries[databaseCommandQueries.length - 1];
+  const newDatabaseCommandQueryRequest = databaseCommandQueries[databaseCommandQueries.length - 1];
   const tabs = tabsData.current;
-  if (newDatabaseCommandRequest && !tabs.some(t => t.databaseCommandQuery.id === newDatabaseCommandRequest.id)) {
+  if (newDatabaseCommandQueryRequest && !tabs.some(t => t.databaseCommandQuery.id === newDatabaseCommandQueryRequest.id)) {
     const newTab: TabData = {
       id: uuidv4(),
       name: `New SQL Query (${tabs.length + 1})`,
-      databaseCommandQuery: newDatabaseCommandRequest
+      databaseCommandQuery: newDatabaseCommandQueryRequest
     };
 
     tabs?.push(newTab);

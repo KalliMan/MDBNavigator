@@ -9,7 +9,6 @@
 
     public class DatabaseCommandResultDto : DatabaseCommandBatchResultDto
     {
-        public required string Script { get;set; }
         public int RowCount { get; init; }
         public required IEnumerable<DatabaseCommandResultFieldDto> Fields { get; init; }
     }

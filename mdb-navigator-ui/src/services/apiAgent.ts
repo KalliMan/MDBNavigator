@@ -3,8 +3,8 @@ import LocalSessionStorage from '../utils/localSessionStorage';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
 import { TablesDetails } from '../models/schema/tablesDetails';
 import { DatabasesDetails } from '../models/schema/databasesDetails';
-import { DatabaseCommandQuery } from '../models/databaseCommand/query/dbSQLCommandQuery';
-import { DatabaseCommantResult } from '../models/databaseCommand/databaseCommandResult';
+import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
+import { DatabaseCommandResult } from '../models/databaseCommand/databaseCommandResult';
 
 // import { ConnectionSettings } from '../models/connectionSettings';
 // import { Database } from '../models/database';
@@ -45,9 +45,12 @@ const databaseSchemaApi = {
 };
 
 const databaseCommandApi = {
-  getTopNTableRecords: (id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommantResult> =>
-    requests.get<DatabaseCommantResult>(`/DatabaseCommand/tableRecords/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
-  execute: (cmdQuery: DatabaseCommandQuery) => requests.post<DatabaseCommantResult>('/DatabaseCommand', cmdQuery)
+  execute: (cmdQuery: DatabaseSQLCommandQuery) => requests.post<string>('/DatabaseCommand', cmdQuery),
+
+  getTopNTableRecords: (id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommandResult> =>
+    requests.get<DatabaseCommandResult>(`/DatabaseCommand/tableRecords/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  getTopNTableRecordsScript: (id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
+    requests.get<string>(`/DatabaseCommand/tableRecordsScript/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
 }
 
 const agent = {

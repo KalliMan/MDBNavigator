@@ -72,18 +72,23 @@ namespace MDBNavigator.PostgreSQL
 
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string databaseName, string schema, string table, int? recordsNumber)
         {
+            var cmdQuery = GetTopNTableRecordsScript(databaseName, schema, table, recordsNumber);
+            return await ExecuteQuery(cmdQuery);
+        }
+
+        public string GetTopNTableRecordsScript(string databaseName, string schema, string table, int? recordsNumber)
+        {
             var script = $"SELECT * FROM {schema}.\"{table}\" ";
             if (recordsNumber.HasValue && recordsNumber.Value > -1)
             {
                 script += $"LIMIT {recordsNumber}";
             }
+            return script;
+        }
 
-            return await ExecuteQuery(script);
-        }       
-
-        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string script)
+        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery)
         {
-            using var reader = await _connection.ExecuteReaderAsync(script);
+            using var reader = await _connection.ExecuteReaderAsync(cmdQuery);
             DataTable dt = new DataTable();
 
             if (reader.HasRows)
@@ -93,7 +98,6 @@ namespace MDBNavigator.PostgreSQL
 
             return new DatabaseCommandResultRaw()
             {
-                Script = script,
                 Result = dt
             };
         }

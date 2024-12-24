@@ -1,6 +1,6 @@
 import { ConnectionSettings } from "../models/connect/connectionSettings";
-import { DatabaseCommantResult } from "../models/databaseCommand/databaseCommandResult";
-import { DatabaseCommandQueryBase } from "../models/databaseCommand/query/databaseCommandQueryBase";
+import { DatabaseCommandResult } from "../models/databaseCommand/databaseCommandResult";
+import { DatabaseSQLCommandQuery } from "../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabasesDetails } from "../models/schema/databasesDetails";
 import { TablesDetails } from "../models/schema/tablesDetails";
 
@@ -48,12 +48,12 @@ export type FetchedTables = {
 
 export type CommandQueried = {
   type: DatabaseActionTypes.CommandQueried;
-  payload: DatabaseCommandQueryBase;
+  payload: DatabaseSQLCommandQuery;
 }
 
 export type CommandResultReceived = {
   type: DatabaseActionTypes.CommandResultReceived;
-  payload: DatabaseCommantResult;
+  payload: DatabaseCommandResult;
 }
 
 export type ExecuiteAction = {

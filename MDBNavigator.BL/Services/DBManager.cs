@@ -108,7 +108,6 @@ namespace MDBNavigator.BL.Services
             var result = new DatabaseCommandResultDto()
             {
                 Index = 0,
-                Script = rawResult.Script,
                 Id = id,
                 RowCount = rawResult.Result.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
@@ -125,6 +124,55 @@ namespace MDBNavigator.BL.Services
 
             return result;
         }
+
+        public async Task<string> GetTopNTableRecordsScript(string id, string sessionId, string databaseName, string schema, string table, int? recordsNumber)
+        {
+            var details = _memoryCache.Get(sessionId);
+            if (details == null)
+            {
+                throw new Exception("Not Connected");
+            }
+
+            details.DatabaseName = databaseName;
+            var connection = await DBConnection.CreateConnection(details);
+
+            var rawResult = connection.GetTopNTableRecordsScript(databaseName, schema, table, recordsNumber);
+            return rawResult;
+        }
+
+        public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string id, string databaseName, string cmdQuery)
+        {
+            var details = _memoryCache.Get(sessionId);
+            if (details == null)
+            {
+                throw new Exception("Not Connected");
+            }
+
+            details.DatabaseName = databaseName;
+            var connection = await DBConnection.CreateConnection(details);
+
+            var rawResult = await connection.ExecuteQuery(cmdQuery);
+
+            var result = new DatabaseCommandResultDto()
+            {
+                Index = 0,
+                Id = id,
+                RowCount = rawResult.Result.Rows.Count,
+                Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
+                {
+                    Index = index,
+                    FieldName = rawResult.Result.Columns[index].ColumnName,
+                    FieldType = rawResult.Result.Columns[index].GetType().ToString(),
+                    FieldDataTypeName = rawResult.Result.Columns[index].DataType.ToString(),
+                }).ToList(),
+
+                ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Select(r => r.ItemArray))
+                //ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
+            };
+
+            return result;
+        }
+
         /*
         public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, Guid id, string databaseName, string query)
         {

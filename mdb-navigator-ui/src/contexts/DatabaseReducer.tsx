@@ -1,9 +1,9 @@
 import { ConnectionSettings } from "../models/connect/connectionSettings";
+import { DatabaseCommandResult } from "../models/databaseCommand/databaseCommandResult";
+import { DatabaseSQLCommandQuery } from "../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabasesDetails } from "../models/schema/databasesDetails";
 import { TablesDetails } from "../models/schema/tablesDetails";
 import { DatabaseActions, DatabaseActionTypes } from "./DatabaseActionType";
-import { DatabaseCommandQueryBase } from "../models/databaseCommand/query/databaseCommandQueryBase";
-import { DatabaseCommantResult } from "../models/databaseCommand/databaseCommandResult";
 
 export type DatabaseState = {
   isConnectedToDB: boolean;
@@ -15,8 +15,8 @@ export type DatabaseState = {
   databasesDetails: DatabasesDetails | null;
   tablesDetails: TablesDetails | null;
 
-  databaseCommandQueries: DatabaseCommandQueryBase[];
-  databaseCommantResults: DatabaseCommantResult[];
+  databaseCommandQueries: DatabaseSQLCommandQuery[];
+  databaseCommantResults: DatabaseCommandResult[];
 }
 
 export const databaseInitialState: DatabaseState = {
@@ -65,16 +65,19 @@ export function databaseReducer(state: DatabaseState, action: DatabaseActions): 
         tablesDetails: action.payload
       };
     case DatabaseActionTypes.CommandQueried:
+
       return {
         ...state,
         isLoading: false,
-        databaseCommandQueries: [...state.databaseCommandQueries, action.payload]
+        databaseCommandQueries: [...state.databaseCommandQueries?.filter(q => q.id !== action.payload.id) ?? [],
+          action.payload]
       }
     case DatabaseActionTypes.CommandResultReceived:
       return {
         ...state,
           isLoading: false,
-          databaseCommantResults: [...state.databaseCommantResults, action.payload]
+          databaseCommantResults: [...state.databaseCommantResults?.filter(q => q.id !== action.payload.id) ?? [],
+            action.payload]
       }
     case DatabaseActionTypes.Error:
       return {

@@ -55,14 +55,17 @@ namespace MDBNavigator.DAL
 
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string databaseName, string schema, string table, int? recordsNumber)
             => await _dbServer.GetTopNTableRecords(databaseName, schema, table, recordsNumber);
+
+        public string GetTopNTableRecordsScript(string databaseName, string schema, string table, int? recordsNumber)
+            => _dbServer.GetTopNTableRecordsScript(databaseName, schema, table, recordsNumber);
+
+        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery)        
+            => await _dbServer.ExecuteQuery(cmdQuery);        
         /*
                 public DatabaseConnectionInfoDto GetDetails()
                     => _dbServer.GetDetails();
 
-                public async Task<DatabaseCommandResultRaw> ExecuteQuery(string script)
-                {
-                    return await _dbServer.ExecuteQuery(script);
-                }
+
         */
     }
 }

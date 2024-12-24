@@ -1,5 +1,6 @@
-import { DatabaseCommandQueryBase } from "./databaseCommandQueryBase";
-
-export interface DatabaseSQLCommandQuery extends DatabaseCommandQueryBase {
-  query: string;
+export interface DatabaseSQLCommandQuery {
+  id: string;
+  databaseName: string;
+  cmdQuery: string;
+  executeImmediately: boolean;
 }

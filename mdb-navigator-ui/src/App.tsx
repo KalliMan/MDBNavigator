@@ -4,7 +4,6 @@ import Mainbar from "./layout/MainBar";
 import NavBar from "./layout/NavBar";
 import Loader from "./ui/loader/Loader";
 import ModalWindow from "./ui/modalWindow/ModalWindow";
-import HorisontalSidebar from "./ui/sidebar/HorisontalSidebar";
 import VerticalSidebar from "./ui/sidebar/VerticalSidebar";
 
 function App() {
@@ -24,9 +23,6 @@ function App() {
         </VerticalSidebar>
         <div className=" overflow-hidden">
           <Mainbar />
-          {/* <HorisontalSidebar>
-            <Mainbar />
-          </HorisontalSidebar> */}
         </div>
       </div>
     </div>

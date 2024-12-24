@@ -1,14 +1,33 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Button from '../../ui/common/Button';
 import { ButtonType } from '../../ui/common/ButtonType.enum';
+import { useDatabaseContext } from '../../contexts/DatabaseContextProvider';
+import { DatabaseSQLCommandQuery } from '../../models/databaseCommand/query/databaseSQLCommandQuery';
 
 interface Props {
-  initialQuery?: string;
+  databaseCommandQuery: DatabaseSQLCommandQuery;
   execute?(query: string): void;
 }
 
-function DatabaseCommand({ initialQuery, execute }: Props) {
-  const [query, setScript] = useState<string>(initialQuery ? initialQuery : '');
+export default function DatabaseCommand({ databaseCommandQuery }: Props) {
+  const { executeDatabaseSQLCommand} = useDatabaseContext();
+  const commandQuery = useRef<DatabaseSQLCommandQuery>(databaseCommandQuery);
+  const [sqlQuery, setSqlQuery] = useState<string>(commandQuery.current.cmdQuery);
+
+  useEffect(() => {
+      if ((commandQuery.current.executeImmediately)) {
+
+        executeDatabaseSQLCommand(commandQuery.current);
+        commandQuery.current.executeImmediately = false;
+      }
+    },
+    [commandQuery, executeDatabaseSQLCommand]
+  );
+
+  function handleExecute() {
+    commandQuery.current.cmdQuery = sqlQuery;
+    executeDatabaseSQLCommand(commandQuery.current);
+  }
 
   return (
     <div className="border h-full">
@@ -18,16 +37,15 @@ function DatabaseCommand({ initialQuery, execute }: Props) {
           name=""
           id=""
           placeholder="Put your query here"
-          value={query}
-          onChange={e => setScript(e.target.value)}
+          value={sqlQuery}
+          onChange={e => setSqlQuery(e.target.value)}
         >
         </textarea>
       </div>
       <div className="">
-        <Button type={ButtonType.primary} onClick={() => execute?.(query)}>Execute</Button>
+        <Button type={ButtonType.primary} onClick={handleExecute}>Execute</Button>
       </div>
     </div>
   );
 }
 
-export default DatabaseCommand;
