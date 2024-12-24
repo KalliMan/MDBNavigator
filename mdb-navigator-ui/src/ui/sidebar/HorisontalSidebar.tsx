@@ -4,7 +4,7 @@ interface Props {
   initialHeight?: number;
 }
 
-function HorisontalSidebar({children, initialHeight = 820}: React.PropsWithChildren<Props>) {
+function HorisontalSidebar({children, initialHeight = 580}: React.PropsWithChildren<Props>) {
   const [height, setHeight] = useState(initialHeight);
   const isResized = useRef(false);
 
@@ -23,7 +23,7 @@ function HorisontalSidebar({children, initialHeight = 820}: React.PropsWithChild
   }, []);
 
   return (
-    <div className="">
+    <>
       <div style={{ height: `${height / 16}rem` }} className="">
         {children}
       </div>
@@ -34,7 +34,7 @@ function HorisontalSidebar({children, initialHeight = 820}: React.PropsWithChild
           isResized.current = true;
         }}
       />
-    </div>
+    </>
   );
 }
 

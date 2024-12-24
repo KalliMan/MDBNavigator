@@ -1,6 +1,8 @@
 ﻿using MDBNavigator.BL.Cache;
 using MDBNavigator.DAL;
 using Models;
+using Newtonsoft.Json;
+
 
 //using MDBNavigator.BL.Common;
 //using MDBNavigator.BL.HostedServiceQueue;
@@ -90,7 +92,7 @@ namespace MDBNavigator.BL.Services
             };
         }
 
-        public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string sessionId, string databaseName, string schema, string table, int? recordsNumber)
+        public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string databaseName, string schema, string table, int? recordsNumber)
         {
             var details = _memoryCache.Get(sessionId);
             if (details == null)
@@ -106,6 +108,7 @@ namespace MDBNavigator.BL.Services
             var result = new DatabaseCommandResultDto()
             {
                 Index = 0,
+                Script = rawResult.Script,
                 Id = id,
                 RowCount = rawResult.Result.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
@@ -116,7 +119,8 @@ namespace MDBNavigator.BL.Services
                     FieldDataTypeName = rawResult.Result.Columns[index].DataType.ToString(),
                 }).ToList(),
 
-                ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
+                ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Select(r => r.ItemArray))
+                //ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
             };
 
             return result;

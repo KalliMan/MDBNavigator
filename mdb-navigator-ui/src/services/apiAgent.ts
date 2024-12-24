@@ -3,8 +3,8 @@ import LocalSessionStorage from '../utils/localSessionStorage';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
 import { TablesDetails } from '../models/schema/tablesDetails';
 import { DatabasesDetails } from '../models/schema/databasesDetails';
-import { CommandQuery } from '../models/command/commandQuery';
-import { DatabaseCommantResult } from '../models/command/databaseCommantResul';
+import { DatabaseCommandQuery } from '../models/databaseCommand/query/dbSQLCommandQuery';
+import { DatabaseCommantResult } from '../models/databaseCommand/databaseCommandResult';
 
 // import { ConnectionSettings } from '../models/connectionSettings';
 // import { Database } from '../models/database';
@@ -40,14 +40,14 @@ const databaseConnectionApi = {
 }
 
 const databaseSchemaApi = {
-  fetchDatabases: () => requests.get<DatabasesDetails>('/DatabaseSchema/databases'),
-  fetchTables: (databaseName: string) => requests.get<TablesDetails>(`/DatabaseSchema/tables/${databaseName}`)
+  fetchDatabases: (): Promise<DatabasesDetails> => requests.get<DatabasesDetails>('/DatabaseSchema/databases'),
+  fetchTables: (databaseName: string): Promise<TablesDetails> => requests.get<TablesDetails>(`/DatabaseSchema/tables/${databaseName}`)
 };
 
 const databaseCommandApi = {
-  getTopNTableRecords: (databaseName: string, schema: string, table: string, recordsNumber: number) =>
-    requests.get<DatabaseCommantResult>(`/DatabaseCommand/tableRecords/${databaseName}/${schema}/${table}/${recordsNumber}`),
-    execute: (cmdQuery: CommandQuery) => requests.post<DatabaseCommantResult>('/DatabaseCommand', cmdQuery)
+  getTopNTableRecords: (id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommantResult> =>
+    requests.get<DatabaseCommantResult>(`/DatabaseCommand/tableRecords/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  execute: (cmdQuery: DatabaseCommandQuery) => requests.post<DatabaseCommantResult>('/DatabaseCommand', cmdQuery)
 }
 
 const agent = {

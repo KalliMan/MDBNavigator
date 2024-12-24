@@ -72,10 +72,10 @@ namespace MDBNavigator.PostgreSQL
 
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string databaseName, string schema, string table, int? recordsNumber)
         {
-            var script = $"SELECT * FROM ${schema}.\"${table}\" ";
+            var script = $"SELECT * FROM {schema}.\"{table}\" ";
             if (recordsNumber.HasValue && recordsNumber.Value > -1)
             {
-                script += $"LIMIT ${recordsNumber}";
+                script += $"LIMIT {recordsNumber}";
             }
 
             return await ExecuteQuery(script);
@@ -93,6 +93,7 @@ namespace MDBNavigator.PostgreSQL
 
             return new DatabaseCommandResultRaw()
             {
+                Script = script,
                 Result = dt
             };
         }

@@ -1,5 +1,6 @@
 import { useDatabaseContext } from "./contexts/DatabaseContextProvider";
 import ConnectToServer from "./features/connect/ConnectToServer";
+import Mainbar from "./layout/MainBar";
 import NavBar from "./layout/NavBar";
 import Loader from "./ui/loader/Loader";
 import ModalWindow from "./ui/modalWindow/ModalWindow";
@@ -21,11 +22,11 @@ function App() {
         <VerticalSidebar>
           <NavBar />
         </VerticalSidebar>
-        <div className="h-full w-fill grid grid-rows-[max-content_auto]">
-          <HorisontalSidebar>
-            <div className="h-full w-fill">Main Content</div>
-          </HorisontalSidebar>
-          <div className="">Player</div>
+        <div className=" overflow-hidden">
+          <Mainbar />
+          {/* <HorisontalSidebar>
+            <Mainbar />
+          </HorisontalSidebar> */}
         </div>
       </div>
     </div>

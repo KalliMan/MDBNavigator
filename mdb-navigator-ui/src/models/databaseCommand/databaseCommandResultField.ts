@@ -1,4 +1,4 @@
-export interface DatabaseCommantResultField {
+export interface DatabaseCommandResultField {
   index: number;
   fieldName: string;
   fieldType: string;

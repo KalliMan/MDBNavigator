@@ -2,6 +2,8 @@ import { ConnectionSettings } from "../models/connect/connectionSettings";
 import { DatabasesDetails } from "../models/schema/databasesDetails";
 import { TablesDetails } from "../models/schema/tablesDetails";
 import { DatabaseActions, DatabaseActionTypes } from "./DatabaseActionType";
+import { DatabaseCommandQueryBase } from "../models/databaseCommand/query/databaseCommandQueryBase";
+import { DatabaseCommantResult } from "../models/databaseCommand/databaseCommandResult";
 
 export type DatabaseState = {
   isConnectedToDB: boolean;
@@ -12,6 +14,9 @@ export type DatabaseState = {
 
   databasesDetails: DatabasesDetails | null;
   tablesDetails: TablesDetails | null;
+
+  databaseCommandQueries: DatabaseCommandQueryBase[];
+  databaseCommantResults: DatabaseCommantResult[];
 }
 
 export const databaseInitialState: DatabaseState = {
@@ -22,7 +27,10 @@ export const databaseInitialState: DatabaseState = {
   error: null,
 
   databasesDetails: null,
-  tablesDetails: null
+  tablesDetails: null,
+
+  databaseCommandQueries: [],
+  databaseCommantResults: []
 };
 
 export type DatabaseContextType = {
@@ -56,6 +64,18 @@ export function databaseReducer(state: DatabaseState, action: DatabaseActions): 
         isLoading: false,
         tablesDetails: action.payload
       };
+    case DatabaseActionTypes.CommandQueried:
+      return {
+        ...state,
+        isLoading: false,
+        databaseCommandQueries: [...state.databaseCommandQueries, action.payload]
+      }
+    case DatabaseActionTypes.CommandResultReceived:
+      return {
+        ...state,
+          isLoading: false,
+          databaseCommantResults: [...state.databaseCommantResults, action.payload]
+      }
     case DatabaseActionTypes.Error:
       return {
         ...state,

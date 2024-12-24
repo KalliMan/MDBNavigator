@@ -3,6 +3,8 @@ import { ConnectionSettings } from "../models/connect/connectionSettings";
 import { DatabaseActionTypes } from "./DatabaseActionType";
 import { DatabaseContextType, databaseReducer, databaseInitialState } from "./DatabaseReducer";
 import agent from "../services/apiAgent";
+import { v4 as uuidv4 } from 'uuid';
+import { DatabaseGetTopNRecordsTableCommandQuery } from "../models/databaseCommand/query/databaseGetTopNRecordsTableCommandQuery";
 
 
 const DatabaseContext = createContext<DatabaseContextType | null>(null);
@@ -70,16 +72,31 @@ export function useDatabaseContext() {
     });
   }
 
-  async function getTopNTableRecords(databaseName: string, schema: string, table: string, recordsNumber: number) {
+  async function queryCommandGetTopNTableRecords(databaseName: string, schema: string, table: string, recordsNumber: number) {
+
+    const query: DatabaseGetTopNRecordsTableCommandQuery = new DatabaseGetTopNRecordsTableCommandQuery(uuidv4(), databaseName, schema, table, recordsNumber, true);
+
     context!.dispatch({
-      type: DatabaseActionTypes.Loading,
+      type: DatabaseActionTypes.CommandQueried,
+      payload: query
     });
 
-    const result = await agent.databaseCommandApi.getTopNTableRecords(databaseName, schema, table, recordsNumber);
-    console.log(result);
   }
 
-  const {isLoading, isConnectedToDB, error, connectionSettings, databasesDetails, tablesDetails} = context.state;
+  // async function getTopNTableRecords(id: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
+  //   context!.dispatch({
+  //     type: DatabaseActionTypes.Loading,
+  //   });
+
+  //   const result = await agent.databaseCommandApi.getTopNTableRecords(id, databaseName, schema, table, recordsNumber);
+
+  //   context!.dispatch({
+  //     type: DatabaseActionTypes.CommandResultReceived,
+  //     payload: result
+  //   });
+  // }
+
+  const {isLoading, isConnectedToDB, error, connectionSettings, databasesDetails, tablesDetails, databaseCommandQueries} = context.state;
 
   return {
     isLoading,
@@ -88,10 +105,12 @@ export function useDatabaseContext() {
     connectionSettings,
     databasesDetails,
     tablesDetails,
+    databaseCommandQueries,
     connect,
     fetchDatabases,
     fetchTables,
-    getTopNTableRecords
+    queryCommandGetTopNTableRecords,
+//    getTopNTableRecords
   };
 }
 

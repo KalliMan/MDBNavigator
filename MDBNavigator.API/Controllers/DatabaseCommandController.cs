@@ -16,8 +16,8 @@ namespace MDBNavigator.API.Controllers
             _dbManager = dbManager;            
         }
 
-        [HttpGet("tableRecords/{databaseName}/{schema}/{table}/{recordsNumber}")]
-        public async Task<IActionResult> GetTopNTableRecords(string databaseName, string schema, string table, int? recordsNumber)
+        [HttpGet("tableRecords/{id}/{databaseName}/{schema}/{table}/{recordsNumber}")]
+        public async Task<IActionResult> GetTopNTableRecords(string id, string databaseName, string schema, string table, int? recordsNumber)
         {
             var sessionId = Request.Headers["id"];
             if (string.IsNullOrEmpty(sessionId))
@@ -25,7 +25,7 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetTopNTableRecords(sessionId!, databaseName, schema, table, recordsNumber));
+            return Ok(await _dbManager.GetTopNTableRecords(id, sessionId!, databaseName, schema, table, recordsNumber));
         }
 
 

@@ -17,7 +17,7 @@ function DBTreeView() {
     tablesDetails,
     fetchDatabases,
     fetchTables,
-    getTopNTableRecords
+    queryCommandGetTopNTableRecords
   } = useDatabaseContext();
 
   const [root, setRoot] = useState<TreeViewNodeData | null>();
@@ -117,7 +117,7 @@ function DBTreeView() {
         NodeType.Database
       );
       if (databaseNode){
-        getTopNTableRecords(
+        queryCommandGetTopNTableRecords(
           databaseNode.nodeName,
           targetNode.metaData || '',
           targetNode.nodeName,
