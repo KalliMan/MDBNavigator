@@ -2,9 +2,9 @@ import { useRef } from 'react';
 import Tabs from '../ui/tabs/Tabs';
 
 import { v4 as uuidv4 } from 'uuid';
-import { useDatabaseContext } from '../contexts/DatabaseContextProvider';
 import DatabaseCommandAndResult from '../features/databaseCommand/DatabaseCommandAndResult';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
+import useDatabaseCommandContext from '../contexts/databaseCommand/useDatabaseCommand';
 
 interface TabData {
   id: string;
@@ -14,7 +14,7 @@ interface TabData {
 }
 
 function Mainbar() {
-  const { databaseCommandQueries } = useDatabaseContext();
+  const { databaseCommandQueries } = useDatabaseCommandContext();
   const tabsData = useRef<TabData[]>([]);
 
   console.log(databaseCommandQueries);

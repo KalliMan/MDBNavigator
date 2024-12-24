@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Button from '../../ui/common/Button';
 import { ButtonType } from '../../ui/common/ButtonType.enum';
-import { useDatabaseContext } from '../../contexts/DatabaseContextProvider';
 import { DatabaseSQLCommandQuery } from '../../models/databaseCommand/query/databaseSQLCommandQuery';
+import useDatabaseCommandContext from '../../contexts/databaseCommand/useDatabaseCommand';
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function DatabaseCommand({ databaseCommandQuery }: Props) {
-  const { executeDatabaseSQLCommand} = useDatabaseContext();
+  const { executeDatabaseSQLCommand} = useDatabaseCommandContext();
   const commandQuery = useRef<DatabaseSQLCommandQuery>(databaseCommandQuery);
   const [sqlQuery, setSqlQuery] = useState<string>(commandQuery.current.cmdQuery);
 

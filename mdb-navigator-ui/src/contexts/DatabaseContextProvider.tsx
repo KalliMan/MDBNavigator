@@ -1,146 +1,15 @@
-import { createContext, useContext, useReducer } from "react";
+import DatabaseCommandContextProvider from "./databaseCommand/databaseCommandContextProvider";
+import DatabaseConnectContextProvider from "./databaseConnect/DatabaseConnectContextProvider";
+import DatabaseSchemaContextProvider from "./databaseSchema/DatabaseSchemaContextProvider";
 
-import agent from "../services/apiAgent";
-import { v4 as uuidv4 } from 'uuid';
-
-import { ConnectionSettings } from "../models/connect/connectionSettings";
-import { DatabaseActionTypes } from "./DatabaseActionType";
-import { DatabaseContextType, databaseReducer, databaseInitialState } from "./DatabaseReducer";
-import { DatabaseSQLCommandQuery } from "../models/databaseCommand/query/databaseSQLCommandQuery";
-import { DatabaseCommandResult } from "../models/databaseCommand/databaseCommandResult";
-
-
-const DatabaseContext = createContext<DatabaseContextType | null>(null);
-
-
-export function DatabaseContextProvider({ children }: React.PropsWithChildren) {
-  const [state, dispatch] = useReducer(databaseReducer, databaseInitialState);
-
-  return ( <DatabaseContext.Provider value={{ state, dispatch }}>
-      {children}
-    </DatabaseContext.Provider>
+export default function DatabaseContextProvider({ children }: React.PropsWithChildren) {
+  return (
+    <DatabaseConnectContextProvider>
+      <DatabaseSchemaContextProvider>
+        <DatabaseCommandContextProvider>
+          {children}
+        </DatabaseCommandContextProvider>
+      </DatabaseSchemaContextProvider>
+    </DatabaseConnectContextProvider>
   );
 }
-
-export function useDatabaseContext() {
-  const context = useContext(DatabaseContext);
-
-  if (!context) {
-      throw new Error('TreeViewContext must be used inside the Provider');
-  }
-
-  async function connect(connectionSettings: ConnectionSettings) {
-    context!.dispatch({
-      type: DatabaseActionTypes.Loading,
-    });
-
-    const result = await agent.databaseConnectionApi.connect(connectionSettings);
-
-    if (result ){
-      context!.dispatch({
-        type:DatabaseActionTypes.DatabaseConnected,
-        payload: connectionSettings
-      });
-    } else {
-      context!.dispatch({
-        type:DatabaseActionTypes.Error,
-        payload: `Cannot connect to ${connectionSettings.serverName}`
-      });
-    }
-  }
-
-  async function fetchDatabases() {
-    context!.dispatch({
-      type: DatabaseActionTypes.Loading,
-    });
-
-    const result = await agent.databaseSchemaApi.fetchDatabases();
-
-    context!.dispatch({
-      type: DatabaseActionTypes.FetchedDatabases,
-      payload: result
-    });
-  }
-
-  async function fetchTables(databaseName: string) {
-    context!.dispatch({
-      type: DatabaseActionTypes.Loading,
-    });
-
-    const result = await agent.databaseSchemaApi.fetchTables(databaseName);
-
-    context!.dispatch({
-      type: DatabaseActionTypes.FetchedTables,
-      payload: result
-    });
-  }
-
-  async function queryCommandGetTopNTableRecords(databaseName: string, schema: string, table: string, recordsNumber: number) {
-
-    const id = uuidv4();
-    const topNRecordsQuery = await agent.databaseCommandApi.getTopNTableRecordsScript(id, databaseName, schema, table, recordsNumber);
-
-    const query: DatabaseSQLCommandQuery = {
-      id,
-      databaseName,
-      cmdQuery: topNRecordsQuery,
-      executeImmediately: true
-    };
-
-    context!.dispatch({
-      type: DatabaseActionTypes.CommandQueried,
-      payload: query
-    });
-  }
-
-  async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
-    context!.dispatch({
-      type: DatabaseActionTypes.Loading,
-    });
-
-    const result = await agent.databaseCommandApi.execute(cmdQuery);
-
-    context!.dispatch({
-      type: DatabaseActionTypes.CommandResultReceived,
-      payload: result
-    });
-  }
-
-  async function getTopNTableRecords(id: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
-    context!.dispatch({
-      type: DatabaseActionTypes.Loading,
-    });
-
-    const result = await agent.databaseCommandApi.getTopNTableRecords(id, databaseName, schema, table, recordsNumber);
-
-    context!.dispatch({
-      type: DatabaseActionTypes.CommandResultReceived,
-      payload: result
-    });
-  }
-
-  function getDatabaseCommantResult(id: string): DatabaseCommandResult | undefined{
-    return context!.state.databaseCommantResults.find(r => r.id === id);
-  }
-
-  const {isLoading, isConnectedToDB, error, connectionSettings, databasesDetails, tablesDetails, databaseCommandQueries, databaseCommantResults } = context.state;
-
-  return {
-    isLoading,
-    isConnectedToDB,
-    error,
-    connectionSettings,
-    databasesDetails,
-    tablesDetails,
-    databaseCommandQueries,
-    databaseCommantResults,
-    connect,
-    fetchDatabases,
-    fetchTables,
-    queryCommandGetTopNTableRecords,
-    getTopNTableRecords,
-    executeDatabaseSQLCommand,
-    getDatabaseCommantResult
-  };
-}
-

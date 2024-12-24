@@ -1,4 +1,4 @@
-import { useDatabaseContext } from '../../contexts/DatabaseContextProvider';
+import useDatabaseCommandContext from '../../contexts/databaseCommand/useDatabaseCommand';
 
 interface Props {
   databaseCommandQueryId: string;
@@ -6,7 +6,7 @@ interface Props {
 
 export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
 
-  const { getDatabaseCommantResult } = useDatabaseContext();
+  const { getDatabaseCommantResult } = useDatabaseCommandContext();
 
   const databaseCommandResult = getDatabaseCommantResult(databaseCommandQueryId);
   if (!databaseCommandResult) {

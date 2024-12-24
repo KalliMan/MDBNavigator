@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useDatabaseContext } from "../../contexts/DatabaseContextProvider";
 import TreeView from "../../ui/treeView/TreeView"
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
 import { createDatabaseNode, createDatabasesFolderNode, createServerNode, createTableNode, getDatabaseNode, getTablesFolderNode, hasLoaderNode } from "./dbTreeViewUtils";
@@ -8,17 +7,26 @@ import { NodeType } from "./NodeType";
 import { CoordPosition, EmptyPosition } from "../../types/coordPosition";
 import Menus from "../../ui/contextMenu/Menus";
 import { PiRows } from "react-icons/pi";
+import useDatabaseConnectContext from "../../contexts/databaseConnect/useDatabaseConnect";
+import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseSchema";
+import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommand";
 
 
 function DBTreeView() {
   const {isConnectedToDB,
     connectionSettings,
+  } = useDatabaseConnectContext();
+
+  const {
     databasesDetails,
     tablesDetails,
     fetchDatabases,
     fetchTables,
+  } = useDatabaseSchemaContext()
+
+  const {
     queryCommandGetTopNTableRecords
-  } = useDatabaseContext();
+  } = useDatabaseCommandContext();
 
   const [root, setRoot] = useState<TreeViewNodeData | null>();
   const databasesLoaded = useRef(false);

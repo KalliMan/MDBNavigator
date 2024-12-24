@@ -1,4 +1,4 @@
-import { useDatabaseContext } from "./contexts/DatabaseContextProvider";
+import useDatabaseConnectContext from "./contexts/databaseConnect/useDatabaseConnect";
 import ConnectToServer from "./features/connect/ConnectToServer";
 import Mainbar from "./layout/MainBar";
 import NavBar from "./layout/NavBar";
@@ -7,10 +7,10 @@ import ModalWindow from "./ui/modalWindow/ModalWindow";
 import VerticalSidebar from "./ui/sidebar/VerticalSidebar";
 
 function App() {
-  const {isLoading, connect} = useDatabaseContext();
+  const {isConnecting, connect} = useDatabaseConnectContext();
   return (
     <div>
-      {isLoading && <Loader />}
+      {isConnecting && <Loader />}
       <ModalWindow name="Connect To DB Server" title="Connect To DB Server">
         <ConnectToServer
           onOk={(connectionSettings) => connect(connectionSettings)}
