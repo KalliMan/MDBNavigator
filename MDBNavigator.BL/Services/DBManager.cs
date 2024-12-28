@@ -109,6 +109,7 @@ namespace MDBNavigator.BL.Services
             {
                 Index = 0,
                 Id = id,
+                RecordsAffected = rawResult.RecordsAffected,
                 RowCount = rawResult.Result.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
                 {
@@ -157,6 +158,7 @@ namespace MDBNavigator.BL.Services
             {
                 Index = 0,
                 Id = id,
+                RecordsAffected = rawResult.RecordsAffected,
                 RowCount = rawResult.Result.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
                 {

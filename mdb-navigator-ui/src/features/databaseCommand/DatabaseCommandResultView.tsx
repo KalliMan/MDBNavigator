@@ -21,8 +21,12 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
   }
 
   return (
-    <div className="border mb-1">
+    <div className="">
       <div className="overflow-x-auto overflow-y-auto bg-white dark:bg-neutral-700">
+      { !fields || fields.length === 0 && (
+        <span>{databaseCommandResult.recordsAffected} records affected</span>
+      )}
+      { fields && fields.length > 0 && (
         <table className="min-w-full text-left text-sm whitespace-nowrap">
           <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t">
             <tr>
@@ -31,7 +35,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
                   scope="col"
                   className="px-3 py-2 border-x dark:border-neutral-600"
                   key={field.index}
-                >
+                 >
                   {field.fieldName}
                 </th>
               ))}
@@ -49,8 +53,9 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
             ))}
           </tbody>
         </table>
-      </div>
+      )}
     </div>
+  </div>
   );
 }
 

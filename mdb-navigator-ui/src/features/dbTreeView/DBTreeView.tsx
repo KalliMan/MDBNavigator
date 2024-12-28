@@ -140,6 +140,8 @@ function DBTreeView() {
 
   const currentNodeType = currentNode?.type as NodeType;
 
+  console.log(root);
+
   return (<>
     <TreeView root={root} onNodeClick={handleOnNodeClick} onExpand={handleExpand}/>
 

@@ -7,6 +7,7 @@ export interface DatabaseCommandBatchResult {
 }
 
 export interface DatabaseCommandResult extends DatabaseCommandBatchResult {
+  recordsAffected: number;
   rowCount: number;
   fields: DatabaseCommandResultField[];
 }

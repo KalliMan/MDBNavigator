@@ -98,6 +98,7 @@ namespace MDBNavigator.PostgreSQL
 
             return new DatabaseCommandResultRaw()
             {
+                RecordsAffected = reader.RecordsAffected,
                 Result = dt
             };
         }
