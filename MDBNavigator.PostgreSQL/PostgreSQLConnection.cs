@@ -39,22 +39,8 @@ namespace MDBNavigator.PostgreSQL
             _connection = null!;
         }
 
-//        public string GetDataSource
-
-        //public DatabaseConnectionInfoDto GetDetails()
-        //{
-        //    return new DatabaseConnectionInfoDto
-        //    {
-        //        ServerType = "PostgreSQL",
-        //        DataSource = _connection.DataSource,
-        //        ServerVersion = _connection.ServerVersion,
-        //        UserName = _connection.UserName
-        //    };
-        //}
-
-
         public async Task<IEnumerable<DatabaseDto>> GetDatabases()
-            => await _connection.QueryAsync<DatabaseDto>("SELECT oid AS InternalId, datname AS Name FROM pg_database;");
+            => await _connection.QueryAsync<DatabaseDto>("SELECT oid AS InternalId, datname AS Name FROM pg_database WHERE datistemplate = false ORDER BY oid DESC;");
 /*
         public async Task<IEnumerable<DatabaseSchemaDto>> GetDatabaseSchemas()
             => await _connection.QueryAsync<DatabaseSchemaDto>("SELECT schema_name AS Name, schema_owner AS Owner FROM information_schema.schemata;");

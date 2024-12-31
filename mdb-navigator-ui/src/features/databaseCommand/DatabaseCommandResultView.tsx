@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import useDatabaseCommandContext from '../../contexts/databaseCommand/useDatabaseCommand';
+import batchCommandResultSignalR from '../../services/batchCommandResultSignalR';
 
 interface Props {
   databaseCommandQueryId: string;
@@ -7,6 +9,10 @@ interface Props {
 export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
 
   const { getDatabaseCommantResult } = useDatabaseCommandContext();
+
+  // useEffect(() => {
+  //   batchCommandResultSignalR.connect('1');
+  // }, [databaseCommandQueryId]);
 
   const databaseCommandResult = getDatabaseCommantResult(databaseCommandQueryId);
   if (!databaseCommandResult) {

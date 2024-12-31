@@ -1,4 +1,5 @@
 ﻿using MDBNavigator.BL.Cache;
+using MDBNavigator.BL.SignalR;
 using MDBNavigator.DAL;
 using Models;
 using Newtonsoft.Json;
@@ -17,14 +18,16 @@ namespace MDBNavigator.BL.Services
     public class DBManager : IDBManager
     {
         private readonly IConnectionSettingsMemoryCache _memoryCache;
-//        private readonly IBackgroundTaskQueue _backgroundTaskQueue;
-  //      private readonly IBatchResultNotification _batchResultNotification;
+        private readonly IBatchCommandResultHubProxy _batchCommandResultHubProxy;
+        //        private readonly IBackgroundTaskQueue _backgroundTaskQueue;
+        //      private readonly IBatchResultNotification _batchResultNotification;
 
-        public DBManager(IConnectionSettingsMemoryCache memoryCache/*, IBackgroundTaskQueue backgroundTaskQueue, IBatchResultNotification batchResultNotification*/)
+        public DBManager(IConnectionSettingsMemoryCache memoryCache/*, IBackgroundTaskQueue backgroundTaskQueue, IBatchResultNotification batchResultNotification*/, IBatchCommandResultHubProxy batchCommandResultHubProxy)
         {
             _memoryCache = memoryCache;
-         //   _backgroundTaskQueue = backgroundTaskQueue;
-          //  _batchResultNotification = batchResultNotification;
+            _batchCommandResultHubProxy = batchCommandResultHubProxy;
+            //   _backgroundTaskQueue = backgroundTaskQueue;
+            //  _batchResultNotification = batchResultNotification;
         }
 
         public async Task<bool> Connect(string sessionId, ConnectionSettings details)
@@ -172,6 +175,7 @@ namespace MDBNavigator.BL.Services
                 //ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
             };
 
+            await _batchCommandResultHubProxy.ReceiveBatchCommandResult(result);
             return result;
         }
 

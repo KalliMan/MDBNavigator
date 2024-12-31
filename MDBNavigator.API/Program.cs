@@ -1,4 +1,5 @@
 using MDBNavigator.API.Extensions;
+using MDBNavigator.API.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,12 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.MapHub<BatchCommandResultHub>("/batchCommandResult");
+
+//app.UseEndpoints(endpoints => {
+//    endpoints.MapControllers();
+//    endpoints.MapHub<MessageHub>("/offers");
+//});
 app.UseSession();
 app.MapControllers();
 

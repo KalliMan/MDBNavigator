@@ -1,6 +1,8 @@
 ﻿using MDBNavigator.API.Core;
+using MDBNavigator.API.SignalR;
 using MDBNavigator.BL.Cache;
 using MDBNavigator.BL.Services;
+using MDBNavigator.BL.SignalR;
 
 namespace MDBNavigator.API.Extensions
 {
@@ -61,6 +63,7 @@ namespace MDBNavigator.API.Extensions
             //added to access session
 
             services.AddMemoryCache();
+            services.AddSignalR();
 
             //services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<List.Handler>());
             services.AddAutoMapper(typeof(MappingProfiles));
@@ -72,11 +75,14 @@ namespace MDBNavigator.API.Extensions
             //services.AddHttpContextAccessor();
             services.AddScoped<IDBManager, DBManager>();
             services.AddSingleton<IConnectionSettingsMemoryCache, ConnectionSettingsMemoryCache>();
+            //            services.AddSingleton<IBatchCommandResultHub, BatchCommandResultHub>();
 
             //services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             //services.AddHostedService<BackgroundQueueHostedService>();
 
-            //services.AddScoped<IBatchResultNotification, BatchResultNotificationHubProxy>();
+            services.AddScoped<IBatchCommandResultHubProxy, BatchCommandResultHubProxy>();
+            
+//            services.AddScoped<IBatchResultNotification, BatchResultNotificationHubProxy>();
             //services.AddScoped<IPhotoAccessor, PhotoAccessor>();
             //services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
 
