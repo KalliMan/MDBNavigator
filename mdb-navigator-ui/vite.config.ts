@@ -9,9 +9,6 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
   },
-  build: {
-    outDir: '../MDBNavigator.API/wwwroot',
-  },
   server: {
     port: 3000,
     strictPort: true,

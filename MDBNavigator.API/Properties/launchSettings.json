@@ -14,7 +14,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:3001;http://localhost:5104"
+      "applicationUrl": "https://localhost:3001;http://localhost:3002"
     },
     "IIS Express": {
       "commandName": "IISExpress",
@@ -27,8 +27,8 @@
       "commandName": "Docker",
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
-        "ASPNETCORE_HTTPS_PORTS": "8081",
-        "ASPNETCORE_HTTP_PORTS": "8080"
+        "ASPNETCORE_HTTPS_PORTS": "3001",
+        "ASPNETCORE_HTTP_PORTS": "3002"
       },
       "publishAllPorts": true,
       "useSSL": true

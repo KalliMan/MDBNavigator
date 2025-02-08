@@ -23,8 +23,9 @@ namespace MDBNavigator.API.Extensions
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowAnyOrigin()
-//                    .AllowCredentials();
-                    .WithOrigins(["https://localhost:3001", "http://localhost:3000"]);
+                    //                    .AllowCredentials();
+                    .WithOrigins("http://localhost:3000");
+//                    .WithOrigins(["https://localhost:3001", "http://localhost:3000"]);
 //                    .WithOrigins("http://localhost:5173");
                 });
             });          

@@ -14,7 +14,7 @@ interface Props {
 export default function ConnectToServer({ onCloseModal, onOk }: Props) {
   const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>({
     serverType: ServerType.PostgreSQL,
-    serverName: 'localhost',
+    serverName: 'host.docker.internal',
     port: 5432,
     userName: 'admin',
     password: 'secret',
