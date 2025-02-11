@@ -1,3 +1,5 @@
+import { JSX } from "react";
+
 export interface TreeViewNodeData {
   id: string;
   nodeName: string;

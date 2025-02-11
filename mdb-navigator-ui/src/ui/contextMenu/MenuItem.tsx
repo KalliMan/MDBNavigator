@@ -1,3 +1,5 @@
+import { JSX } from "react";
+
 interface Props {
   icon?: JSX.Element;
   onClick?(): void;

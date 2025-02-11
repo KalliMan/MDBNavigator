@@ -1,13 +1,13 @@
 services:
-  mdbnavigator.api:
+  mdbnavigator-api:
     environment:
         - ASPNETCORE_ENVIRONMENT=Release
         - ASPNETCORE_HTTPS_PORTS=3001
         - ASPNETCORE_HTTPS_PORT=3002
         - ASPNETCORE_Kestrel__Certificates__Default__Password=123
         - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/mdbnavigator.pfx
-    container_name: mdbnavigator.api
-    image: mdbnavigator.api
+    container_name: mdbnavigator-api
+    image: kalliman/mdbnavigator-api
     build:
       context: .
       dockerfile: MDBNavigator.API/Dockerfile
@@ -17,14 +17,14 @@ services:
     volumes:
         - ~/.aspnet/https:/https:ro
 
-  mdbnavigator.ui:
+  mdbnavigator-ui:
     build:
       context: mdb-navigator-ui
       dockerfile: Dockerfile
-    image: mdbnavigator.ui
-    container_name: mdbnavigator.ui
+    image: kalliman/mdbnavigator-ui
+    container_name: mdbnavigator-ui
     ports :
       - "3000:3000"
     depends_on:
-      - mdbnavigator.api
+      - mdbnavigator-api
     
