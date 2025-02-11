@@ -20,9 +20,9 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 // -> needed for production
-app.UseDefaultFiles();
-app.UseStaticFiles();
-app.MapFallbackToController("Index", "Fallback");
+//app.UseDefaultFiles();
+//app.UseStaticFiles();
+//app.MapFallbackToController("Index", "Fallback");
 
 app.MapHub<BatchCommandResultHub>("/batchCommandResult");
 

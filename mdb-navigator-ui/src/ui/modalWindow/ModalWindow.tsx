@@ -10,7 +10,7 @@ interface Props {
   name: string;
   title: string;
 }
-
+ /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ModalWindow({ children, name, title }: React.PropsWithChildren<Props>) {
   const [openName, setOpenName] = useState(name);
   const ref = useOutsideClick(close);
@@ -36,7 +36,7 @@ export default function ModalWindow({ children, name, title }: React.PropsWithCh
           </CloseButton>
         </div>
         <div className="pt-6">
-          { cloneElement(children as React.ReactElement, { onCloseModal: close }) }
+          {cloneElement(children as React.ReactElement<any>, { onCloseModal: close }) }
         </div>
       </div>
     </div>,
