@@ -46,7 +46,11 @@ Connect to Local: http://localhost:3000/. You should see the initial login scree
   
   ### Push to Docker repository<br>
       docker-compose push<br>
-   
+
+<br>
+<br>
+# TODO:
+
 ## Upload containers as stack to Azure
     az containerapp compose create -g ResourceGroup --environment ContainerappEnv  --compose-file-path docker-compose.yml
     
