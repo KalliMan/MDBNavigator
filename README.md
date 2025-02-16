@@ -1,9 +1,9 @@
 # MDBnvigator Overiew
 
-This is a sample fullstack demonstration application. The main purpose is to demonstrate various amount of technologies required for a modern Web development. Application allows user to connect to a Postgre DB and to perform basic DB operations. There are scripst for a composed dockerizaion. This is an ongoing project which is going to be enchanced further. 
+This is a sample fullstack demonstration application. The main purpose is to demonstrate various amount of technologies required for a modern Web development. Application allows user to connect to a Postgre DB and to perform basic DB operations. There are scripst for a composed dockerization. This is an ongoing project which is going to be enhanced in the future. 
 ![image](https://github.com/user-attachments/assets/f60fa6e3-5774-4699-bee8-3ecabb15ceb1)
 
-If the result table recordset is huge then initially only a small portion is directly trnasfered from BE to the FE. The rest is transfered async using SignalR. The application design allows easy to mimplement further improvements like adding support for other DB servers.
+If the result table recordset is huge then initially only a small portion is directly trnasfered from BE to the FE. The rest is transferred async using SignalR. The application design allows easy to implement further improvements like adding support for other DB servers.
 
 ## Main Projects 
 ### mdb-navigator-ui - React UI using vite.
@@ -37,18 +37,18 @@ If the result table recordset is huge then initially only a small portion is dir
   
 Connect to Local: http://localhost:3000/. You should see the initial login screen. Default connection settings are hardcoded.
   
-# Dockerizing
+# Dockerization
 
-## Docker. 2 Images have to be created for UI and BE. Dockerize files:
+## Docker. 2 Images have to be created for UI and BE. Dockerize settings:
     mdb-navigator-ui\Dockerfile
     MDBNavigator.API\Dockerfile
     docker-compose.yml
   
-  ### (otpional) Create cert for yml:<br>
+  ### (optional) Create cert for yml:<br>
       dotnet dev-certs https -ep "C:\Users\myuser\.aspnet\https\mdbnavigator.pfx" -p 123
       dotnet dev-certs https --trust
   
-  ### Up to Docker Desctop & build and run <br>
+  ### Up to Docker Desktop & build and run <br>
       docker-compose up --build<br>
 
   ![image](https://github.com/user-attachments/assets/3ac9b61f-5a06-413c-9cee-b37b1cc2205f)
