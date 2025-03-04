@@ -1,7 +1,9 @@
+
+
 services:
   mdbnavigator-api:
     environment:
-        - ASPNETCORE_ENVIRONMENT=Release
+        - ASPNETCORE_ENVIRONMENT=Development
         - ASPNETCORE_HTTPS_PORTS=3001
         - ASPNETCORE_HTTPS_PORT=3002
         - ASPNETCORE_Kestrel__Certificates__Default__Password=123
@@ -16,6 +18,7 @@ services:
         - "3002:3002"
     volumes:
         - ~/.aspnet/https:/https:ro
+        - /https/mdbnavigator.pfx:/https/mdbnavigator.pfx
 
   mdbnavigator-ui:
     build:

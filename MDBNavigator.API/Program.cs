@@ -29,4 +29,12 @@ app.MapHub<BatchCommandResultHub>("/batchCommandResult");
 app.UseSession();
 app.MapControllers();
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch(Exception ex)
+{
+    Console.WriteLine(ex.ToString());
+    throw;
+}
