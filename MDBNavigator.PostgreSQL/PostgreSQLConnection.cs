@@ -90,6 +90,12 @@ namespace MDBNavigator.PostgreSQL
             return await _connection.QueryFirstAsync<string>(query);
         }
 
+        public async Task<IEnumerable<ViewDto>> GetViews()
+        {
+            var query = $"SELECT table_schema AS DatabaseSchema, table_name AS Name FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema') AND table_type='VIEW'";
+            return await _connection.QueryAsync<ViewDto>(query);
+        }
+
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)
         {
             var cmdQuery = GetTopNTableRecordsScript(schema, table, recordsNumber);

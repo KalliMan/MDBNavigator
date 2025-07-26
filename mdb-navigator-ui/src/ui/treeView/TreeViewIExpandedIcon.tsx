@@ -8,8 +8,13 @@ export default function TreeViewIExpandedIcon({isExpanded, onExpand}: Props) {
     ? 'm19.5 8.25-7.5 7.5-7.5-7.5'
     : 'm8.25 4.5 7.5 7.5-7.5 7.5';
 
+  function onClickHandler(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    e.preventDefault();
+    onExpand();
+  }
+
   return (
-    <div onClick={onExpand}>
+    <div onClick={onClickHandler}>
     <svg
       xmlns="http://www.w3.org/2000/svg"
       fill="none"

@@ -52,6 +52,8 @@ namespace MDBNavigator.DAL
             => await _dbServer.GetStoredProcedures();
         public async Task<IEnumerable<ProcedureDto>> GetFunctions()
             => await _dbServer.GetFunctions();
+        public async Task<IEnumerable<ViewDto>> GetViews()
+            => await _dbServer.GetViews();
 
         public async Task<string> GetProcedureDefinition(string schema, string name)
             => await _dbServer.GetProcedureDefinition(schema, name);

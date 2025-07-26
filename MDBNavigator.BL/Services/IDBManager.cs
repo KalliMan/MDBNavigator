@@ -13,6 +13,8 @@ namespace MDBNavigator.BL.Services
         Task<ProceduresDetailsDto> GetStoredProcedures(string sessionId, string databaseName);
         Task<ProceduresDetailsDto> GetFunctions(string sessionId, string databaseName);
         Task<string> GetProcedureDefinition(string sessionId, string databaseName, string schema, string name);
+        
+        Task<ViewDetailsDto> GetViews(string sessionId, string databaseName);
 
         Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string databaseName, string schema, string table, int? recordsNumber);
         Task<string> GetTopNTableRecordsScript(string id, string sessionId, string databaseName, string schema, string table, int? recordsNumber);

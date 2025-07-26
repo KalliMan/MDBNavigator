@@ -247,6 +247,7 @@ function DatabaseTreeView() {
 
   const currentNodeType = currentNode?.type as NodeType;
 
+  console.log("Root Node:", root);
   return (<>
     <TreeView root={root} onNodeClick={handleOnNodeClick} onExpand={handleExpand}/>
 
@@ -258,7 +259,6 @@ function DatabaseTreeView() {
 
       {currentNodeType === NodeType.Tables && (<>
           <Menus.MenuItem icon={<GrTableAdd />} onClick={() => handleCreateNewTable(currentNode)}>Create New Table</Menus.MenuItem>
-
         </>
       )}
       {currentNodeType === NodeType.Table && (<>

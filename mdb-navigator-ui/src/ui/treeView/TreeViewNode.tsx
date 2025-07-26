@@ -14,6 +14,7 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
 
   function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    e.preventDefault();
     onNodeClick(node, {
       x: e.pageX,
       y: e.pageY
@@ -39,7 +40,7 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
     <>
     <ul className="ml-5">
         <div
-          className={`flex hover:bg-sky-200 ${node.isExpanded ? 'z-auto' : 'z-0'}`}>
+          className={`flex hover:bg-sky-200 ${node.className ?? ''}`}>
           {hasChildNodes && <TreeViewIExpandedIcon
             isExpanded={node.isExpanded}
             onExpand={handleSetIsExpanded}

@@ -10,6 +10,8 @@ export interface TreeViewNodeData {
   type?: string;
   metaData?: string;
 
+  className?: string;
+
   nodes?: TreeViewNodeData[];
   parentNode?: TreeViewNodeData;
 }

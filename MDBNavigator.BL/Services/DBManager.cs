@@ -80,6 +80,18 @@ namespace MDBNavigator.BL.Services
             };
         }
 
+        public async Task<ViewDetailsDto> GetViews(string sessionId, string databaseName)
+        {
+            var connection = await CreateConnection(sessionId, databaseName);
+            var views = await connection.GetViews();
+            return new()
+            {
+                DataSource = connection.DataSource,
+                DatabaseName = databaseName,
+                Views = views
+            };
+        }
+
         public async Task<string> GetProcedureDefinition(string sessionId, string databaseName, string schema, string name)
         {
             var connection = await CreateConnection(sessionId, databaseName);

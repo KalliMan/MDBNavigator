@@ -70,5 +70,17 @@ namespace MDBNavigator.API.Controllers
 
             return Ok(await _dbManager.GetFunctions(sessionId!, databaseName));
         }
+
+        [HttpGet("views/{databaseName}")]
+        public async Task<IActionResult> Views(string databaseName)
+        {
+            var sessionId = GetSessionId();
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                return BadRequest("The provided request header does not contain ID property.");
+            }
+
+            return Ok(await _dbManager.GetViews(sessionId!, databaseName));
+        }
     }
 }

@@ -15,6 +15,7 @@ export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData
     isExpanded: false,
     nodes: [],
     type: NodeType.Loader,
+    className:'z-order-0 z-0',
     parentNode
   };
 }
@@ -75,7 +76,7 @@ function createTableFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeData 
     parentNode
   };
 
-  result.nodes!.push(createLoaderNode(result));
+//  result.nodes!.push(createLoaderNode(result));
   return result;
 }
 
@@ -121,7 +122,7 @@ function createStoredProceduresFoldersNode(parentNode: TreeViewNodeData): TreeVi
     parentNode
   };
 
-  result.nodes!.push(createLoaderNode(result));
+//  result.nodes!.push(createLoaderNode(result));
   return result;
 }
 
@@ -150,7 +151,7 @@ function createFunctionsFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeD
     parentNode
   };
 
-  result.nodes!.push(createLoaderNode(result));
+//  result.nodes!.push(createLoaderNode(result));
   return result;
 }
 
