@@ -76,7 +76,7 @@ function createTableFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeData 
     parentNode
   };
 
-//  result.nodes!.push(createLoaderNode(result));
+  result.nodes!.push(createLoaderNode(result));
   return result;
 }
 
