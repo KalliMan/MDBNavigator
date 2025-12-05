@@ -12,7 +12,7 @@ import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseS
 import { BsFiletypeSql } from "react-icons/bs";
 import useCommandQueryContext from "../../contexts/commandQuery/useDatabaseCommand";
 import { TiDelete } from "react-icons/ti";
-import { GrTableAdd } from "react-icons/gr";
+import { GrRefresh, GrTableAdd } from "react-icons/gr";
 
 
 function DatabaseTreeView() {
@@ -81,9 +81,9 @@ function DatabaseTreeView() {
       const databaseNode = getDatabaseNodeFromServerNode(root, tablesDetails.databaseName);
       if (databaseNode) {
         const tablesFoldersNode = getTablesFolderNode(databaseNode);
-        if (tablesFoldersNode && hasLoaderNode(tablesFoldersNode)){
-          tablesFoldersNode.nodes = [];
-          tablesDetails?.tables?.forEach(t => tablesFoldersNode?.nodes?.push(createTableNode(t.databaseSchema, t.name, tablesFoldersNode)));
+        if (tablesFoldersNode) { // && hasLoaderNode(tablesFoldersNode)){
+          tablesFoldersNode.nodes = tablesDetails?.tables?.map(t => 
+            createTableNode(t.databaseSchema, t.name, tablesFoldersNode) ) || [];
 
           setRoot({
             ...root,
@@ -100,9 +100,8 @@ function DatabaseTreeView() {
       if (databaseNode) {
         const storedProceduresFolderNode = getStoredProceduresNode(databaseNode);
         if (storedProceduresFolderNode && hasLoaderNode(storedProceduresFolderNode)){
-          storedProceduresFolderNode.nodes = [];
-          storedProceduresDetails?.procedures.forEach(t =>
-            storedProceduresFolderNode?.nodes?.push(createStoredProcedureNode(t.databaseSchema, t.name, storedProceduresFolderNode)));
+          storedProceduresFolderNode.nodes = storedProceduresDetails?.procedures.map(t =>
+            createStoredProcedureNode(t.databaseSchema, t.name, storedProceduresFolderNode)) || [];
 
           setRoot({
             ...root,
@@ -119,9 +118,8 @@ function DatabaseTreeView() {
       if (databaseNode) {
         const functionsFolderNode = getFunctionsNode(databaseNode);
         if (functionsFolderNode && hasLoaderNode(functionsFolderNode)){
-          functionsFolderNode.nodes = [];
-          functionsDetails?.procedures.forEach(t =>
-            functionsFolderNode?.nodes?.push(createFunctionNode(t.databaseSchema, t.name, functionsFolderNode)));
+          functionsFolderNode.nodes = functionsDetails?.procedures.map(t =>
+            createFunctionNode(t.databaseSchema, t.name, functionsFolderNode)) || [];
 
           setRoot({
             ...root,
@@ -229,6 +227,16 @@ function DatabaseTreeView() {
     }
   }
 
+  async function handleRefreshTables(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    if (targetNode){
+      const databaseNode = getDatabaseParentNode(targetNode);
+      if (databaseNode){
+        await fetchTables(databaseNode.nodeName);
+      }
+    }
+  }
+
   function handleDeleteTable(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
@@ -247,7 +255,6 @@ function DatabaseTreeView() {
 
   const currentNodeType = currentNode?.type as NodeType;
 
-  console.log("Root Node:", root);
   return (<>
     <TreeView root={root} onNodeClick={handleOnNodeClick} onExpand={handleExpand}/>
 
@@ -259,17 +266,14 @@ function DatabaseTreeView() {
 
       {currentNodeType === NodeType.Tables && (<>
           <Menus.MenuItem icon={<GrTableAdd />} onClick={() => handleCreateNewTable(currentNode)}>Create New Table</Menus.MenuItem>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewQueryForTables(currentNode)}>New Query for this database</Menus.MenuItem>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={async () => await handleRefreshTables(currentNode)}>Refresh</Menus.MenuItem>
         </>
       )}
       {currentNodeType === NodeType.Table && (<>
           <Menus.MenuItem icon={<PiRows />} onClick={() => handleSelectTop100Records(currentNode)}>Select TOP 100 Records</Menus.MenuItem>
           <Menus.MenuItem icon={<PiRows />} onClick={() => handleSelectAllRecords(currentNode)}>Select All Records</Menus.MenuItem>
           <Menus.MenuItem icon={<TiDelete />} onClick={() => handleDeleteTable(currentNode)}>Delete Table</Menus.MenuItem>
-        </>
-      )}
-
-      {currentNodeType === NodeType.Tables && (<>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewQueryForTables(currentNode)}>New Query for this database</Menus.MenuItem>
         </>
       )}
 

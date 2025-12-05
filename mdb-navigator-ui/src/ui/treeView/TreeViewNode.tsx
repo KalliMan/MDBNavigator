@@ -14,7 +14,6 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
 
   function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-    console.log('Node clicked:', node);
     e.preventDefault();
     onNodeClick(node, {
       x: e.pageX,

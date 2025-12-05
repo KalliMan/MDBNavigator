@@ -122,7 +122,7 @@ function createStoredProceduresFoldersNode(parentNode: TreeViewNodeData): TreeVi
     parentNode
   };
 
-//  result.nodes!.push(createLoaderNode(result));
+  result.nodes!.push(createLoaderNode(result));
   return result;
 }
 
@@ -151,7 +151,7 @@ function createFunctionsFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeD
     parentNode
   };
 
-//  result.nodes!.push(createLoaderNode(result));
+  result.nodes!.push(createLoaderNode(result));
   return result;
 }
 
