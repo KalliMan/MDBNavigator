@@ -14,6 +14,7 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
 
   function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    console.log('Node clicked:', node);
     e.preventDefault();
     onNodeClick(node, {
       x: e.pageX,
@@ -58,7 +59,7 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
 
       <div
         className={`${
-          node.isExpanded ? "opacity-100 " : "opacity-0 max-h-0"
+          node.isExpanded ? "opacity-100 " : "opacity-0 max-h-0 h-0 pointer-events-none"
         } transition-all ease-in-out delay-150 duration-150`}
       >
 
