@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import TreeView from "../../ui/treeView/TreeView"
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
 import { createDatabaseNode, createDatabasesFolderNode, createFunctionNode, createServerNode, createStoredProcedureNode, createTableNode, getDatabaseNodeFromServerNode, getDatabaseParentNode, getFunctionsNode, getStoredProceduresNode, getTablesFolderNode, hasLoaderNode } from "./databaseTreeViewUtils";
@@ -41,6 +41,10 @@ function DatabaseTreeView() {
 
   const [root, setRoot] = useState<TreeViewNodeData | null>();
   const databasesLoaded = useRef(false);
+  const loadedTablesForDatabases = useRef<Set<string>>(new Set());
+  const loadedProceduresForDatabases = useRef<Set<string>>(new Set());
+  const loadedFunctionsForDatabases = useRef<Set<string>>(new Set());
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
   const [contextMenuTarget, setContextMenuTarget] = useState(EmptyPosition);
   const [currentNode, setCurrentNode] = useState<TreeViewNodeData>();
@@ -57,7 +61,7 @@ function DatabaseTreeView() {
 
     getDatabases();
 
-  }, [connectionSettings, databasesDetails?.databases, isConnectedToDB]);
+  }, [connectionSettings, databasesDetails?.databases, isConnectedToDB, fetchDatabases]);
 
   useEffect(() => {
     if (!databasesLoaded.current && isConnectedToDB && root && databasesDetails?.databases?.length) {
@@ -77,58 +81,67 @@ function DatabaseTreeView() {
   }, [isConnectedToDB, root, databasesDetails]);
 
   useEffect(() => {
-    if(root && databasesLoaded.current && tablesDetails) {
+    if(databasesLoaded.current && tablesDetails && root) {
+      if (loadedTablesForDatabases.current.has(tablesDetails.databaseName)) {
+        return;
+      }
+
       const databaseNode = getDatabaseNodeFromServerNode(root, tablesDetails.databaseName);
       if (databaseNode) {
         const tablesFoldersNode = getTablesFolderNode(databaseNode);
-        if (tablesFoldersNode && hasLoaderNode(tablesFoldersNode)){
+        if (tablesFoldersNode) {
           tablesFoldersNode.nodes = tablesDetails?.tables?.map(t => 
-            createTableNode(t.databaseSchema, t.name, tablesFoldersNode) ) || [];
+            createTableNode(t.databaseSchema, t.name, tablesFoldersNode)
+          ) || [];
 
-          setRoot({
-            ...root,
-           isExpanded: true
-          });
+          loadedTablesForDatabases.current.add(tablesDetails.databaseName);
+          forceUpdate();
         }
       }
     }
-  }, [root, tablesDetails]);
+  }, [tablesDetails, root]);
 
   useEffect(() => {
-    if(root && databasesLoaded.current && storedProceduresDetails) {
+    if(databasesLoaded.current && storedProceduresDetails && root) {
+      if (loadedProceduresForDatabases.current.has(storedProceduresDetails.databaseName)) {
+        return;
+      }
+
       const databaseNode = getDatabaseNodeFromServerNode(root, storedProceduresDetails.databaseName);
       if (databaseNode) {
         const storedProceduresFolderNode = getStoredProceduresNode(databaseNode);
-        if (storedProceduresFolderNode && hasLoaderNode(storedProceduresFolderNode)){
+        if (storedProceduresFolderNode) {
           storedProceduresFolderNode.nodes = storedProceduresDetails?.procedures.map(t =>
-            createStoredProcedureNode(t.databaseSchema, t.name, storedProceduresFolderNode)) || [];
+            createStoredProcedureNode(t.databaseSchema, t.name, storedProceduresFolderNode)
+          ) || [];
 
-          setRoot({
-            ...root,
-           isExpanded: true
-          });
+          loadedProceduresForDatabases.current.add(storedProceduresDetails.databaseName);
+          forceUpdate();
         }
       }
     }
-  }, [root, storedProceduresDetails]);
+  }, [storedProceduresDetails, root]);
 
   useEffect(() => {
-    if(root && databasesLoaded.current && functionsDetails) {
+    if(databasesLoaded.current && functionsDetails && root) {
+      if (loadedFunctionsForDatabases.current.has(functionsDetails.databaseName)) {
+        return;
+      }
+
       const databaseNode = getDatabaseNodeFromServerNode(root, functionsDetails.databaseName);
       if (databaseNode) {
         const functionsFolderNode = getFunctionsNode(databaseNode);
-        if (functionsFolderNode && hasLoaderNode(functionsFolderNode)){
+        if (functionsFolderNode) {
           functionsFolderNode.nodes = functionsDetails?.procedures.map(t =>
-            createFunctionNode(t.databaseSchema, t.name, functionsFolderNode)) || [];
+            createFunctionNode(t.databaseSchema, t.name, functionsFolderNode)
+          ) || [];
 
-          setRoot({
-            ...root,
-           isExpanded: true
-          });
+          loadedFunctionsForDatabases.current.add(functionsDetails.databaseName);
+          forceUpdate();
         }
       }
     }
-  }, [root, functionsDetails]);
+  }, [functionsDetails, root]);
 
   function handleOnNodeClick(node: TreeViewNodeData, e: CoordPosition) {
     setCurrentNode(node);
@@ -217,6 +230,28 @@ function DatabaseTreeView() {
     }
   }
 
+  async function handleRefreshProcedures(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    if (targetNode){
+      const databaseNode = getDatabaseParentNode(targetNode);
+      if (databaseNode){
+        loadedProceduresForDatabases.current.delete(databaseNode.nodeName);
+        await fetchStoredProcedures(databaseNode.nodeName);
+      }
+    }
+  }
+
+  async function handleRefreshFunctions(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    if (targetNode){
+      const databaseNode = getDatabaseParentNode(targetNode);
+      if (databaseNode){
+        loadedFunctionsForDatabases.current.delete(databaseNode.nodeName);
+        await fetchFunctions(databaseNode.nodeName);
+      }
+    }
+  }
+
   function handleCreateNewTable(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
     if (targetNode){
@@ -232,6 +267,7 @@ function DatabaseTreeView() {
     if (targetNode){
       const databaseNode = getDatabaseParentNode(targetNode);
       if (databaseNode){
+        loadedTablesForDatabases.current.delete(databaseNode.nodeName);
         await fetchTables(databaseNode.nodeName);
       }
     }
@@ -267,13 +303,23 @@ function DatabaseTreeView() {
       {currentNodeType === NodeType.Tables && (<>
           <Menus.MenuItem icon={<GrTableAdd />} onClick={() => handleCreateNewTable(currentNode)}>Create New Table</Menus.MenuItem>
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewQueryForTables(currentNode)}>New Query for this database</Menus.MenuItem>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={async () => await handleRefreshTables(currentNode)}>Refresh</Menus.MenuItem>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshTables(currentNode)}>Refresh</Menus.MenuItem>
         </>
       )}
       {currentNodeType === NodeType.Table && (<>
           <Menus.MenuItem icon={<PiRows />} onClick={() => handleSelectTop100Records(currentNode)}>Select TOP 100 Records</Menus.MenuItem>
           <Menus.MenuItem icon={<PiRows />} onClick={() => handleSelectAllRecords(currentNode)}>Select All Records</Menus.MenuItem>
           <Menus.MenuItem icon={<TiDelete />} onClick={() => handleDeleteTable(currentNode)}>Delete Table</Menus.MenuItem>
+        </>
+      )}
+
+      {currentNodeType === NodeType.StoredProcedures && (<>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshProcedures(currentNode)}>Refresh</Menus.MenuItem>      
+        </>
+      )}
+
+      {currentNodeType === NodeType.Functions && (<>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshFunctions(currentNode)}>Refresh</Menus.MenuItem>      
         </>
       )}
 

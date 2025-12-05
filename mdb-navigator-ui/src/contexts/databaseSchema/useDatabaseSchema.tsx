@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useCallback } from "react";
 import { DatabaseConnectContextType } from "./DatabaseSchemaReducer";
 import { DatabaseSchemaActionTypes } from "./DatabaseSchemaActionTypes";
 import agent from "../../services/apiAgent";
@@ -11,78 +11,80 @@ export default function useDatabaseSchemaContext() {
     throw new Error('useDatabaseSchema must be used within a DatabaseSchemaProvider');
   }
 
-  async function fetchDatabases() {
-    context!.dispatch({
+  const dispatch = context.dispatch;
+
+  const fetchDatabases = useCallback(async () => {
+    dispatch({
       type: DatabaseSchemaActionTypes.Loading,
     });
 
     const result = await agent.databaseSchemaApi.fetchDatabases();
 
-    context!.dispatch({
+    dispatch({
       type: DatabaseSchemaActionTypes.FetchedDatabases,
       payload: result
     });
-  }
+  }, [dispatch]);
 
-  async function fetchTables(databaseName: string) {
-    context!.dispatch({
+  const fetchTables = useCallback(async (databaseName: string) => {
+    dispatch({
       type: DatabaseSchemaActionTypes.Loading,
     });
 
     try {
       const result = await agent.databaseSchemaApi.fetchTables(databaseName);
 
-      context!.dispatch({
+      dispatch({
         type: DatabaseSchemaActionTypes.FetchedTables,
         payload: result
       });
-    } catch (error: any) {
-      context!.dispatch({
+    } catch (error: unknown) {
+      dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error?.message
+        payload: error instanceof Error ? error.message : 'An error occurred'
       });
     }
-  }
+  }, [dispatch]);
 
-  async function fetchStoredProcedures(databaseName: string) {
-    context!.dispatch({
+  const fetchStoredProcedures = useCallback(async (databaseName: string) => {
+    dispatch({
       type: DatabaseSchemaActionTypes.Loading,
     });
 
     try {
       const result = await agent.databaseSchemaApi.fetchStoredProcedures(databaseName);
 
-      context!.dispatch({
+      dispatch({
         type: DatabaseSchemaActionTypes.FetchedStoredProcedures,
         payload: result
       });
-    } catch (error: any) {
-      context!.dispatch({
+    } catch (error: unknown) {
+      dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error?.message
+        payload: error instanceof Error ? error.message : 'An error occurred'
       });
     }
-  }
+  }, [dispatch]);
 
-  async function fetchFunctions(databaseName: string) {
-    context!.dispatch({
+  const fetchFunctions = useCallback(async (databaseName: string) => {
+    dispatch({
       type: DatabaseSchemaActionTypes.Loading,
     });
 
     try {
       const result = await agent.databaseSchemaApi.fetchFunctions(databaseName);
 
-      context!.dispatch({
+      dispatch({
         type: DatabaseSchemaActionTypes.FetchedFunctions,
         payload: result
       });
-    } catch (error: any) {
-      context!.dispatch({
+    } catch (error: unknown) {
+      dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error?.message
+        payload: error instanceof Error ? error.message : 'An error occurred'
       });
     }
-  }
+  }, [dispatch]);
 
   const {isLoading, error, databasesDetails, tablesDetails, storedProceduresDetails, functionsDetails} = context.state;
 
