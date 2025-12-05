@@ -81,7 +81,7 @@ function DatabaseTreeView() {
       const databaseNode = getDatabaseNodeFromServerNode(root, tablesDetails.databaseName);
       if (databaseNode) {
         const tablesFoldersNode = getTablesFolderNode(databaseNode);
-        if (tablesFoldersNode) { // && hasLoaderNode(tablesFoldersNode)){
+        if (tablesFoldersNode && hasLoaderNode(tablesFoldersNode)){
           tablesFoldersNode.nodes = tablesDetails?.tables?.map(t => 
             createTableNode(t.databaseSchema, t.name, tablesFoldersNode) ) || [];
 
