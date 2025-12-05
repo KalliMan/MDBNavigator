@@ -9,17 +9,19 @@ import CloseButton from '../common/CloseButton';
 interface Props {
   name: string;
   title: string;
+  canClose?: boolean;
 }
  /* eslint-disable @typescript-eslint/no-explicit-any */
-export default function ModalWindow({ children, name, title }: React.PropsWithChildren<Props>) {
+export default function ModalWindow({ children, name, title, canClose = true }: React.PropsWithChildren<Props>) {
   const [openName, setOpenName] = useState(name);
-  const ref = useOutsideClick(close);
+  const ref = useOutsideClick(canClose ? close : () => {});
 
   if (!openName) {
     return null;
   }
 
   function close(e: SyntheticEvent | null) {
+    if (!canClose) return;
     e?.preventDefault();
     setOpenName('');
   }
@@ -31,9 +33,11 @@ export default function ModalWindow({ children, name, title }: React.PropsWithCh
           <div className="mt-1 text-stone-800 text-lg">
             {title}
           </div>
-          <CloseButton onClick={close}>
-            <HiXMark />
-          </CloseButton>
+          {canClose && (
+            <CloseButton onClick={close}>
+              <HiXMark />
+            </CloseButton>
+          )}
         </div>
         <div className="pt-6">
           {cloneElement(children as React.ReactElement<any>, { onCloseModal: close }) }

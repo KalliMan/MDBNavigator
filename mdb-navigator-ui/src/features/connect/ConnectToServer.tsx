@@ -94,7 +94,7 @@ export default function ConnectToServer({ onCloseModal, onOk }: Props) {
           <Button disabled={!dataOk} type={ButtonType.primary}>
             Connect
           </Button>
-          <Button type={ButtonType.secondary} onClick={onCloseModal}>Cancel</Button>
+          {/* <Button type={ButtonType.secondary} onClick={onCloseModal}>Cancel</Button> */}
         </div>
       </div>
     </form>

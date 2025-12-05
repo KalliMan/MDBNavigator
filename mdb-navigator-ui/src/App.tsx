@@ -19,8 +19,8 @@ function App() {
     <div>
       <ToastContainer position='bottom-right' hideProgressBar theme='colored' />
       {isConnecting && <Loader />}
-      {!isConnectedToDB && !isConnecting &&
-        <ModalWindow name="Connect To DB Server" title="Connect To DB Server">
+      {!isConnectedToDB &&
+        <ModalWindow name="Connect To DB Server" title="Connect To DB Server" canClose={false}>
           <ConnectToServer
             onOk={(connectionSettings) => connect(connectionSettings)}
           />
