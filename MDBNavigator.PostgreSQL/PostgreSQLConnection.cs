@@ -18,6 +18,11 @@ namespace MDBNavigator.PostgreSQL
             get => _connection.DataSource;
         }
 
+        public async ValueTask DisposeAsync()
+        {
+            await Disconnect();
+        }
+
         public async Task Connect(ConnectionSettings settings)
         {
             try
@@ -134,6 +139,5 @@ namespace MDBNavigator.PostgreSQL
                 Result = dt
             };
         }
-
     }
 }

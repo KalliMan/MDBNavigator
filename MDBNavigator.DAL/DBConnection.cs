@@ -6,13 +6,13 @@ using Models.Schema;
 
 namespace MDBNavigator.DAL
 {
-    public sealed class DBConnection: IDisposable
+    public sealed class DBConnection: IAsyncDisposable
     {
         IDBServerBase _dbServer= null!;
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            _dbServer.Disconnect();
+            await _dbServer.Disconnect();
             _dbServer = null!;
         }
 
@@ -70,7 +70,6 @@ namespace MDBNavigator.DAL
           => _dbServer.GetDropTableScript(schema, table);
 
         public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery)        
-            => await _dbServer.ExecuteQuery(cmdQuery);        
-
+            => await _dbServer.ExecuteQuery(cmdQuery);
     }
 }

@@ -4,7 +4,7 @@ using Models.Schema;
 
 namespace MDBNavigator.DAL.Interfaces
 {
-    public interface IDBServerBase
+    public interface IDBServerBase: IAsyncDisposable
     {
         string DataSource { get; }
 
