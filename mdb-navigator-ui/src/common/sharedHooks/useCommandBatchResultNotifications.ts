@@ -42,7 +42,6 @@ export default function useCommandBatchResultNotifications({
           .start()
           .then(() => {
             connectionRef.on("BatchCommandResult", (message) => {
-              console.log("BatchCommandResult", message);
               onBatchCommandResult(message);
             });
           })

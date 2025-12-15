@@ -6,7 +6,7 @@ export type CommandQueryState = {
   executingCommandId: string | null;
   error: string | null;
 
-  databaseCommandQueries: DatabaseSQLCommandQuery | null;
+  databaseCommandQueries: DatabaseSQLCommandQuery[];
 }
 
 export const initialCommandQueryState: CommandQueryState = {
@@ -14,7 +14,7 @@ export const initialCommandQueryState: CommandQueryState = {
   executingCommandId: null,
   error: null,
 
-  databaseCommandQueries: null,
+  databaseCommandQueries: [],
 };
 
 export type CommandQueryContextType = {
@@ -28,7 +28,12 @@ export function commandQueryReducer(state: CommandQueryState, action: CommandQue
     case CommandQueryActionTypes.Queried:
       return {
         ...state,
-        databaseCommandQueries: {...action.payload},
+        databaseCommandQueries: [...state.databaseCommandQueries, action.payload],
+      };
+    case CommandQueryActionTypes.Cleared:
+      return {
+        ...state,
+        databaseCommandQueries: [],
       };
     case CommandQueryActionTypes.Error:
       return {

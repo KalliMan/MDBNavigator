@@ -54,19 +54,15 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         executingCommandId: null,
         databaseCommandResults: [...state.databaseCommandResults?.filter(q => q.id !== action.payload.id) ?? [],
           action.payload],
-        databaseCommandBatchResults: state.databaseCommandBatchResults?.filter(q => q.id !== action.payload.id),
       };
-    case DatabaseCommandActionTypes.BatchResultReceived:{
-      const existingBatchResults = state.databaseCommandBatchResults.filter(q => q.id === action.payload.id);
+    case DatabaseCommandActionTypes.BatchResultReceived:
 
       return {
         ...state,
         isExecuting: false,
         executingCommandId: null,
-        databaseCommandBatchResults: [...state.databaseCommandBatchResults?.filter(q => q.id !== action.payload.id) ?? [],
-          ...existingBatchResults, action.payload]
-      };
-    }
+        databaseCommandBatchResults: [...state.databaseCommandBatchResults, action.payload]
+      };    
     case DatabaseCommandActionTypes.Error:
       return {
         ...state,

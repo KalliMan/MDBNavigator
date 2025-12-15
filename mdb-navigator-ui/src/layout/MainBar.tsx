@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Tabs from '../ui/tabs/Tabs';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -16,45 +16,58 @@ interface TabData {
 function Mainbar() {
   const { databaseCommandQueries } = useCommandQueryContext();
 
-  const tabsData = useRef<TabData[]>([]);
+  const [tabsData, setTabsData] = useState<TabData[]>([]);
   const activeId = useRef<string | null>(null);
+  const processedQueryIds = useRef<Set<string>>(new Set());
 
   function handleCloseTab (id: string): void {
-    const index = tabsData.current.findIndex(t => t.id === id);
+    const index = tabsData.findIndex(t => t.id === id);
     if (index === -1) {
       return;
     }
 
-    tabsData.current.splice(index, 1);
-    if (tabsData.current.length === 0) {
+    const newTabsData = [...tabsData];
+    newTabsData.splice(index, 1);
+
+    if (newTabsData.length === 0) {
       activeId.current = null;
     } else {
-      activeId.current = tabsData.current[0].id;
+      if (activeId.current === id) {
+        if (index > 0 && newTabsData.length > index - 1) {
+          activeId.current = newTabsData[index - 1].id;
+        } else {
+          activeId.current = newTabsData[0].id;
+        }
+      }
     }
+
+    setTabsData(newTabsData);
   }
 
-  if (!databaseCommandQueries) {
-    return null;
-  }
+  const newQueries = databaseCommandQueries.filter(
+    query => !processedQueryIds.current.has(query.id)
+  );
 
-  const tabs = tabsData.current;
-  if (databaseCommandQueries && !tabs.some(t => t.databaseCommandQuery.id === databaseCommandQueries.id)) {
-    const newTab: TabData = {
-      id: uuidv4(),
-      name: `New Query (${tabs.length + 1}) '${databaseCommandQueries.databaseName}'`,
-      databaseCommandQuery: databaseCommandQueries
-    };
+  if (newQueries.length > 0) {
+    const newTabs = newQueries.map(query => {
+      processedQueryIds.current.add(query.id);
+      return {
+        id: uuidv4(),
+        name: `New Query (${tabsData.length + newQueries.indexOf(query) + 1}) '${query.name}'`,
+        databaseCommandQuery: query
+      };
+    });
 
-    tabs?.push(newTab);
-    activeId.current = newTab.id;
+    setTabsData([...tabsData, ...newTabs]);
+    activeId.current = newTabs[newTabs.length - 1].id;
   }
 
   return (
     <div className="pl-2 pr-2 overflow-auto">
-      {tabs?.length > 0 && (
+      {tabsData?.length > 0 && (
         <Tabs activeId={activeId.current}
           onClose={(id) => handleCloseTab(id)} >
-          {tabs.map(t => (
+          {tabsData.map(t => (
             <Tabs.Tab label={t.name} id={t.id} key={t.id}>
               <DatabaseCommandAndResult databaseCommandQuery={t.databaseCommandQuery} key={t.id} />
             </Tabs.Tab>

@@ -5,9 +5,10 @@ import { HiXMark } from 'react-icons/hi2';
 interface Props {
   activeId: string | null;
   onClose?: (id: string) => void;
+  onSetActiveTab?: (id: string) => void;
 }
 
-export default function Tabs({ activeId, onClose, children }: React.PropsWithChildren<Props>) {
+export default function Tabs({ activeId, onClose, onSetActiveTab, children }: React.PropsWithChildren<Props>) {
 
   const childrenProps = Array.isArray(children) ? children : [children];
   const [activeTab, setActiveTab] = useState(() => {
@@ -34,6 +35,7 @@ export default function Tabs({ activeId, onClose, children }: React.PropsWithChi
   const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, newActiveTab: string) => {
     e.preventDefault();
     setActiveTab(newActiveTab);
+    onSetActiveTab?.(newActiveTab);
   };
 
   if (!children) {
@@ -47,15 +49,16 @@ export default function Tabs({ activeId, onClose, children }: React.PropsWithChi
           <div
             className={`${
               activeTab === child.props.id
-                ? 'flex border-b-2 border-purple-500'
-                : ''
-            } flex text-gray-700 font-medium py-2 w-fit pr-10 pl-10`}
+                ? 'flex border-b-2 border-purple-500 py-1'
+                : 'py-1'
+            } flex text-gray-700 font-medium  w-fit pr-1 pl-2`}
             key={child.props.id}
           >
-            <button onClick={e => handleClick(e, child.props.id)}>
+            <button className="cursor-pointer hover:bg-gray-200 pl-2 pr-2 rounded-t-md"
+              onClick={e => handleClick(e, child.props.id)}>
               {child.props.label}
             </button>
-            <button className="m-1 transition-all duration-200 hover:border-2 h-5"
+            <button className="m-1 transition-all duration-100 hover:border-1 h-5"
               onClick={() => onClose?.(child.props.id)}>
               <HiXMark />
             </button>

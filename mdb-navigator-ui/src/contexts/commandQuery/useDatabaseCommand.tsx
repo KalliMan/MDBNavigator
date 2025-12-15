@@ -21,6 +21,7 @@ export default function useCommandQueryContext(){
     const query: DatabaseSQLCommandQuery = {
       id,
       databaseName,
+      name: `${schema}.${table}`,
       cmdQuery: topNRecordsQuery,
       executeImmediately: true
     };
@@ -37,6 +38,7 @@ export default function useCommandQueryContext(){
     const query: DatabaseSQLCommandQuery = {
       id,
       databaseName,
+      name: `${schema}.*`,
       cmdQuery: `SELECT * FROM ${schema || '{Schema}'}.{TableName}`,
       executeImmediately: false
     };
@@ -54,6 +56,7 @@ export default function useCommandQueryContext(){
     const query: DatabaseSQLCommandQuery = {
       id,
       databaseName,
+      name: `${schema}.${name}`,
       cmdQuery: procedureCodeQuery,
       executeImmediately: false
     };
@@ -70,6 +73,7 @@ export default function useCommandQueryContext(){
     const query: DatabaseSQLCommandQuery = {
       id: uuidv4(),
       databaseName,
+      name: '[schema].[TableName]',
       cmdQuery: createTableQuery,
       executeImmediately: false
     };
@@ -86,6 +90,7 @@ export default function useCommandQueryContext(){
     const query: DatabaseSQLCommandQuery = {
       id: uuidv4(),
       databaseName,
+      name: `${schema}.${table}`,
       cmdQuery: createTableQuery,
       executeImmediately: false
     };
@@ -93,6 +98,12 @@ export default function useCommandQueryContext(){
     context!.dispatch({
       type: CommandQueryActionTypes.Queried,
       payload: query
+    });
+  }
+
+  function clearDatabaseCommandQuery() {
+    context!.dispatch({
+      type: CommandQueryActionTypes.Cleared
     });
   }
 
@@ -105,6 +116,7 @@ export default function useCommandQueryContext(){
     queryForDatabase,
     queryCommandProcedureDefinition,
     queryCommandCreateTableScript,
-    queryCommandDropTableScript
+    queryCommandDropTableScript,
+    clearDatabaseCommandQuery
   };
 }

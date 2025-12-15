@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useDatabaseCommandContext from '../../contexts/databaseCommand/useDatabaseCommand';
 import { DatabaseCommandResultField } from '../../models/databaseCommand/result/databaseCommandResultField';
 
@@ -8,61 +8,50 @@ interface Props {
 
 export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
 
-  const { isExecuting, executingCommandId, getDatabaseCommandResult, getDatabaseCommandBatchResults} = useDatabaseCommandContext();
+  const { isExecuting, executingCommandId, getDatabaseCommandResult, databaseCommandBatchResults} = useDatabaseCommandContext();
 
   const [fields, setFields] = useState<DatabaseCommandResultField[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rows, setRows] = useState<any[]>([]);
   const [recordsAffected, setRecordsAffected] = useState<number>(0);
-  const lastProcessedIndex = useRef<number>(-1);
 
   const databaseCommandResult = getDatabaseCommandResult(databaseCommandQueryId);
-  const databaseCommandBatchResults = getDatabaseCommandBatchResults(databaseCommandQueryId);
 
   useEffect(() => {
+
     if (isExecuting && executingCommandId === databaseCommandQueryId) {
-      lastProcessedIndex.current = -1;
+      // If executing, clear everything      
       setFields([]);
       setRows([]);
       setRecordsAffected(0);
+      return;
     }
-  },[databaseCommandQueryId, executingCommandId, isExecuting])
-
-  useEffect(() => {
 
     if (!databaseCommandResult) {
       return;
     }
 
     const newFields = databaseCommandResult.fields;
-    const newRows = databaseCommandResult.resultJson && JSON.parse(databaseCommandResult.resultJson);
-    setRecordsAffected(databaseCommandResult.recordsAffected);
+    const initialRows = databaseCommandResult.resultJson ? JSON.parse(databaseCommandResult.resultJson) : [];
+    
+    let allRows = [...initialRows];
+    
+    const queryBatchResults = databaseCommandBatchResults.filter(r => r.id === databaseCommandQueryId);
+    
+    if (queryBatchResults && queryBatchResults.length > 0) {
+      const sortedBatches = [...queryBatchResults].sort((a, b) => a.index - b.index);
+      
+      sortedBatches.forEach(batch => {
+        const batchRows = JSON.parse(batch.resultJson);
+        allRows = allRows.concat(batchRows);
+      });
+    }
 
     setFields(newFields);
-    setRows(r => [...newRows, ...r]);
-  }, [databaseCommandResult]);
+    setRows(allRows);
+    setRecordsAffected(databaseCommandResult.recordsAffected);
 
-  useEffect(() => {
-    if (!databaseCommandBatchResults) {
-      return;
-    }
-
-    const newResults = databaseCommandBatchResults.filter(r => r.id === databaseCommandQueryId && r.index > lastProcessedIndex.current);
-    if (!newResults?.length) {
-      return;
-    }
-
-    lastProcessedIndex.current = newResults[newResults.length - 1].index;
-    setRows(r => {
-      let result = [...r];
-      newResults.forEach(nr => {
-        result = result.concat(JSON.parse(nr.resultJson));
-      });
-
-      return result;
-    });
-
-  }, [databaseCommandBatchResults, databaseCommandQueryId]);
+  }, [databaseCommandQueryId, databaseCommandResult, databaseCommandBatchResults, isExecuting, executingCommandId]);
 
 
   if (!fields) {
@@ -93,8 +82,8 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
           <tbody>
             {rows && Array.isArray(rows) && rows.map((row, index) => (
               <tr className="border-b dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600" key={index}>
-                {row && Array.isArray(row) && row.map(cell => (
-                  <td className="px-3 py-2 border-x dark:border-neutral-600" key={cell}>
+                {row && Array.isArray(row) && row.map((cell, cellIndex) => (
+                  <td className="px-3 py-2 border-x dark:border-neutral-600" key={cellIndex}>
                     {cell}
                   </td>
                 ))}

@@ -2,6 +2,7 @@ import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/data
 
 export enum CommandQueryActionTypes {
   Queried = 'command/queried',
+  Cleared = 'command/cleared',
   Error = 'command/error'
 }
 
@@ -15,6 +16,11 @@ export type CommandQueriedErrorAction = {
   payload: string;
 };
 
+export type CommandQueryClearedAction = {
+  type: CommandQueryActionTypes.Cleared;
+};
+
 export type CommandQueryActions =
 | CommandQueriedAction
-| CommandQueriedErrorAction;
+| CommandQueriedErrorAction
+| CommandQueryClearedAction;
