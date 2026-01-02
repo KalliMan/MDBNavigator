@@ -56,7 +56,6 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
           action.payload],
       };
     case DatabaseCommandActionTypes.BatchResultReceived:
-
       return {
         ...state,
         isExecuting: false,
