@@ -54,7 +54,7 @@ function DatabaseTreeView() {
       if (!databasesDetails?.databases && isConnectedToDB && connectionSettings) {
         await fetchDatabases();
 
-        const serverNode = createServerNode(`${connectionSettings.serverName}:${connectionSettings.port}`);
+        const serverNode = createServerNode(`${connectionSettings.serverName}:${connectionSettings.port}`, true);
         setRoot(serverNode);
       }
     }
@@ -65,9 +65,9 @@ function DatabaseTreeView() {
 
   useEffect(() => {
     if (!databasesLoaded.current && isConnectedToDB && root && databasesDetails?.databases?.length) {
-      const databaseFolderNodes = createDatabasesFolderNode(root);
+      const databaseFolderNodes = createDatabasesFolderNode(root, true);
       databaseFolderNodes.nodes = [];
-      databasesDetails?.databases.forEach(db => databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes)));
+      databasesDetails?.databases.forEach(db => databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes, true)));
 
       databasesLoaded.current = true;
 

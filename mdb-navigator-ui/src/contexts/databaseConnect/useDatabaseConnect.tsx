@@ -31,10 +31,13 @@ export default function useDatabaseConnectContext() {
           payload: `Cannot connect to ${connectionSettings.serverName}`
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+      console.log('Error during database connection:', errorMessage);
       context!.dispatch({
         type:DatabaseConnectActionTypes.Error,
-        payload: error?.message
+        payload: errorMessage
       });
     }
   }

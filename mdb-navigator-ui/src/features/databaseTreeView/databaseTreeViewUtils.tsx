@@ -1,4 +1,4 @@
-import { FaServer } from "react-icons/fa";
+import { FaHdd, FaServer } from "react-icons/fa";
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { FcDatabase, FcFolder, FcOpenedFolder } from "react-icons/fc";
 import { NodeType } from "./NodeType";
@@ -20,22 +20,33 @@ export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData
   };
 }
 
-export function createServerNode(name: string): TreeViewNodeData {
+export function createServersNode(isExpanded: boolean): TreeViewNodeData {
+  return {
+    id: uuidv4(),
+    nodeName: 'Servers',
+    isExpanded: isExpanded,
+    Icon: <FaServer />,
+    nodes: [],
+    type: NodeType.Servers,
+  };
+}
+
+export function createServerNode(name: string, isExpanded: boolean): TreeViewNodeData {
   return {
     id: name,
     nodeName: name,
-    isExpanded: false,
-    Icon: <FaServer />,
+    isExpanded: isExpanded,
+    Icon: <FaHdd />,
     nodes: [],
     type: NodeType.Server,
   };
 }
 
-export function createDatabasesFolderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
+export function createDatabasesFolderNode(parentNode: TreeViewNodeData, isExpanded: boolean): TreeViewNodeData {
   return {
     id: uuidv4(),
     nodeName: 'Databases',
-    isExpanded: false,
+    isExpanded: isExpanded,
     Icon: <FcFolder />,
     IconExpanded: <FcOpenedFolder />,
     nodes: [],
@@ -44,14 +55,14 @@ export function createDatabasesFolderNode(parentNode: TreeViewNodeData): TreeVie
   };
 }
 
-export function createDatabaseNode(name: string, parentNode: TreeViewNodeData): TreeViewNodeData {
+export function createDatabaseNode(name: string, parentNode: TreeViewNodeData, isExpanded: boolean): TreeViewNodeData {
 
   const dbNode: TreeViewNodeData = {
     id: name,
     nodeName: name,
     Icon: <FcDatabase />,
     IconExpanded: <FcDatabase />,
-    isExpanded: false,
+    isExpanded: isExpanded,
     nodes: [],
     type: NodeType.Database,
     parentNode
@@ -168,11 +179,9 @@ export function createFunctionNode(databaseSchema: string, name: string, parentN
   };
 }
 
-
 export function hasLoaderNode(databaseNode: TreeViewNodeData): boolean {
   return databaseNode?.nodes?.length === 1 && databaseNode?.nodes?.[0].type === NodeType.Loader;
 }
-
 
 export function getDatabaseNodeFromServerNode(serverNode: TreeViewNodeData, databaseName: string): TreeViewNodeData | undefined {
   if (serverNode?.nodes?.length) {

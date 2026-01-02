@@ -1,4 +1,5 @@
 export enum NodeType {
+  Servers = 'Servers',
   Server = 'Server',
   Databases = 'Databases',
   Database = 'Database',
