@@ -3,8 +3,8 @@ import { DatabaseCommandContextType } from "./DatabaseCommandReducer";
 import agent from "../../services/apiAgent";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
-import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import { AxiosError } from "axios";
 
 export const DatabaseCommandContext = createContext<DatabaseCommandContextType | null>(null);
 
@@ -20,12 +20,19 @@ export default function useDatabaseCommandContext(){
       payload: cmdQuery.id
     });
 
-    const result = await agent.databaseCommandApi.execute(cmdQuery);
+    try {
+      const result = await agent.databaseCommandApi.execute(cmdQuery);
 
-    context!.dispatch({
-      type: DatabaseCommandActionTypes.ResultReceived,
-      payload: result
-    });
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.ResultReceived,
+        payload: result
+      });
+    } catch (error) {
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.Error,
+        payload: error instanceof AxiosError ? error.response?.data?.message ?? error.message : 'Unknown error occurred'
+      });
+    }
   }
 
   async function getTopNTableRecords(id: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
@@ -34,20 +41,19 @@ export default function useDatabaseCommandContext(){
       payload: id
     });
 
-    const result = await agent.databaseCommandApi.getTopNTableRecords(id, databaseName, schema, table, recordsNumber);
+    try {
+      const result = await agent.databaseCommandApi.getTopNTableRecords(id, databaseName, schema, table, recordsNumber);
 
-    context!.dispatch({
-      type: DatabaseCommandActionTypes.ResultReceived,
-      payload: result
-    });
-  }
-
-  function getDatabaseCommandResult(id: string): DatabaseCommandResult | undefined {
-    return context!.state.databaseCommandResults.find(r => r.id === id);
-  }
-
-  function getDatabaseCommandBatchResults(id: string): DatabaseCommandBatchResult[] | undefined {
-    return context!.state.databaseCommandBatchResults.filter(r => r.id === id);
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.ResultReceived,
+        payload: result
+      });
+    } catch (error) {
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.Error,
+        payload: error instanceof AxiosError ? error.response?.data?.message ?? error.message : 'Unknown error occurred'
+      });
+    }
   }
 
   function onBatchCommandResult(result: DatabaseCommandBatchResult): void {
@@ -57,16 +63,10 @@ export default function useDatabaseCommandContext(){
     });
   }
 
-  const {isExecuting, executingCommandId, databaseCommandQueries, databaseCommandResults, databaseCommandBatchResults } = context.state;
-
-  return { isExecuting,
-    executingCommandId,
-    databaseCommandQueries,
-    databaseCommandResults,
-    databaseCommandBatchResults,
+  return { 
+    commands: context.state.commands,
     executeDatabaseSQLCommand,
     getTopNTableRecords,
-    getDatabaseCommandResult,
-    getDatabaseCommandBatchResults,
-    onBatchCommandResult};
+    onBatchCommandResult,
+  };
 }

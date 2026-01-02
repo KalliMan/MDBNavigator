@@ -3,25 +3,22 @@ import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/data
 import { DatabaseCommandActions, DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 
-export type DatabaseCommandState = {
+export type DatabaseCommand = {
+  id: string;
   isExecuting: boolean;
-  executingCommandId: string | null;
   error: string | null;
+  
+  query: DatabaseSQLCommandQuery | null;
+  result: DatabaseCommandResult | null;
+  batchResults: DatabaseCommandBatchResult[];
+}
 
-  databaseCommandQueries: DatabaseSQLCommandQuery[];
-  databaseCommandResults: DatabaseCommandResult[];
-  databaseCommandBatchResults: DatabaseCommandBatchResult[];
-
+export type DatabaseCommandState = {
+  commands: DatabaseCommand[];
 }
 
 export const initialDatabaseCommandState: DatabaseCommandState = {
-  isExecuting: false,
-  executingCommandId: null,
-  error: null,
-
-  databaseCommandQueries: [],
-  databaseCommandResults: [],
-  databaseCommandBatchResults: [],
+  commands: [],
 };
 
 export type DatabaseCommandContextType = {
@@ -31,44 +28,91 @@ export type DatabaseCommandContextType = {
 
 export function databaseCommandReducer(state: DatabaseCommandState, action: DatabaseCommandActions): DatabaseCommandState {
   switch(action.type) {
-    case DatabaseCommandActionTypes.Executing:
+    case DatabaseCommandActionTypes.Executing: {
+      const commandId = action.payload;
+      const existingCommand = state.commands.find(c => c.id === commandId);
+      
+      if (existingCommand) {
+        return {
+          commands: state.commands.map(c => 
+            c.id === commandId 
+              ? { ...c, isExecuting: true, result: null, batchResults: [], error: null }
+              : c
+          )
+        };
+      } else {
+        return {
+          commands: [...state.commands, {
+            id: commandId,
+            isExecuting: true,
+            error: null,
+            query: null,
+            result: null,
+            batchResults: []
+          }]
+        };
+      }
+    }
+    
+    case DatabaseCommandActionTypes.Queried: {
+      const query = action.payload;
+      const existingCommand = state.commands.find(c => c.id === query.id);
+      
+      if (existingCommand) {
+        return {
+          commands: state.commands.map(c => 
+            c.id === query.id 
+              ? { ...c, query, result: null, batchResults: [], error: null }
+              : c
+          )
+        };
+      } else {
+        return {
+          commands: [...state.commands, {
+            id: query.id,
+            isExecuting: false,
+            error: null,
+            query,
+            result: null,
+            batchResults: []
+          }]
+        };
+      }
+    }
+    
+    case DatabaseCommandActionTypes.ResultReceived: {
+      const result = action.payload;
       return {
-        ...state,
-        isExecuting: true,
-        executingCommandId: action.payload,
-        databaseCommandResults: state.databaseCommandResults?.filter(q => q.id !== action.payload),
-        databaseCommandBatchResults: state.databaseCommandBatchResults?.filter(q => q.id !== action.payload),
+        commands: state.commands.map(c => 
+          c.id === result.id 
+            ? { ...c, isExecuting: false, result, error: null }
+            : c
+        )
       };
-    case DatabaseCommandActionTypes.Queried:
+    }
+    
+    case DatabaseCommandActionTypes.BatchResultReceived: {
+      const batchResult = action.payload;
       return {
-        ...state,
-        databaseCommandQueries: [...state.databaseCommandQueries?.filter(q => q.id !== action.payload.id) ?? [],
-          action.payload],
-        databaseCommandResults: state.databaseCommandResults?.filter(q => q.id !== action.payload.id),
-        databaseCommandBatchResults: state.databaseCommandBatchResults?.filter(q => q.id !== action.payload.id),
+        commands: state.commands.map(c => 
+          c.id === batchResult.id 
+            ? { ...c, batchResults: [...c.batchResults, batchResult] }
+            : c
+        )
       };
-    case DatabaseCommandActionTypes.ResultReceived:
+    }
+    
+    case DatabaseCommandActionTypes.Error: {
+      const errorMessage = action.payload;
       return {
-        ...state,
-        isExecuting: false,
-        executingCommandId: null,
-        databaseCommandResults: [...state.databaseCommandResults?.filter(q => q.id !== action.payload.id) ?? [],
-          action.payload],
+        commands: state.commands.map(c => 
+          c.isExecuting 
+            ? { ...c, isExecuting: false, error: errorMessage }
+            : c
+        )
       };
-    case DatabaseCommandActionTypes.BatchResultReceived:
-      return {
-        ...state,
-        isExecuting: false,
-        executingCommandId: null,
-        databaseCommandBatchResults: [...state.databaseCommandBatchResults, action.payload]
-      };    
-    case DatabaseCommandActionTypes.Error:
-      return {
-        ...state,
-        isExecuting: false,
-        executingCommandId: null,
-        error: action.payload
-      };
+    }
+    
     default:
       console.log("Unsupported Action type");
       return state;

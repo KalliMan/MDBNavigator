@@ -42,7 +42,7 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
         >
         </textarea>
       </div>
-      <div className="">
+      <div className="min-h-10 flex items-center px-2">
         <Button type={ButtonType.primary} onClick={handleExecute}>Execute</Button>
       </div>
     </div>

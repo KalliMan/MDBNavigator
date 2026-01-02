@@ -1,25 +1,23 @@
 import { useEffect, useState } from 'react';
-import useDatabaseCommandContext from '../../contexts/databaseCommand/useDatabaseCommand';
 import { DatabaseCommandResultField } from '../../models/databaseCommand/result/databaseCommandResultField';
+import useDatabaseCommandSelector from '../../contexts/databaseCommand/useDatabaseCommandSelector';
+
 
 interface Props {
   databaseCommandQueryId: string;
 }
 
 export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
-
-  const { isExecuting, executingCommandId, getDatabaseCommandResult, databaseCommandBatchResults} = useDatabaseCommandContext();
+  const { isExecuting, result, batchResults } = useDatabaseCommandSelector(databaseCommandQueryId);
 
   const [fields, setFields] = useState<DatabaseCommandResultField[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rows, setRows] = useState<any[]>([]);
   const [recordsAffected, setRecordsAffected] = useState<number>(0);
 
-  const databaseCommandResult = getDatabaseCommandResult(databaseCommandQueryId);
-
   useEffect(() => {
 
-    if (isExecuting && executingCommandId === databaseCommandQueryId) {
+    if (isExecuting) {
       // If executing, clear everything      
       setFields([]);
       setRows([]);
@@ -27,16 +25,16 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
       return;
     }
 
-    if (!databaseCommandResult) {
+    if (!result) {
       return;
     }
 
-    const newFields = databaseCommandResult.fields;
-    const initialRows = databaseCommandResult.resultJson ? JSON.parse(databaseCommandResult.resultJson) : [];
+    const newFields = result.fields;
+    const initialRows = result.resultJson ? JSON.parse(result.resultJson) : [];
     
     let allRows = [...initialRows];
     
-    const queryBatchResults = databaseCommandBatchResults.filter(r => r.id === databaseCommandQueryId);
+    const queryBatchResults = batchResults;
     
     if (queryBatchResults && queryBatchResults.length > 0) {
       const sortedBatches = [...queryBatchResults].sort((a, b) => a.index - b.index);
@@ -49,9 +47,9 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
 
     setFields(newFields);
     setRows(allRows);
-    setRecordsAffected(databaseCommandResult.recordsAffected);
+    setRecordsAffected(result.recordsAffected);
 
-  }, [databaseCommandQueryId, databaseCommandResult, databaseCommandBatchResults, isExecuting, executingCommandId]);
+  }, [databaseCommandQueryId, result, batchResults, isExecuting]);
 
 
   if (!fields) {
@@ -68,6 +66,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
         <table className="min-w-full text-left text-sm whitespace-nowrap">
           <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t">
             <tr>
+              <th className="w-[2%]" key={"rowIndex"}></th>
               {fields?.map(field => (
                 <th
                   scope="col"
@@ -82,6 +81,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
           <tbody>
             {rows && Array.isArray(rows) && rows.map((row, index) => (
               <tr className="border-b dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600" key={index}>
+                <td className="px-3 py-2 border-x dark:border-neutral-600 font-medium">{index + 1}</td>
                 {row && Array.isArray(row) && row.map((cell, cellIndex) => (
                   <td className="px-3 py-2 border-x dark:border-neutral-600" key={cellIndex}>
                     {cell}

@@ -3,14 +3,14 @@ import { DatabaseCommandResultView } from './DatabaseCommandResultView';
 import HorisontalSidebar from '../../ui/sidebar/HorisontalSidebar';
 import { DatabaseSQLCommandQuery } from '../../models/databaseCommand/query/databaseSQLCommandQuery';
 import { DatabaseCommandStatusBar } from './DatabaseCommandStatusBar';
-import useDatabaseCommandContext from '../../contexts/databaseCommand/useDatabaseCommand';
+import useDatabaseCommandSelector from '../../contexts/databaseCommand/useDatabaseCommandSelector';
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
 }
 
 export default function DatabaseCommandAndResult({ databaseCommandQuery }: Props) {
-  const { isExecuting, executingCommandId } = useDatabaseCommandContext();
+const { isExecuting, error } = useDatabaseCommandSelector(databaseCommandQuery.id);
 
   if (!databaseCommandQuery) {
     return null;
@@ -19,7 +19,7 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery }: Props
   return (
     <div className="border-2 border-stone-400 flex flex-col h-full">
       <HorisontalSidebar>
-        <div className="h-[93%]">
+        <div className="h-full">
           <DatabaseCommand databaseCommandQuery={databaseCommandQuery} />
         </div>
       </HorisontalSidebar>
@@ -28,8 +28,7 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery }: Props
       </div>
       <DatabaseCommandStatusBar 
         isExecuting={isExecuting}
-        queryId={databaseCommandQuery.id}
-        executingCommandId={executingCommandId}
+        error={error}
       />
     </div>
   );
