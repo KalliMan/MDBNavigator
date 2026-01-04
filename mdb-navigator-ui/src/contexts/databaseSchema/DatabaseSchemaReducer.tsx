@@ -1,26 +1,32 @@
 import { DatabasesDetails } from "../../models/schema/databasesDetails";
-import { ProceduresDetails } from "../../models/schema/procedureDetails";
-import { TablesDetails } from "../../models/schema/tablesDetails";
 import { DatabaseSchemaActions, DatabaseSchemaActionTypes } from "./DatabaseSchemaActionTypes";
 
-export type DatabaseSchemaState = {
+export type DatabaseSchema = {
+  connectionId: string;
   isLoading: boolean;
   error: string | null;
 
+  refreshDatabases?: boolean;
+
+  lastUpdatedDatabaseName?: string;
+  refreshTables?: boolean;
+  refreshStoredProcedures?: boolean;
+  refreshFunctions?: boolean;
+
   databasesDetails: DatabasesDetails | null,
-  tablesDetails: TablesDetails | null,
-  storedProceduresDetails: ProceduresDetails | null,
-  functionsDetails: ProceduresDetails | null
+}
+
+export type DatabaseSchemaState = {
+  isLoading: boolean;
+
+  databaseSchemas: DatabaseSchema[] | null;
+  error: string | null;
 }
 
 export const initialDatabaseConnectState: DatabaseSchemaState = {
   isLoading: false,
+  databaseSchemas: null,
   error: null,
-
-  databasesDetails: null,
-  tablesDetails: null,
-  storedProceduresDetails: null,
-  functionsDetails: null
 };
 
 export type DatabaseConnectContextType = {
@@ -29,42 +35,142 @@ export type DatabaseConnectContextType = {
 }
 
 export function databaseSchemaReducer(state: DatabaseSchemaState, action: DatabaseSchemaActions): DatabaseSchemaState {
+
   switch(action.type) {
     case DatabaseSchemaActionTypes.Loading:
       return {
         ...state,
         isLoading: true
       };
-    case DatabaseSchemaActionTypes.FetchedDatabases:
+
+    case DatabaseSchemaActionTypes.AddedSchema:
       return {
         ...state,
         isLoading: false,
+        databaseSchemas: state.databaseSchemas ? [...state.databaseSchemas, action.payload] : [action.payload]
+      };
+
+    case DatabaseSchemaActionTypes.FetchedDatabases: {
+      const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+
+      if (!schema) {
+        return { ...state };
+      }
+
+      const updatedSchema: DatabaseSchema = {
+        ...schema,
+        isLoading: false,
+        error: null,
+        refreshDatabases: true,
         databasesDetails: action.payload
       };
-    case DatabaseSchemaActionTypes.FetchedTables:
+
       return {
         ...state,
         isLoading: false,
-        tablesDetails: action.payload
+        databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchema : s)
       };
-    case DatabaseSchemaActionTypes.FetchedStoredProcedures:
+    }
+    
+    case DatabaseSchemaActionTypes.FetchedTables: {
+      const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+      if (!schema) {
+        return {...state};
+      }
+
+      const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
+      if (!database) {
+        return {...state};
+      }
+
+      database.tablesDetails = action.payload;
+
+      const updatedSchemaTables: DatabaseSchema = {
+        ...schema,
+        isLoading: false,
+        error: null,
+        refreshDatabases: false,
+        refreshTables: true,
+        lastUpdatedDatabaseName: action.payload.databaseName,
+      };
+
       return {
         ...state,
         isLoading: false,
-        storedProceduresDetails: action.payload
+        databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaTables : s)
       };
-    case DatabaseSchemaActionTypes.FetchedFunctions:
-      return {
-        ...state,
+    }
+
+    case DatabaseSchemaActionTypes.FetchedStoredProcedures: {
+      const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+      if (!schema) {
+        return {...state};
+      }
+
+      const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
+      if (!database) {
+        return {...state};
+      }
+
+      database.storedProceduresDetails = action.payload;
+
+      const updatedSchemaProcedures: DatabaseSchema = {
+        ...schema,
         isLoading: false,
-        functionsDetails: action.payload
+        error: null,
+        refreshDatabases: false,
+        refreshTables: false,
+        refreshStoredProcedures: true,
+        lastUpdatedDatabaseName: action.payload.databaseName,
       };
-    case DatabaseSchemaActionTypes.Error:
+
+      return {
+        ...schema,
+        isLoading: false,
+        databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaProcedures : s)
+      };
+    }
+
+    case DatabaseSchemaActionTypes.FetchedFunctions: {
+      const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+      if (!schema) {
+        return {...state};
+      }
+
+      const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
+      if (!database) {
+        return {...state};
+      }
+
+      database.functionsDetails = action.payload;
+
+      const updatedSchemaProcedures: DatabaseSchema = {
+        ...schema,
+        isLoading: false,
+        error: null,
+        refreshDatabases: false,
+        refreshTables: false,
+        refreshStoredProcedures: false,
+        refreshFunctions: true,
+        lastUpdatedDatabaseName: action.payload.databaseName,
+      };
+
+      return {
+        ...schema,
+        isLoading: false,
+        databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaProcedures : s)
+      };
+    }
+
+    case DatabaseSchemaActionTypes.Error: {
+      
       return {
         ...state,
         isLoading: false,
         error: action.payload
       };
+    }
+
     default:
       console.log("Unsupported Action type");
       return state;

@@ -1,9 +1,11 @@
 import { DatabasesDetails } from "../../models/schema/databasesDetails";
 import { ProceduresDetails } from "../../models/schema/procedureDetails";
 import { TablesDetails } from "../../models/schema/tablesDetails";
+import { DatabaseSchema } from "./DatabaseSchemaReducer";
 
 export enum DatabaseSchemaActionTypes {
   Loading = 'schema/loading',
+  AddedSchema = 'schema/addedSchema',
   FetchedDatabases = 'schema/fetchedDatabases',
   FetchedTables = 'schema/fetchedTables',
   FetchedStoredProcedures = 'schema/fetchedStoredProcedures',
@@ -13,6 +15,11 @@ export enum DatabaseSchemaActionTypes {
 
 export type LoadingAction = {
   type: DatabaseSchemaActionTypes.Loading;
+};
+
+export type AddedSchemaAction = {
+  type: DatabaseSchemaActionTypes.AddedSchema;
+  payload: DatabaseSchema;
 };
 
 export type FetchedDatabasesAction = {
@@ -41,6 +48,7 @@ export type ErrorDatabaseSchemaActionAction = {
 };
 
 export type DatabaseSchemaActions = LoadingAction
+  | AddedSchemaAction
   | FetchedDatabasesAction
   | FetchedTablesAction
   | FetchedStoredProceduresAction

@@ -8,6 +8,7 @@ using MDBNavigator.BL.BackgroundTaskQueue;
 using Models.Schema;
 using Models.Command;
 using Models.Connect;
+using MDBNavigator.BL.DTOs;
 
 namespace MDBNavigator.BL.Services
 {
@@ -24,63 +25,73 @@ namespace MDBNavigator.BL.Services
             _backgroundTaskQueue = backgroundTaskQueue;
         }
 
-        public async Task<bool> Connect(string sessionId, ConnectionSettings details)
+        public async Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings details)
         {
-            _memoryCache.Remove(sessionId);
+            //            _memoryCache.Remove(sessionId);
+            var connectionId = Guid.NewGuid().ToString();
+            var cachekey = GetSessionConnectionID(sessionId, connectionId);
 
             await using var connection = await DBConnection.CreateConnection(details);
-            _memoryCache.Set(sessionId, details);
-            return true;
+            _memoryCache.Set(cachekey, details);
+            return new()
+            {
+                ConnectionId = connectionId,
+                ServerName = $"{details.ServerName}:{details.Port}",
+            };
         }
-           
-        public async Task<DatabasesDetailsDto> GetDatabases(string sessionId)
+
+        public async Task<DatabasesDetailsDto> GetDatabases(string sessionId, string connectionId)
         {
-            var connection = await CreateConnection(sessionId);
+            var connection = await CreateConnection(sessionId, connectionId);
             var databases = await connection.GetDatabases();
             return new()
             {
+                ConnectionId = connectionId,
                 DataSource = connection.DataSource,
                 Databases = databases,
             };
         }
 
-        public async Task<TablesDetailsDto> GetTables(string sessionId, string databaseName)
+        public async Task<TablesDetailsDto> GetTables(string sessionId, string connectionId, string databaseName)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var tables = await connection.GetTables();
             return new()
             {
+                ConnectionId = connectionId,
                 DataSource = connection.DataSource,
                 DatabaseName = databaseName,
                 Tables = tables
             };
         }
 
-        public async Task<ProceduresDetailsDto> GetStoredProcedures(string sessionId, string databaseName)
+        public async Task<ProceduresDetailsDto> GetStoredProcedures(string sessionId, string connectionId, string databaseName)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var procedures = await connection.GetStoredProcedures();
             return new()
             {
+                ConnectionId = connectionId,
                 DataSource = connection.DataSource,
                 DatabaseName = databaseName,
                 Procedures = procedures
             };
         }
 
-        public async Task<ProceduresDetailsDto> GetFunctions(string sessionId, string databaseName)
+        public async Task<ProceduresDetailsDto> GetFunctions(string sessionId, string connectionId, string databaseName)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var functions = await connection.GetFunctions();
             return new()
             {
+                ConnectionId = connectionId,
                 DataSource = connection.DataSource,
                 DatabaseName = databaseName,
                 Procedures = functions
             };
         }
 
-        public async Task<ViewDetailsDto> GetViews(string sessionId, string databaseName)
+        public async Task<ViewDetailsDto> GetViews(string sessionId, string connectionId, string databaseName)
         {
             await using var connection = await CreateConnection(sessionId, databaseName);
             var views = await connection.GetViews();
@@ -92,13 +103,13 @@ namespace MDBNavigator.BL.Services
             };
         }
 
-        public async Task<string> GetProcedureDefinition(string sessionId, string databaseName, string schema, string name)
+        public async Task<string> GetProcedureDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return await connection.GetProcedureDefinition(schema, name);
         }
 
-        public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string databaseName, string schema, string table, int? recordsNumber)
+        public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
         {
             await using var connection = await CreateConnection(sessionId, databaseName);
 
@@ -123,27 +134,27 @@ namespace MDBNavigator.BL.Services
             return result;
         }
 
-        public async Task<string> GetTopNTableRecordsScript(string id, string sessionId, string databaseName, string schema, string table, int? recordsNumber)
+        public async Task<string> GetTopNTableRecordsScript(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetTopNTableRecordsScript(schema, table, recordsNumber);
         }
 
-        public async Task<string> GetCreateTableScript(string sessionId, string databaseName, string schema)
+        public async Task<string> GetCreateTableScript(string sessionId, string connectionId, string databaseName, string schema)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetCreateTableScript(schema);
         }
 
-        public async Task<string> GetDropTableScript(string sessionId, string databaseName, string schema, string table)
+        public async Task<string> GetDropTableScript(string sessionId, string connectionId, string databaseName, string schema, string table)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetDropTableScript(schema, table);
         }
 
-        public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string id, string databaseName, string cmdQuery)
+        public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
 
             var rawResult = await connection.ExecuteQuery(cmdQuery);
 
@@ -194,9 +205,9 @@ namespace MDBNavigator.BL.Services
             return result;
         }
 
-        private async Task<DBConnection> CreateConnection(string sessionId, string? databaseName = null)
+        private async Task<DBConnection> CreateConnection(string sessionId, string connectionId, string? databaseName = null)
         {
-            var details = _memoryCache.Get(sessionId);
+            var details = _memoryCache.Get(GetSessionConnectionID(sessionId, connectionId));
             if (details == null)
             {
                 throw new Exception("Not Connected");
@@ -209,5 +220,8 @@ namespace MDBNavigator.BL.Services
 
             return await DBConnection.CreateConnection(details);
         }
+
+        static string GetSessionConnectionID(string sessionId, string connectionId)
+            => $"{sessionId}_{connectionId}";
     }
 }

@@ -8,6 +8,7 @@ import { DatabaseCommandResult } from '../models/databaseCommand/result/database
 import { toast } from 'react-toastify';
 import { sleep } from '../common/helpers/commonHelpers';
 import { ProceduresDetails } from '../models/schema/procedureDetails';
+import { ConnectedResult } from '../models/connect/connectedResult';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL; //'https://localhost:7262/api';
 
@@ -27,12 +28,6 @@ axios.interceptors.response.use(
     if (import.meta.env.DEV) {
       await sleep(500);
     }
-
-    // const pagination = response.headers['pagination'];
-    // if (pagination) {
-    //     response.data = new PaginatedResult(response.data, JSON.parse(pagination));
-    //     return response as AxiosResponse<PaginatedResult<any>>;
-    // }
 
     return response;
   },
@@ -70,12 +65,9 @@ axios.interceptors.response.use(
         break;
       case 404:
         toast.error("Not Found!");
-        //          router.navigate('/not-found')
         break;
       case 500:
         toast.error(data.message);
-        //          store.commonStore.setSetverError(data);
-        //          router.navigate('/server-error')
         break;
     }
 
@@ -91,36 +83,36 @@ const requests = {
 };
 
 const databaseConnectionApi = {
-  connect: (connectionSettings: ConnectionSettings): Promise<boolean> =>
-    requests.post<boolean>('/databaseConnection/connect', connectionSettings),
+  connect: (connectionSettings: ConnectionSettings): Promise<ConnectedResult> =>
+    requests.post<ConnectedResult>('/databaseConnection/connect', connectionSettings),
 }
 
 const databaseSchemaApi = {
-  fetchDatabases: (): Promise<DatabasesDetails> =>
-    requests.get<DatabasesDetails>('/databaseSchema/databases'),
-  fetchTables: (databaseName: string): Promise<TablesDetails> =>
-    requests.get<TablesDetails>(`/databaseSchema/tables/${databaseName}`),
-  fetchStoredProcedures: (databaseName: string): Promise<ProceduresDetails> =>
-    requests.get<ProceduresDetails>(`/databaseSchema/storedProcedures/${databaseName}`),
-  fetchFunctions: (databaseName: string): Promise<ProceduresDetails> =>
-    requests.get<ProceduresDetails>(`/databaseSchema/functions/${databaseName}`)
+  fetchDatabases: (connectionId: string): Promise<DatabasesDetails> =>
+    requests.get<DatabasesDetails>(`/databaseSchema/databases/${connectionId}`),
+  fetchTables: (connectionId: string, databaseName: string): Promise<TablesDetails> =>
+    requests.get<TablesDetails>(`/databaseSchema/tables/${connectionId}/${databaseName}`),
+  fetchStoredProcedures: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
+    requests.get<ProceduresDetails>(`/databaseSchema/storedProcedures/${connectionId}/${databaseName}`),
+  fetchFunctions: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
+    requests.get<ProceduresDetails>(`/databaseSchema/functions/${connectionId}/${databaseName}`)
 };
 
 const databaseCommandApi = {
   execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseCommandResult> =>
     requests.post<DatabaseCommandResult>('/databaseCommand', cmdQuery),
-  getProcedureDefinition: (databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<DatabaseCommandResult>(`/databaseCommand/procedureDefinition/${databaseName}/${schema}/${name}`),
+  getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
+    requests.get<DatabaseCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
 
-  getTopNTableRecords: (id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommandResult> =>
-    requests.get<DatabaseCommandResult>(`/databaseCommand/tableRecords/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
-  getTopNTableRecordsScript: (id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
-    requests.get<string>(`/databaseCommand/tableRecordsScript/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  getTopNTableRecords: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommandResult> =>
+    requests.get<DatabaseCommandResult>(`/databaseCommand/tableRecords/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  getTopNTableRecordsScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
+    requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
 
-  getCreateTableScript: (databaseName: string, schema: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createTableScript/${databaseName}/${schema}`),
-  getDropTableScript: (databaseName: string, schema: string, table: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/dropTableScript/${databaseName}/${schema}/${table}`),
+  getCreateTableScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createTableScript/${connectionId}/${databaseName}/${schema}`),
+  getDropTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/dropTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
 }
 
 const agent = {

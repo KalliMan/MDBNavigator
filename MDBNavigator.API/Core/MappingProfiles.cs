@@ -8,7 +8,7 @@ namespace MDBNavigator.API.Core
     {
         public MappingProfiles()
         {
-            CreateMap<ConnectionSettingsDto, ConnectionSettings>();
+            CreateMap<ConnectionSettingsQuery, ConnectionSettings>();
         }
     }
 }

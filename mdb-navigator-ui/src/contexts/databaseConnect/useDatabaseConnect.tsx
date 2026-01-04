@@ -22,27 +22,25 @@ export default function useDatabaseConnectContext() {
       const result = await agent.databaseConnectionApi.connect(connectionSettings);
       if (result){
         context!.dispatch({
-          type:DatabaseConnectActionTypes.Connected,
-          payload: connectionSettings
+          type: DatabaseConnectActionTypes.Connected,
+          payload: result
         });
       } else {
         context!.dispatch({
-          type:DatabaseConnectActionTypes.Error,
+          type: DatabaseConnectActionTypes.Error,
           payload: `Cannot connect to ${connectionSettings.serverName}`
         });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-      console.log('Error during database connection:', errorMessage);
       context!.dispatch({
-        type:DatabaseConnectActionTypes.Error,
+        type: DatabaseConnectActionTypes.Error,
         payload: errorMessage
       });
     }
   }
 
-  const {isConnecting, isConnectedToDB, error, connectionSettings } = context.state;
+  const {isConnecting, isConnectedToDB, error, connectedResult } = context.state;
 
-  return {isConnecting, isConnectedToDB, error, connectionSettings, connect};
+  return {isConnecting, isConnectedToDB, error, connectedResult, connect};
 };

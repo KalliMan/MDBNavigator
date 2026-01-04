@@ -1,7 +1,8 @@
 import { Table } from "./table";
 
 export interface TablesDetails {
-  dataSource: string;
+  connectionId: string;
+//  dataSource: string;
   databaseName: string;
   tables: Table[];
 }

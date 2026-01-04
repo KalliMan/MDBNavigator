@@ -1,12 +1,9 @@
 ﻿using AutoMapper;
-using MDBNavigator.API.DTOs;
 using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace MDBNavigator.API.Controllers
 {
     [Route("api/[controller]")]
@@ -23,8 +20,8 @@ namespace MDBNavigator.API.Controllers
             _dbManager = dbManager;
         }
 
-        [HttpGet("databases")]
-        public async Task<IActionResult> Databases()
+        [HttpGet("databases/{connectionId}")]
+        public async Task<IActionResult> Databases(string connectionId)
         {
             var sessionId = GetSessionId();
             if (string.IsNullOrEmpty(sessionId))
@@ -32,11 +29,11 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetDatabases(sessionId!));
+            return Ok(await _dbManager.GetDatabases(sessionId!, connectionId));
         }
 
-        [HttpGet("tables/{databaseName}")]
-        public async Task<IActionResult> Tables(string databaseName)
+        [HttpGet("tables/{connectionId}/{databaseName}")]
+        public async Task<IActionResult> Tables(string connectionId, string databaseName)
         {
             var sessionId = GetSessionId();
             if (string.IsNullOrEmpty(sessionId))
@@ -44,11 +41,11 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetTables(sessionId!, databaseName));
+            return Ok(await _dbManager.GetTables(sessionId!, connectionId, databaseName));
         }
 
-        [HttpGet("storedProcedures/{databaseName}")]
-        public async Task<IActionResult> StoredProcedures(string databaseName)
+        [HttpGet("storedProcedures/{connectionId}/{databaseName}")]
+        public async Task<IActionResult> StoredProcedures(string connectionId, string databaseName)
         {
             var sessionId = GetSessionId();
             if (string.IsNullOrEmpty(sessionId))
@@ -56,11 +53,11 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetStoredProcedures(sessionId!, databaseName));
+            return Ok(await _dbManager.GetStoredProcedures(sessionId!, connectionId, databaseName));
         }
 
-        [HttpGet("functions/{databaseName}")]
-        public async Task<IActionResult> Functions(string databaseName)
+        [HttpGet("functions/{connectionId}/{databaseName}")]
+        public async Task<IActionResult> Functions(string connectionId, string databaseName)
         {
             var sessionId = GetSessionId();
             if (string.IsNullOrEmpty(sessionId))
@@ -68,11 +65,11 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetFunctions(sessionId!, databaseName));
+            return Ok(await _dbManager.GetFunctions(sessionId!, connectionId, databaseName));
         }
 
-        [HttpGet("views/{databaseName}")]
-        public async Task<IActionResult> Views(string databaseName)
+        [HttpGet("views/{connectionId}/{databaseName}")]
+        public async Task<IActionResult> Views(string connectionId, string databaseName)
         {
             var sessionId = GetSessionId();
             if (string.IsNullOrEmpty(sessionId))
@@ -80,7 +77,7 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetViews(sessionId!, databaseName));
+            return Ok(await _dbManager.GetViews(sessionId!, connectionId, databaseName));
         }
     }
 }

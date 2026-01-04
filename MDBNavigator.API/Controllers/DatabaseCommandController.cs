@@ -1,7 +1,6 @@
 ﻿using MDBNavigator.API.DTOs;
 using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 
 namespace MDBNavigator.API.Controllers
 {
@@ -16,8 +15,8 @@ namespace MDBNavigator.API.Controllers
             _dbManager = dbManager;            
         }
 
-        [HttpGet("tableRecordsScript/{id}/{databaseName}/{schema}/{table}/{recordsNumber}")]
-        public async Task<IActionResult> GetTopNTableRecordsScript(string id, string databaseName, string schema, string table, int? recordsNumber)
+        [HttpGet("tableRecordsScript/{connectionId}/{id}/{databaseName}/{schema}/{table}/{recordsNumber}")]
+        public async Task<IActionResult> GetTopNTableRecordsScript(string connectionId, string id, string databaseName, string schema, string table, int? recordsNumber)
         {
             var sessionId = Request.Headers["id"];
             if (string.IsNullOrEmpty(sessionId))
@@ -25,12 +24,12 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetTopNTableRecordsScript(id, sessionId!, databaseName, schema, table, recordsNumber));
+            return Ok(await _dbManager.GetTopNTableRecordsScript(id, sessionId!, connectionId, databaseName, schema, table, recordsNumber));
         }
 
 
-        [HttpGet("createTableScript/{databaseName}/{schema}")]
-        public async Task<IActionResult> GetCreateTableScript(string databaseName, string schema)
+        [HttpGet("createTableScript/{connectionId}/{databaseName}/{schema}")]
+        public async Task<IActionResult> GetCreateTableScript(string connectionId, string databaseName, string schema)
         {
             var sessionId = Request.Headers["id"];
             if (string.IsNullOrEmpty(sessionId))
@@ -38,11 +37,11 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetCreateTableScript(sessionId!, databaseName, schema));
+            return Ok(await _dbManager.GetCreateTableScript(sessionId!, connectionId, databaseName, schema));
         }
 
-        [HttpGet("dropTableScript/{databaseName}/{schema}/{table}")]
-        public async Task<IActionResult> GetDropTableScript(string databaseName, string schema, string table)
+        [HttpGet("dropTableScript/{connectionId}/{databaseName}/{schema}/{table}")]
+        public async Task<IActionResult> GetDropTableScript(string connectionId, string databaseName, string schema, string table)
         {
             var sessionId = Request.Headers["id"];
             if (string.IsNullOrEmpty(sessionId))
@@ -50,7 +49,7 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.GetDropTableScript(sessionId!, databaseName, schema, table));
+            return Ok(await _dbManager.GetDropTableScript(sessionId!, connectionId, databaseName, schema, table));
         }
 
         [HttpPost()]
@@ -62,18 +61,18 @@ namespace MDBNavigator.API.Controllers
                 return BadRequest("The provided request header does not contain ID property.");
             }
 
-            return Ok(await _dbManager.ExecuteQuery(sessionId!, value.Id, value.DatabaseName, value.CmdQuery));
+            return Ok(await _dbManager.ExecuteQuery(sessionId!, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery));
         }
 
-        [HttpGet("procedureDefinition/{databaseName}/{schema}/{name}")]
-        public async Task<IActionResult> GetProcedureDefinition(string databaseName, string schema, string name)
+        [HttpGet("procedureDefinition/{connectionId}/{databaseName}/{schema}/{name}")]
+        public async Task<IActionResult> GetProcedureDefinition(string connectionId, string databaseName, string schema, string name)
         {
             var sessionId = GetSessionId();
             if (string.IsNullOrEmpty(sessionId))
             {
                 return BadRequest("The provided request header does not contain ID property.");
             }
-            return Ok(await _dbManager.GetProcedureDefinition(sessionId!, databaseName, schema, name));
+            return Ok(await _dbManager.GetProcedureDefinition(sessionId!, connectionId, databaseName, schema, name));
         }
     }
 }

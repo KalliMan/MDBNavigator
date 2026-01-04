@@ -31,9 +31,9 @@ export function createServersNode(isExpanded: boolean): TreeViewNodeData {
   };
 }
 
-export function createServerNode(name: string, isExpanded: boolean): TreeViewNodeData {
+export function createServerNode(id: string, name: string, isExpanded: boolean): TreeViewNodeData {
   return {
-    id: name,
+    id: id,
     nodeName: name,
     isExpanded: isExpanded,
     Icon: <FaHdd />,
@@ -183,6 +183,14 @@ export function hasLoaderNode(databaseNode: TreeViewNodeData): boolean {
   return databaseNode?.nodes?.length === 1 && databaseNode?.nodes?.[0].type === NodeType.Loader;
 }
 
+export function getServerNodeFromServersNode(serversNode: TreeViewNodeData, id: string): TreeViewNodeData | undefined {
+  if (serversNode?.nodes?.length) {
+    return serversNode.nodes.find(node => node.id === id);
+  }
+
+  return undefined;
+}
+
 export function getDatabaseNodeFromServerNode(serverNode: TreeViewNodeData, databaseName: string): TreeViewNodeData | undefined {
   if (serverNode?.nodes?.length) {
     const databasesNode = serverNode.nodes[0];
@@ -190,6 +198,10 @@ export function getDatabaseNodeFromServerNode(serverNode: TreeViewNodeData, data
   }
 
   return undefined;
+}
+
+export function getServerNodeFromDatabaseNode(databaseNode: TreeViewNodeData): TreeViewNodeData | undefined {
+  return findFirstParentOfType(databaseNode, NodeType.Server);
 }
 
 export function getDatabaseParentNode(targetNode: TreeViewNodeData): TreeViewNodeData | undefined {

@@ -1,3 +1,4 @@
+import { ConnectedResult } from "../../models/connect/connectedResult";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 import { DatabaseConnectActions, DatabaseConnectActionTypes } from "./DatabaseConnectActionTypes";
 
@@ -6,6 +7,7 @@ export type DatabaseConnectState = {
   isConnecting: boolean;
 
   connectionSettings: ConnectionSettings | null;
+  connectedResult: ConnectedResult | null;
   error: string | null;
 }
 
@@ -14,6 +16,7 @@ export const initialDatabaseConnectState: DatabaseConnectState = {
   isConnecting: false,
 
   connectionSettings: null,
+  connectedResult: null,
   error: null,
 };
 
@@ -34,7 +37,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         ...state,
         isConnecting: false,
         isConnectedToDB: true,
-        connectionSettings: action.payload
+        connectedResult: action.payload
       };
     case DatabaseConnectActionTypes.Disconnected:
       return {

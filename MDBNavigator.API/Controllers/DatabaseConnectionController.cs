@@ -2,7 +2,6 @@
 using MDBNavigator.API.DTOs;
 using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Models.Connect;
 
 namespace MDBNavigator.API.Controllers
@@ -21,7 +20,7 @@ namespace MDBNavigator.API.Controllers
 
         // POST api/<DatabaseController>
         [HttpPost("connect")]
-        public async Task<IActionResult> Connect([FromBody] ConnectionSettingsDto value)
+        public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value)
         {
             var sessionId = Request.Headers["id"];
             if (string.IsNullOrEmpty(sessionId))

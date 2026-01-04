@@ -1,3 +1,4 @@
+import { ConnectedResult } from "../../models/connect/connectedResult";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 
 export enum DatabaseConnectActionTypes {
@@ -14,7 +15,7 @@ export type DatabaseConnectingAction = {
 
 export type DatabaseConnectedAction = {
   type: DatabaseConnectActionTypes.Connected;
-  payload: ConnectionSettings;
+  payload: ConnectedResult;
 };
 
 export type DatabaseDisconnectedAction = {

@@ -13,12 +13,13 @@ export default function useCommandQueryContext(){
     throw new Error('useCommandQueryContext must be used within a CommandQueryContext');
   }
 
-  async function queryCommandGetTopNTableRecords(databaseName: string, schema: string, table: string, recordsNumber: number) {
+  async function queryCommandGetTopNTableRecords(connectionId: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
 
     const id = uuidv4();
-    const topNRecordsQuery = await agent.databaseCommandApi.getTopNTableRecordsScript(id, databaseName, schema, table, recordsNumber);
+    const topNRecordsQuery = await agent.databaseCommandApi.getTopNTableRecordsScript(connectionId, id, databaseName, schema, table, recordsNumber);
 
     const query: DatabaseSQLCommandQuery = {
+      connectionId: connectionId,
       id,
       databaseName,
       name: `${schema}.${table}`,
@@ -32,10 +33,11 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryForDatabase(databaseName: string, schema: string) {
+  async function queryForDatabase(connectionId: string, databaseName: string, schema: string) {
     const id = uuidv4();
 
     const query: DatabaseSQLCommandQuery = {
+      connectionId,
       id,
       databaseName,
       name: `${schema}.*`,
@@ -49,11 +51,12 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandProcedureDefinition(databaseName: string, schema: string, name: string) {
-    const procedureCodeQuery = await agent.databaseCommandApi.getProcedureDefinition(databaseName, schema, name);
+  async function queryCommandProcedureDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
+    const procedureCodeQuery = await agent.databaseCommandApi.getProcedureDefinition(connectionId, databaseName, schema, name);
 
     const id = uuidv4();
     const query: DatabaseSQLCommandQuery = {
+      connectionId,
       id,
       databaseName,
       name: `${schema}.${name}`,
@@ -67,10 +70,11 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandCreateTableScript(databaseName: string) {
-    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(databaseName, '[schema]');
+  async function queryCommandCreateTableScript(connectionId: string, databaseName: string) {
+    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, '[schema]');
 
     const query: DatabaseSQLCommandQuery = {
+      connectionId,
       id: uuidv4(),
       databaseName,
       name: '[schema].[TableName]',
@@ -84,10 +88,11 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandDropTableScript(databaseName: string, schema: string, table: string) {
-    const createTableQuery = await agent.databaseCommandApi.getDropTableScript(databaseName, schema, table);
+  async function queryCommandDropTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
+    const createTableQuery = await agent.databaseCommandApi.getDropTableScript(connectionId, databaseName, schema, table);
 
     const query: DatabaseSQLCommandQuery = {
+      connectionId,
       id: uuidv4(),
       databaseName,
       name: `${schema}.${table}`,
