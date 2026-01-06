@@ -40,7 +40,29 @@ export default function useDatabaseConnectContext() {
     }
   }
 
-  const {isConnecting, isConnectedToDB, error, connectedResult } = context.state;
+  function connectNewDatabase() {
+    context!.dispatch({
+      type: DatabaseConnectActionTypes.ConnectNewDatabaseServer,
+    });    
+  }
 
-  return {isConnecting, isConnectedToDB, error, connectedResult, connect};
+  async function disconnect(connectionId: string) {
+    try {
+      await agent.databaseConnectionApi.disconnect(connectionId);
+      context!.dispatch({
+        type: DatabaseConnectActionTypes.Disconnected,
+        payload: connectionId
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      context!.dispatch({
+        type: DatabaseConnectActionTypes.Error,
+        payload: errorMessage
+      });
+    }
+  }
+
+  const {isConnecting, error, connectNewDatabaseServer, databaseConnections } = context.state;
+
+  return {isConnecting, error, connectNewDatabaseServer, databaseConnections, connect, connectNewDatabase, disconnect};
 };

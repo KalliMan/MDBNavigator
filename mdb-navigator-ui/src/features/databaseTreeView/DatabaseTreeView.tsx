@@ -1,7 +1,23 @@
 import { useEffect, useState } from "react";
 import TreeView from "../../ui/treeView/TreeView"
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
-import { createDatabaseNode, createDatabasesFolderNode, createFunctionNode, createServerNode, createServersNode, createStoredProcedureNode, createTableNode, getDatabaseNodeFromServerNode, getDatabaseParentNode, getFunctionsNode, getServerNodeFromDatabaseNode, getServerNodeFromServersNode, getStoredProceduresNode, getTablesFolderNode, hasLoaderNode } from "./databaseTreeViewUtils";
+import { 
+  createDatabaseNode,
+  createDatabasesFolderNode,
+  createFunctionNode,
+  createServerNode,
+  createServersNode,
+  createStoredProcedureNode,
+  createTableNode,
+  getDatabaseNodeFromServerNode,
+  getDatabaseParentNode,
+  getFunctionsNode,
+  getServerNodeFromDatabaseNode,
+  getServerNodeFromServersNode,
+  getStoredProceduresNode,
+  getTablesFolderNode,
+  hasLoaderNode
+} from "./databaseTreeViewUtils";
 import { findNode } from "../../ui/treeView/treeViewUtils";
 import { NodeType } from "./NodeType";
 import { CoordPosition, EmptyPosition } from "../../types/coordPosition";
@@ -16,9 +32,7 @@ import { GrRefresh, GrTableAdd } from "react-icons/gr";
 
 
 function DatabaseTreeView() {
-  const { isConnectedToDB,
-    connectedResult,
-  } = useDatabaseConnectContext();
+  const { databaseConnections, connectNewDatabase } = useDatabaseConnectContext();
 
   const {
     databaseSchemas,
@@ -42,10 +56,15 @@ function DatabaseTreeView() {
 
   useEffect(() => {
     async function getServers() {
-      if (databaseSchemas && isConnectedToDB && connectedResult) {
 
-        if (!root) {
-          const serversNode = createServersNode(true);
+      const isConnectedToDB = databaseConnections && databaseConnections.length > 0;
+      if (databaseSchemas && isConnectedToDB) {
+
+        const connectedResult = databaseConnections.filter(c => root ? !getServerNodeFromServersNode(root, c.connectedResult?.connectionId || '') : true)[0]?.connectedResult;
+        if (connectedResult) {
+
+          const serversNode = root ? {...root} : createServersNode(true);
+
           const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
           serversNode.nodes!.push(serverNode);
 
@@ -56,7 +75,7 @@ function DatabaseTreeView() {
 
     getServers();
 
-  }, [connectedResult, isConnectedToDB, fetchDatabases, databaseSchemas, root]);
+  }, [fetchDatabases, databaseSchemas, root, databaseConnections]);
 
   // Databases refresh
   useEffect(() => {
@@ -87,7 +106,7 @@ function DatabaseTreeView() {
     });
     
     setRoot(newRoot);
-  }, [isConnectedToDB, root, databaseSchemas, connectedResult?.connectionId, connectedResult?.serverName]);
+  }, [root, databaseSchemas]);
 
   // Tables refresh
   useEffect(() => {
@@ -299,6 +318,14 @@ function DatabaseTreeView() {
     }
   }
 
+  function handleNewServerConnection(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    
+    if (targetNode) {
+      connectNewDatabase();
+    }
+  }
+
   function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
@@ -396,6 +423,11 @@ function DatabaseTreeView() {
     <TreeView root={root} onNodeClick={handleOnNodeClick} onExpand={handleExpand}/>
 
     <Menus targetPosition={contextMenuTarget} id="DatabaseMenu" clickedOutside={() => setContextMenuTarget(EmptyPosition)}>
+      {currentNodeType === NodeType.Servers && (<>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewServerConnection(currentNode)}>New Connection</Menus.MenuItem>
+        </>
+      )}
+
       {currentNodeType === NodeType.Database && (<>
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewQueryForDatabase(currentNode)}>New Query for this database</Menus.MenuItem>
         </>

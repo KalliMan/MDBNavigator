@@ -7,9 +7,7 @@ import useDatabaseConnectContext from "../databaseConnect/useDatabaseConnect";
 export const DatabaseSchemaContext = createContext<DatabaseConnectContextType | null>(null);
 
 export default function useDatabaseSchemaContext() {
-  const { isConnectedToDB,
-    connectedResult,
-  } = useDatabaseConnectContext();
+  const { databaseConnections} = useDatabaseConnectContext();
 
   const context = useContext(DatabaseSchemaContext);
   if (!context) {
@@ -20,52 +18,64 @@ export default function useDatabaseSchemaContext() {
 
   useEffect(() => {
     async function addSchema() {
-      if (context?.state && isConnectedToDB && connectedResult) {
-        const schema = context.state.databaseSchemas?.find(s => s.connectionId === connectedResult.connectionId);
+      if (context?.state && databaseConnections?.length > 0) {
+        const newDatabaseConnections = databaseConnections.filter(dc => !context.state.databaseSchemas?.some(ds => ds.connectionId === dc.connectedResult?.connectionId));
+        if (newDatabaseConnections.length === 0) {
+          return;
+        }
 
-        if (!schema) {
+        const newDatabaseConnection = newDatabaseConnections[0];
+        const connectedResult = newDatabaseConnection.connectedResult;
+        if (!connectedResult) {
+          return;
+        }
 
-          const newSchema = {
-            connectionId: connectedResult.connectionId,
-            isLoading: false,
-            error: null,
-            databasesDetails: null,
-            tablesDetails: null,
-            storedProceduresDetails: null,
-            functionsDetails: null
-          }
+        const schema = context.state.databaseSchemas?.find(s => s.connectionId === connectedResult?.connectionId);
+        if (schema) {
+          return;
+        }
 
-          context.state.databaseSchemas?.push(newSchema);
+        const newSchema = {
+          connectionId: connectedResult.connectionId,
+          isLoading: false,
+          error: null,
+          databasesDetails: null,
+          tablesDetails: null,
+          storedProceduresDetails: null,
+          functionsDetails: null
+        }
 
-          context.dispatch({
-            type: DatabaseSchemaActionTypes.AddedSchema,
-            payload: newSchema
+        context.state.databaseSchemas?.push(newSchema);
+
+        context.dispatch({
+          type: DatabaseSchemaActionTypes.AddedSchema,
+          payload: newSchema
+        });
+
+        try {
+          dispatch({
+            type: DatabaseSchemaActionTypes.Loading,
           });
 
-          try {
-            dispatch({
-              type: DatabaseSchemaActionTypes.Loading,
-            });
+          const result = await agent.databaseSchemaApi.fetchDatabases(connectedResult.connectionId);
 
-            const result = await agent.databaseSchemaApi.fetchDatabases(connectedResult.connectionId);
-
-            dispatch({
-              type: DatabaseSchemaActionTypes.FetchedDatabases,
-              payload: result
-            });
-          } catch (error: unknown) {
-            dispatch({
-              type: DatabaseSchemaActionTypes.Error,
-              payload: error instanceof Error ? error.message : 'An error occurred'
-            });
-          }
+          dispatch({
+            type: DatabaseSchemaActionTypes.FetchedDatabases,
+            payload: result
+          });
+        } catch (error: unknown) {
+          dispatch({
+            type: DatabaseSchemaActionTypes.Error,
+            payload: error instanceof Error ? error.message : 'An error occurred'
+          });
         }
+
       }
     }
 
     addSchema();
 
-  }, [connectedResult, context, context.state.databaseSchemas, dispatch, isConnectedToDB]);  
+  }, [context, context.state.databaseSchemas, databaseConnections, dispatch]);  
 
   const fetchDatabases = useCallback(async (connectionId: string) => {
     dispatch({

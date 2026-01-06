@@ -2,7 +2,7 @@ import { ConnectedResult } from "../../models/connect/connectedResult";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 import { DatabaseConnectActions, DatabaseConnectActionTypes } from "./DatabaseConnectActionTypes";
 
-export type DatabaseConnectState = {
+export type DatabaseConnection = {
   isConnectedToDB: boolean;
   isConnecting: boolean;
 
@@ -11,13 +11,19 @@ export type DatabaseConnectState = {
   error: string | null;
 }
 
-export const initialDatabaseConnectState: DatabaseConnectState = {
-  isConnectedToDB: false,
-  isConnecting: false,
+export type DatabaseConnectState = {
+  isConnecting: boolean;
+  connectNewDatabaseServer: boolean;
+  error: string | null;
 
-  connectionSettings: null,
-  connectedResult: null,
+  databaseConnections: DatabaseConnection[];  
+}
+
+export const initialDatabaseConnectState: DatabaseConnectState = {
+  isConnecting: false,
+  connectNewDatabaseServer: false,
   error: null,
+  databaseConnections: []
 };
 
 export type DatabaseConnectContextType = {
@@ -34,23 +40,34 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
       };
     case DatabaseConnectActionTypes.Connected:
       return {
-        ...state,
+        ...state,        
         isConnecting: false,
-        isConnectedToDB: true,
-        connectedResult: action.payload
+        connectNewDatabaseServer: false,
+        databaseConnections: [...state.databaseConnections, {
+          isConnectedToDB: true,
+          isConnecting: false,
+          connectionSettings: null,
+          error: null,
+          connectedResult: action.payload,
+        }]
+      };
+    case DatabaseConnectActionTypes.ConnectNewDatabaseServer:
+      return {
+        ...state,
+        connectNewDatabaseServer: true,        
       };
     case DatabaseConnectActionTypes.Disconnected:
       return {
         ...state,
         isConnecting: false,
-        isConnectedToDB: false,
-        connectionSettings: null
+        connectNewDatabaseServer: false,        
+        databaseConnections: state.databaseConnections.filter(conn => conn.connectedResult?.connectionId === action.payload)
       };
     case DatabaseConnectActionTypes.Error:
       return {
         ...state,
         isConnecting: false,
-        isConnectedToDB: false,
+        connectNewDatabaseServer: false,        
         error: action.payload
       };
       default:

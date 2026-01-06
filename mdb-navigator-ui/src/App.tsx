@@ -11,15 +11,17 @@ import useCommandBatchResultNotifications from "./common/sharedHooks/useCommandB
 
 function App() {
 
-  const {isConnecting, isConnectedToDB, connect} = useDatabaseConnectContext();
+  const {isConnecting, connectNewDatabaseServer, databaseConnections, connect} = useDatabaseConnectContext();
   const { onBatchCommandResult } = useDatabaseCommandContext();
+
   useCommandBatchResultNotifications({onBatchCommandResult});
+  const showConnectModal =  connectNewDatabaseServer || (!databaseConnections!.length && !isConnecting);
 
   return (
     <div>
       <ToastContainer position='bottom-right' hideProgressBar theme='colored' />
       {isConnecting && <Loader />}
-      {!isConnectedToDB && !isConnecting &&
+      {showConnectModal &&
         <ModalWindow name="Connect To DB Server" title="Connect To DB Server" canClose={false}>
           <ConnectToServer
             onOk={(connectionSettings) => connect(connectionSettings)}

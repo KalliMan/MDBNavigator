@@ -4,6 +4,7 @@ import { ConnectionSettings } from "../../models/connect/connectionSettings";
 export enum DatabaseConnectActionTypes {
   Connecting = 'database/connecting',
   Connected = 'database/connected',
+  ConnectNewDatabaseServer = 'database/connectNewDatabaseServer',
   Disconnected = 'database/disconnected',
   Error = 'database/error'
 }
@@ -18,8 +19,13 @@ export type DatabaseConnectedAction = {
   payload: ConnectedResult;
 };
 
+export type DatabaseConnectNewDatabaseServerAction = {
+  type: DatabaseConnectActionTypes.ConnectNewDatabaseServer;
+};
+
 export type DatabaseDisconnectedAction = {
   type: DatabaseConnectActionTypes.Disconnected;
+  payload: string; // connectionId
 };
 
 export type DatabaseErrorAction = {
@@ -31,4 +37,5 @@ export type DatabaseErrorAction = {
 export type DatabaseConnectActions = DatabaseConnectingAction
 | DatabaseConnectedAction
 | DatabaseDisconnectedAction
+| DatabaseConnectNewDatabaseServerAction
 | DatabaseErrorAction;
