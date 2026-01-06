@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 export default function useOutsideClick(handler: any, listenCapturing = true) {
   const ref = useRef<HTMLDivElement>(null);
 
+  console.log(typeof handler);
   useEffect(function() {
     function handleClick(e: any) {
       if (ref.current && !ref.current.contains(e.target)) {

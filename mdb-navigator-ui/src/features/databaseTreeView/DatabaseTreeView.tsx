@@ -23,7 +23,7 @@ import { NodeType } from "./NodeType";
 import { CoordPosition, EmptyPosition } from "../../types/coordPosition";
 import Menus from "../../ui/contextMenu/Menus";
 import { PiRows } from "react-icons/pi";
-import useDatabaseConnectContext from "../../contexts/databaseConnect/useDatabaseConnect";
+import useDatabaseConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
 import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseSchema";
 import { BsFiletypeSql } from "react-icons/bs";
 import useCommandQueryContext from "../../contexts/commandQuery/useDatabaseCommand";
@@ -32,7 +32,7 @@ import { GrRefresh, GrTableAdd } from "react-icons/gr";
 
 
 function DatabaseTreeView() {
-  const { databaseConnections, connectNewDatabase } = useDatabaseConnectContext();
+  const { databaseServerConnections, connectNewDatabase } = useDatabaseConnectContext();
 
   const {
     databaseSchemas,
@@ -57,10 +57,10 @@ function DatabaseTreeView() {
   useEffect(() => {
     async function getServers() {
 
-      const isConnectedToDB = databaseConnections && databaseConnections.length > 0;
+      const isConnectedToDB = databaseServerConnections && databaseServerConnections.length > 0;
       if (databaseSchemas && isConnectedToDB) {
 
-        const connectedResult = databaseConnections.filter(c => root ? !getServerNodeFromServersNode(root, c.connectedResult?.connectionId || '') : true)[0]?.connectedResult;
+        const connectedResult = databaseServerConnections.filter(c => root ? !getServerNodeFromServersNode(root, c.connectedResult?.connectionId || '') : true)[0]?.connectedResult;
         if (connectedResult) {
 
           const serversNode = root ? {...root} : createServersNode(true);
@@ -75,7 +75,7 @@ function DatabaseTreeView() {
 
     getServers();
 
-  }, [fetchDatabases, databaseSchemas, root, databaseConnections]);
+  }, [fetchDatabases, databaseSchemas, root, databaseServerConnections]);
 
   // Databases refresh
   useEffect(() => {

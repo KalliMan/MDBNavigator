@@ -2,12 +2,12 @@ import { createContext, useContext, useCallback, useEffect } from "react";
 import { DatabaseConnectContextType } from "./DatabaseSchemaReducer";
 import { DatabaseSchemaActionTypes } from "./DatabaseSchemaActionTypes";
 import agent from "../../services/apiAgent";
-import useDatabaseConnectContext from "../databaseConnect/useDatabaseConnect";
+import useDatabaseConnectContext from "../databaseServerConnect/useDatabaseServerConnect";
 
 export const DatabaseSchemaContext = createContext<DatabaseConnectContextType | null>(null);
 
 export default function useDatabaseSchemaContext() {
-  const { databaseConnections} = useDatabaseConnectContext();
+  const { databaseServerConnections} = useDatabaseConnectContext();
 
   const context = useContext(DatabaseSchemaContext);
   if (!context) {
@@ -18,8 +18,8 @@ export default function useDatabaseSchemaContext() {
 
   useEffect(() => {
     async function addSchema() {
-      if (context?.state && databaseConnections?.length > 0) {
-        const newDatabaseConnections = databaseConnections.filter(dc => !context.state.databaseSchemas?.some(ds => ds.connectionId === dc.connectedResult?.connectionId));
+      if (context?.state && databaseServerConnections?.length > 0) {
+        const newDatabaseConnections = databaseServerConnections.filter(dc => !context.state.databaseSchemas?.some(ds => ds.connectionId === dc.connectedResult?.connectionId));
         if (newDatabaseConnections.length === 0) {
           return;
         }
@@ -75,7 +75,7 @@ export default function useDatabaseSchemaContext() {
 
     addSchema();
 
-  }, [context, context.state.databaseSchemas, databaseConnections, dispatch]);  
+  }, [context, context.state.databaseSchemas, databaseServerConnections, dispatch]);  
 
   const fetchDatabases = useCallback(async (connectionId: string) => {
     dispatch({

@@ -1,5 +1,5 @@
 import { ToastContainer } from "react-toastify";
-import useDatabaseConnectContext from "./contexts/databaseConnect/useDatabaseConnect";
+import useDatabaseServerConnectContext from "./contexts/databaseServerConnect/useDatabaseServerConnect";
 import ConnectToServer from "./features/connect/ConnectToServer";
 import Mainbar from "./layout/MainBar";
 import NavBar from "./layout/NavBar";
@@ -11,11 +11,11 @@ import useCommandBatchResultNotifications from "./common/sharedHooks/useCommandB
 
 function App() {
 
-  const {isConnecting, connectNewDatabaseServer, databaseConnections, connect} = useDatabaseConnectContext();
+  const {isConnecting, connectNewDatabaseServer, databaseServerConnections, connect} = useDatabaseServerConnectContext();
   const { onBatchCommandResult } = useDatabaseCommandContext();
 
   useCommandBatchResultNotifications({onBatchCommandResult});
-  const showConnectModal =  connectNewDatabaseServer || (!databaseConnections!.length && !isConnecting);
+  const showConnectModal =  connectNewDatabaseServer || (!databaseServerConnections!.length && !isConnecting);
 
   return (
     <div>

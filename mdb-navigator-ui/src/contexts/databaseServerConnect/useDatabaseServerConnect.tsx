@@ -1,15 +1,15 @@
 import { createContext, useContext } from "react";
-import { DatabaseConnectContextType } from "./DatabaseConnectReducer";
+import { DatabaseServerConnectContextType } from "./DatabaseServerConnectReducer";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
-import { DatabaseConnectActionTypes } from "./DatabaseConnectActionTypes";
+import { DatabaseConnectActionTypes } from "./DatabaseServerConnectActionTypes";
 import agent from "../../services/apiAgent";
 
-export const DatabaseConnectContext = createContext<DatabaseConnectContextType | null>(null);
+export const DatabaseServerConnectContext = createContext<DatabaseServerConnectContextType | null>(null);
 
-export default function useDatabaseConnectContext() {
-  const context = useContext(DatabaseConnectContext);
+export default function useDatabaseServerConnectContext() {
+  const context = useContext(DatabaseServerConnectContext);
   if (!context) {
-    throw new Error('useDatabaseConnect must be used within a DatabaseConnectProvider');
+    throw new Error('useDatabaseConnect must be used within a DatabaseServerConnectProvider');
   }
 
   async function connect(connectionSettings: ConnectionSettings) {
@@ -62,7 +62,15 @@ export default function useDatabaseConnectContext() {
     }
   }
 
-  const {isConnecting, error, connectNewDatabaseServer, databaseConnections } = context.state;
+  const {isConnecting, error, connectNewDatabaseServer, databaseServerConnections } = context.state;
 
-  return {isConnecting, error, connectNewDatabaseServer, databaseConnections, connect, connectNewDatabase, disconnect};
+  return {
+    isConnecting,
+    error,
+    connectNewDatabaseServer,
+    databaseServerConnections,
+    connect,
+    connectNewDatabase,
+    disconnect
+  };
 };
