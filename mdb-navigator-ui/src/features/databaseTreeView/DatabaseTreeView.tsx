@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import TreeView from "../../ui/treeView/TreeView"
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
-import { 
+import {
   createDatabaseNode,
   createDatabasesFolderNode,
   createFunctionNode,
@@ -12,6 +12,7 @@ import {
   getDatabaseNodeFromServerNode,
   getDatabaseParentNode,
   getFunctionsNode,
+  getNodeHierarchy,
   getServerNodeFromDatabaseNode,
   getServerNodeFromServersNode,
   getStoredProceduresNode,
@@ -72,8 +73,8 @@ function DatabaseTreeView() {
           const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
           serversNode.nodes!.push(serverNode);
 
-          setRoot(serversNode);          
-        }  
+          setRoot(serversNode);
+        }
       }
     }
 
@@ -92,7 +93,7 @@ function DatabaseTreeView() {
     if(!databaseSchemasForRresh?.length) {
       return;
     }
-  
+
     const newRoot = { ...root };
     databaseSchemasForRresh.forEach(schema => {
 
@@ -105,10 +106,10 @@ function DatabaseTreeView() {
       const databaseFolderNodes = createDatabasesFolderNode(serverNode, true);
       serverNode.nodes = [];
       serverNode.nodes = [databaseFolderNodes];
-      
+
       schema.databasesDetails?.databases?.forEach(db => databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes, true)));
     });
-    
+
     setRoot(newRoot);
   }, [root, databaseSchemas]);
 
@@ -307,9 +308,10 @@ function DatabaseTreeView() {
     }
   }
 
+
   function handleNewServerConnection(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    
+
     if (targetNode) {
       connectNewDatabase();
     }
@@ -317,136 +319,140 @@ function DatabaseTreeView() {
 
   function handleDisconnect(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    if (targetNode){
+    if (targetNode) {
       disconnect(targetNode.id);
     }
   }
 
-  function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
+  async function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
-    if (targetNode){
+    if (targetNode) {
       const serverNode = getServerNodeFromDatabaseNode(targetNode!);
 
-      if (serverNode){
-        queryForDatabase(serverNode?.id, targetNode.nodeName, targetNode?.metaData || '');
+      if (serverNode) {
+        await queryForDatabase(serverNode?.id, targetNode.nodeName, targetNode?.metaData || "");
       }
     }
   }
 
-
-  function handleSelectTop100Records(targetNode: TreeViewNodeData | undefined) {
+  async function handleSelectTop100Records(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    selectTopNRecords(targetNode, 1000);
+    await selectTopNRecords(targetNode, 1000);
   }
 
-  function handleSelectAllRecords(targetNode: TreeViewNodeData | undefined) {
+  async function handleSelectAllRecords(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    selectTopNRecords(targetNode, -1);
+    await selectTopNRecords(targetNode, -1);
   }
 
-  function selectTopNRecords(targetNode: TreeViewNodeData | undefined, recordsNumber: number) {
-    if (root && targetNode) {
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
+  async function selectTopNRecords(targetNode: TreeViewNodeData | undefined, recordsNumber: number) {
+    if (!targetNode) {
+      return;
+    }
 
-      if (databaseNode){
-        queryCommandGetTopNTableRecords(
-          serverNode?.id || '',
-          databaseNode.nodeName,
-          targetNode.metaData || '',
-          targetNode.nodeName,
-          recordsNumber);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await queryCommandGetTopNTableRecords(
+        nodes.serverNode?.id || "",
+        nodes.databaseNode.nodeName,
+        targetNode.metaData || "",
+        targetNode.nodeName || "",
+        recordsNumber
+      );
     }
   }
 
-  function handleNewQueryForTables(targetNode: TreeViewNodeData | undefined) {
+  async function handleNewQueryForTables(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
-    if (root && targetNode) {
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(targetNode!);
-      if (databaseNode && serverNode){
-        queryForDatabase(serverNode?.id, databaseNode.nodeName, targetNode?.metaData || '');
-      }
+    if (!targetNode) {
+      return;
+    }
+
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await queryForDatabase(
+        nodes.serverNode?.id,
+        nodes.databaseNode.nodeName,
+        targetNode.metaData || ""
+      );
     }
   }
 
-  function handleQueryProcedureDefinition(targetNode: TreeViewNodeData | undefined) {
+  async function handleQueryProcedureDefinition(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-
-    if (targetNode){
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
-
-      if (databaseNode && serverNode){
-        queryCommandProcedureDefinition(serverNode.id, databaseNode.nodeName, targetNode.metaData || '', targetNode.nodeName);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes && targetNode) {
+      await queryCommandProcedureDefinition(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || "",
+        targetNode?.nodeName
+      );
     }
   }
 
   async function handleRefreshProcedures(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    if (targetNode){
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
-
-      if (databaseNode && serverNode){
-        await fetchStoredProcedures(serverNode.id, databaseNode.nodeName);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await fetchStoredProcedures(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName
+      );
     }
   }
 
   async function handleRefreshFunctions(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    if (targetNode){
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
-
-      if (databaseNode && serverNode){
-        await fetchFunctions(serverNode.id, databaseNode.nodeName);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await fetchFunctions(nodes.serverNode.id, nodes.databaseNode.nodeName);
     }
   }
 
-  function handleCreateNewTable(targetNode: TreeViewNodeData | undefined) {
+  async function handleCreateNewTable(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    if (targetNode){
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
-
-      if (databaseNode && serverNode){
-        queryCommandCreateTableScript(serverNode.id, databaseNode.nodeName);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await queryCommandCreateTableScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName
+      );
     }
   }
 
   async function handleRefreshTables(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    if (targetNode){
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
-
-      if (serverNode && databaseNode){
-        await fetchTables(serverNode.id, databaseNode.nodeName);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await fetchTables(nodes.serverNode.id, nodes.databaseNode.nodeName);
     }
   }
 
-  function handleDeleteTable(targetNode: TreeViewNodeData | undefined) {
+  async function handleDeleteTable(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
-    setContextMenuTarget(EmptyPosition);
-    if (targetNode){
-      const databaseNode = getDatabaseParentNode(targetNode);
-      const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
+    if (!targetNode) {
+      return;
+    }
 
-      if (databaseNode && serverNode){
-        queryCommandDropTableScript(serverNode.id, databaseNode.nodeName, targetNode.metaData || '', targetNode.nodeName);
-      }
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      queryCommandDropTableScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode.metaData || "",
+        targetNode.nodeName
+      );
     }
   }
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuTarget(EmptyPosition);
+  }, []);
+
 
   if (!root) {
     return null;
@@ -457,7 +463,7 @@ function DatabaseTreeView() {
   return (<>
     <TreeView root={root} onNodeClick={handleOnNodeClick} onExpand={handleExpand}/>
 
-    <Menus targetPosition={contextMenuTarget} id="DatabaseMenu" clickedOutside={() => setContextMenuTarget(EmptyPosition)}>
+    <Menus targetPosition={contextMenuTarget} id="DatabaseMenu" clickedOutside={handleCloseContextMenu}>
       {currentNodeType === NodeType.Servers && (<>
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewServerConnection(currentNode)}>New Connection</Menus.MenuItem>
         </>
@@ -466,7 +472,7 @@ function DatabaseTreeView() {
       {currentNodeType === NodeType.Server && (<>
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleDisconnect(currentNode)}>Disconnect</Menus.MenuItem>
         </>
-      )}      
+      )}
 
       {currentNodeType === NodeType.Database && (<>
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewQueryForDatabase(currentNode)}>New Query for this database</Menus.MenuItem>
@@ -487,12 +493,12 @@ function DatabaseTreeView() {
       )}
 
       {currentNodeType === NodeType.StoredProcedures && (<>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshProcedures(currentNode)}>Refresh</Menus.MenuItem>      
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshProcedures(currentNode)}>Refresh</Menus.MenuItem>
         </>
       )}
 
       {currentNodeType === NodeType.Functions && (<>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshFunctions(currentNode)}>Refresh</Menus.MenuItem>      
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handleRefreshFunctions(currentNode)}>Refresh</Menus.MenuItem>
         </>
       )}
 

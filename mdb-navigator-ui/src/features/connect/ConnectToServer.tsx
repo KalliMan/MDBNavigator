@@ -16,7 +16,7 @@ export default function ConnectToServer({ onCloseModal, onOk }: Props) {
     serverType: ServerType.PostgreSQL,
     serverName: 'localhost',
     port: 5432,
-    userName: 'postgres',
+    userName: 'admin',
     password: 'secret',
   });
 

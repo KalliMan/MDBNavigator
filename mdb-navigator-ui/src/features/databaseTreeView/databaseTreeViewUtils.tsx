@@ -219,3 +219,18 @@ export function getStoredProceduresNode(databaseNode: TreeViewNodeData): TreeVie
 export function getFunctionsNode(databaseNode: TreeViewNodeData): TreeViewNodeData | undefined {
   return findNodeOfType(databaseNode, NodeType.Functions);
 }
+
+export function getNodeHierarchy(targetNode: TreeViewNodeData | undefined) {
+  if (!targetNode) {
+    return null;
+  }
+
+  const databaseNode = getDatabaseParentNode(targetNode);
+  const serverNode = getServerNodeFromDatabaseNode(databaseNode!);
+
+  if (!databaseNode || !serverNode) {
+    return null;
+  }
+
+  return { databaseNode, serverNode };
+}
