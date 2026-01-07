@@ -33,5 +33,18 @@ namespace MDBNavigator.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("disconnect/{connectionId}")]
+        public IActionResult Disconnect([FromRoute] string connectionId)
+        {
+            var sessionId = Request.Headers["id"];
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                return BadRequest("The provided request header does not contain ID property.");
+            }
+
+            _dbManager.Disconnect(sessionId!, connectionId);
+            return Ok();
+        }
+
     }
 }

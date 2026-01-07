@@ -32,7 +32,7 @@ import { GrRefresh, GrTableAdd } from "react-icons/gr";
 
 
 function DatabaseTreeView() {
-  const { databaseServerConnections, connectNewDatabase } = useDatabaseConnectContext();
+  const { databaseServerConnections, connectNewDatabase, disconnect } = useDatabaseConnectContext();
 
   const {
     databaseSchemas,
@@ -54,15 +54,19 @@ function DatabaseTreeView() {
   const [contextMenuTarget, setContextMenuTarget] = useState(EmptyPosition);
   const [currentNode, setCurrentNode] = useState<TreeViewNodeData>();
 
+  // Initial Servers load
   useEffect(() => {
     async function getServers() {
 
       const isConnectedToDB = databaseServerConnections && databaseServerConnections.length > 0;
       if (databaseSchemas && isConnectedToDB) {
 
-        const connectedResult = databaseServerConnections.filter(c => root ? !getServerNodeFromServersNode(root, c.connectedResult?.connectionId || '') : true)[0]?.connectedResult;
-        if (connectedResult) {
+        const connectedResult =
+          databaseServerConnections.filter(c => root
+            ? !getServerNodeFromServersNode(root, c.connectedResult?.connectionId || '')
+            : true)[0]?.connectedResult;
 
+        if (connectedResult) {
           const serversNode = root ? {...root} : createServersNode(true);
 
           const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
@@ -107,6 +111,29 @@ function DatabaseTreeView() {
     
     setRoot(newRoot);
   }, [root, databaseSchemas]);
+
+  // disconnect server
+  useEffect(() => {
+    if (!root) {
+      return;
+    }
+    const connectedServerIds = databaseServerConnections.map(c => c.connectedResult?.connectionId);
+    const newRoot = { ...root };
+    let hasChanges = false;
+    newRoot.nodes = newRoot.nodes!.filter(serverNode => {
+      if (serverNode.type === NodeType.Server) {
+        if (!connectedServerIds.includes(serverNode.id)) {
+          hasChanges = true;
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (hasChanges) {
+      setRoot(newRoot);
+    }
+  }, [databaseServerConnections, root]);
 
   // Tables refresh
   useEffect(() => {
@@ -280,6 +307,34 @@ function DatabaseTreeView() {
     }
   }
 
+  function handleNewServerConnection(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    
+    if (targetNode) {
+      connectNewDatabase();
+    }
+  }
+
+  function handleDisconnect(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    if (targetNode){
+      disconnect(targetNode.id);
+    }
+  }
+
+  function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+
+    if (targetNode){
+      const serverNode = getServerNodeFromDatabaseNode(targetNode!);
+
+      if (serverNode){
+        queryForDatabase(serverNode?.id, targetNode.nodeName, targetNode?.metaData || '');
+      }
+    }
+  }
+
+
   function handleSelectTop100Records(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
     selectTopNRecords(targetNode, 1000);
@@ -314,26 +369,6 @@ function DatabaseTreeView() {
       const serverNode = getServerNodeFromDatabaseNode(targetNode!);
       if (databaseNode && serverNode){
         queryForDatabase(serverNode?.id, databaseNode.nodeName, targetNode?.metaData || '');
-      }
-    }
-  }
-
-  function handleNewServerConnection(targetNode: TreeViewNodeData | undefined) {
-    setContextMenuTarget(EmptyPosition);
-    
-    if (targetNode) {
-      connectNewDatabase();
-    }
-  }
-
-  function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
-    setContextMenuTarget(EmptyPosition);
-
-    if (targetNode){
-      const serverNode = getServerNodeFromDatabaseNode(targetNode!);
-
-      if (serverNode){
-        queryForDatabase(serverNode?.id, targetNode.nodeName, targetNode?.metaData || '');
       }
     }
   }
@@ -427,6 +462,11 @@ function DatabaseTreeView() {
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewServerConnection(currentNode)}>New Connection</Menus.MenuItem>
         </>
       )}
+
+      {currentNodeType === NodeType.Server && (<>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleDisconnect(currentNode)}>Disconnect</Menus.MenuItem>
+        </>
+      )}      
 
       {currentNodeType === NodeType.Database && (<>
           <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handleNewQueryForDatabase(currentNode)}>New Query for this database</Menus.MenuItem>

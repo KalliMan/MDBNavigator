@@ -10,8 +10,8 @@ namespace MDBNavigator.BL.Cache
             set;
         }
 
-        public ConnectionSettings Get(string key);
-        public void Set(string key, ConnectionSettings value);
-        public void Remove(string key);
+        public bool TryGetValue(string key, out ConnectionSettings? value);
+
+        public bool Remove(string key);
     }
 }

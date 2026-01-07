@@ -1,7 +1,7 @@
 import { ConnectedResult } from "../../models/connect/connectedResult";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 
-export enum DatabaseConnectActionTypes {
+export enum DatabaseServerConnectActionTypes {
   Connecting = 'database/connecting',
   Connected = 'database/connected',
   ConnectNewDatabaseServer = 'database/connectNewDatabaseServer',
@@ -10,26 +10,26 @@ export enum DatabaseConnectActionTypes {
 }
 
 export type DatabaseConnectingAction = {
-  type: DatabaseConnectActionTypes.Connecting;
+  type: DatabaseServerConnectActionTypes.Connecting;
   payload: ConnectionSettings;
 };
 
 export type DatabaseConnectedAction = {
-  type: DatabaseConnectActionTypes.Connected;
+  type: DatabaseServerConnectActionTypes.Connected;
   payload: ConnectedResult;
 };
 
 export type DatabaseConnectNewDatabaseServerAction = {
-  type: DatabaseConnectActionTypes.ConnectNewDatabaseServer;
+  type: DatabaseServerConnectActionTypes.ConnectNewDatabaseServer;
 };
 
 export type DatabaseDisconnectedAction = {
-  type: DatabaseConnectActionTypes.Disconnected;
+  type: DatabaseServerConnectActionTypes.Disconnected;
   payload: string; // connectionId
 };
 
 export type DatabaseErrorAction = {
-  type: DatabaseConnectActionTypes.Error;
+  type: DatabaseServerConnectActionTypes.Error;
   payload: string;
 };
 

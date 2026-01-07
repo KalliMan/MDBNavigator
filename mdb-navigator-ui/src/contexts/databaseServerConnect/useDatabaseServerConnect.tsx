@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { DatabaseServerConnectContextType } from "./DatabaseServerConnectReducer";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
-import { DatabaseConnectActionTypes } from "./DatabaseServerConnectActionTypes";
+import { DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
 import agent from "../../services/apiAgent";
 
 export const DatabaseServerConnectContext = createContext<DatabaseServerConnectContextType | null>(null);
@@ -14,7 +14,7 @@ export default function useDatabaseServerConnectContext() {
 
   async function connect(connectionSettings: ConnectionSettings) {
     context!.dispatch( {
-      type: DatabaseConnectActionTypes.Connecting,
+      type: DatabaseServerConnectActionTypes.Connecting,
       payload: connectionSettings
     });
 
@@ -22,19 +22,19 @@ export default function useDatabaseServerConnectContext() {
       const result = await agent.databaseConnectionApi.connect(connectionSettings);
       if (result){
         context!.dispatch({
-          type: DatabaseConnectActionTypes.Connected,
+          type: DatabaseServerConnectActionTypes.Connected,
           payload: result
         });
       } else {
         context!.dispatch({
-          type: DatabaseConnectActionTypes.Error,
+          type: DatabaseServerConnectActionTypes.Error,
           payload: `Cannot connect to ${connectionSettings.serverName}`
         });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       context!.dispatch({
-        type: DatabaseConnectActionTypes.Error,
+        type: DatabaseServerConnectActionTypes.Error,
         payload: errorMessage
       });
     }
@@ -42,7 +42,7 @@ export default function useDatabaseServerConnectContext() {
 
   function connectNewDatabase() {
     context!.dispatch({
-      type: DatabaseConnectActionTypes.ConnectNewDatabaseServer,
+      type: DatabaseServerConnectActionTypes.ConnectNewDatabaseServer,
     });    
   }
 
@@ -50,13 +50,13 @@ export default function useDatabaseServerConnectContext() {
     try {
       await agent.databaseConnectionApi.disconnect(connectionId);
       context!.dispatch({
-        type: DatabaseConnectActionTypes.Disconnected,
+        type: DatabaseServerConnectActionTypes.Disconnected,
         payload: connectionId
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       context!.dispatch({
-        type: DatabaseConnectActionTypes.Error,
+        type: DatabaseServerConnectActionTypes.Error,
         payload: errorMessage
       });
     }

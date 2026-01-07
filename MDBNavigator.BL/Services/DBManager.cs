@@ -27,17 +27,22 @@ namespace MDBNavigator.BL.Services
 
         public async Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings details)
         {
-            //            _memoryCache.Remove(sessionId);
             var connectionId = Guid.NewGuid().ToString();
             var cachekey = GetSessionConnectionID(sessionId, connectionId);
 
             await using var connection = await DBConnection.CreateConnection(details);
-            _memoryCache.Set(cachekey, details);
+            _memoryCache[cachekey] = details;
             return new()
             {
                 ConnectionId = connectionId,
                 ServerName = $"{details.ServerName}:{details.Port}",
             };
+        }
+
+        public void Disconnect(string sessionId, string connectionId)
+        {
+            var cachekey = GetSessionConnectionID(sessionId, connectionId);
+            _memoryCache.Remove(cachekey);
         }
 
         public async Task<DatabasesDetailsDto> GetDatabases(string sessionId, string connectionId)
@@ -206,9 +211,9 @@ namespace MDBNavigator.BL.Services
         }
 
         private async Task<DBConnection> CreateConnection(string sessionId, string connectionId, string? databaseName = null)
-        {
-            var details = _memoryCache.Get(GetSessionConnectionID(sessionId, connectionId));
-            if (details == null)
+        {            
+            var result = _memoryCache.TryGetValue(GetSessionConnectionID(sessionId, connectionId), out var details);
+            if (!result || details == null)
             {
                 throw new Exception("Not Connected");
             }
@@ -221,7 +226,7 @@ namespace MDBNavigator.BL.Services
             return await DBConnection.CreateConnection(details);
         }
 
-        static string GetSessionConnectionID(string sessionId, string connectionId)
+        private static string GetSessionConnectionID(string sessionId, string connectionId)
             => $"{sessionId}_{connectionId}";
     }
 }

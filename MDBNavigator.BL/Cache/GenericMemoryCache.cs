@@ -1,23 +1,25 @@
 ﻿
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+
 namespace MDBNavigator.BL.Cache
 {
     public class GenericMemoryCache<T>
         where T : class
     {
-        IDictionary<string, T> _cache = new Dictionary<string, T>();
+        private readonly ConcurrentDictionary<string, T> _cache = new();
 
         public T this[string key]
         {
-            get => Get(key);
-            set => Set(key, value);
+            get => _cache[key];
+            set => _cache[key] = value;
         }
 
-        public T Get(string key)
-            => _cache[key];
-        public void Set(string key, T value)
-            => _cache[key] = value;
+        public bool TryGetValue(string key, [NotNullWhen(true)] out T? value)
+            => _cache.TryGetValue(key, out value);
 
-        public void Remove(string key)
-            => _cache.Remove(key);
+        public bool Remove(string key)
+            => _cache.TryRemove(key, out _);
     }
+
 }

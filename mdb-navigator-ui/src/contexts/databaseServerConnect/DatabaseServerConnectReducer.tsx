@@ -1,6 +1,6 @@
 import { ConnectedResult } from "../../models/connect/connectedResult";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
-import { DatabaseConnectActions, DatabaseConnectActionTypes } from "./DatabaseServerConnectActionTypes";
+import { DatabaseConnectActions, DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
 
 export type DatabaseServerConnection = {
   isConnectedToDB: boolean;
@@ -33,13 +33,13 @@ export type DatabaseServerConnectContextType = {
 
 export function databaseConnectReducer(state: DatabaseConnectState, action: DatabaseConnectActions): DatabaseConnectState {
   switch(action.type) {
-    case DatabaseConnectActionTypes.Connecting:
+    case DatabaseServerConnectActionTypes.Connecting:
       return {
         ...state,
         connectNewDatabaseServer: false,
         isConnecting: true
       };
-    case DatabaseConnectActionTypes.Connected:
+    case DatabaseServerConnectActionTypes.Connected:
       return {
         ...state,        
         isConnecting: false,
@@ -52,19 +52,19 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
           connectedResult: action.payload,
         }]
       };
-    case DatabaseConnectActionTypes.ConnectNewDatabaseServer:
+    case DatabaseServerConnectActionTypes.ConnectNewDatabaseServer:
       return {
         ...state,
         connectNewDatabaseServer: true,        
       };
-    case DatabaseConnectActionTypes.Disconnected:
+    case DatabaseServerConnectActionTypes.Disconnected:
       return {
         ...state,
         isConnecting: false,
         connectNewDatabaseServer: false,        
-        databaseServerConnections: state.databaseServerConnections.filter(conn => conn.connectedResult?.connectionId === action.payload)
+        databaseServerConnections: state.databaseServerConnections.filter(conn => conn.connectedResult?.connectionId !== action.payload)
       };
-    case DatabaseConnectActionTypes.Error:
+    case DatabaseServerConnectActionTypes.Error:
       return {
         ...state,
         isConnecting: false,

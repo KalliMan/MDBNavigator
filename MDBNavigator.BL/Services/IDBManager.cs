@@ -1,4 +1,5 @@
 ﻿using MDBNavigator.BL.DTOs;
+using Microsoft.Extensions.Primitives;
 using Models.Command;
 using Models.Connect;
 using Models.Schema;
@@ -7,6 +8,7 @@ namespace MDBNavigator.BL.Services
     public interface IDBManager
     {
         Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings details);
+        void Disconnect(string sessionId, string connectionId);
 
         Task<DatabasesDetailsDto> GetDatabases(string sessionId, string connectionId);
         Task<TablesDetailsDto> GetTables(string sessionId, string connectionId, string databaseName);
