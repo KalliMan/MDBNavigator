@@ -1,7 +1,7 @@
 # MDBnvigator Overiew
 
 This is a sample fullstack demonstration application. The main purpose is to demonstrate various amount of technologies required for a modern Web development. Application allows user to connect to a Postgre DB and to perform basic DB operations. There are scripst for a composed dockerization. This is an ongoing project which is going to be enhanced in the future. 
-![image](https://github.com/user-attachments/assets/f60fa6e3-5774-4699-bee8-3ecabb15ceb1)
+<img width="2543" height="1220" alt="image" src="https://github.com/user-attachments/assets/b884c550-4e21-4bd1-8956-cc5336a3e929" />
 
 If the result table recordset is huge then initially only a small portion is directly trnasfered from BE to the FE. The rest is transferred async using SignalR. The application design allows easy to implement further improvements like adding support for other DB servers.
 
