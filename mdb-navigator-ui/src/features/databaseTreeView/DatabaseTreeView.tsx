@@ -1,24 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import TreeView from "../../ui/treeView/TreeView"
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
-import {
-  createDatabaseNode,
-  createDatabasesFolderNode,
-  createFunctionNode,
-  createServerNode,
-  createServersNode,
-  createStoredProcedureNode,
-  createTableNode,
-  getDatabaseNodeFromServerNode,
-  getDatabaseParentNode,
-  getFunctionsNode,
-  getNodeHierarchy,
-  getServerNodeFromDatabaseNode,
-  getServerNodeFromServersNode,
-  getStoredProceduresNode,
-  getTablesFolderNode,
-  hasLoaderNode
-} from "./databaseTreeViewUtils";
+import { getDatabaseParentNode, getNodeHierarchy, getServerNodeFromDatabaseNode, hasLoaderNode } from "./databaseTreeViewUtils";
 import { findNode } from "../../ui/treeView/treeViewUtils";
 import { NodeType } from "./NodeType";
 import { CoordPosition, EmptyPosition } from "../../types/coordPosition";
@@ -30,14 +13,14 @@ import { BsFiletypeSql } from "react-icons/bs";
 import useCommandQueryContext from "../../contexts/commandQuery/useDatabaseCommand";
 import { TiDelete } from "react-icons/ti";
 import { GrRefresh, GrTableAdd } from "react-icons/gr";
+import useDatabaseTreeState from "./useDatabaseTreeState";
 
 
-function DatabaseTreeView() {
+export default function DatabaseTreeView() {
   const { databaseServerConnections, connectNewDatabase, disconnect } = useDatabaseConnectContext();
 
   const {
     databaseSchemas,
-    fetchDatabases,
     fetchTables,
     fetchStoredProcedures,
     fetchFunctions
@@ -51,227 +34,10 @@ function DatabaseTreeView() {
     queryCommandDropTableScript
   } = useCommandQueryContext();
 
-  const [root, setRoot] = useState<TreeViewNodeData | null>();
+  const { root } = useDatabaseTreeState(databaseSchemas, databaseServerConnections);
+
   const [contextMenuTarget, setContextMenuTarget] = useState(EmptyPosition);
   const [currentNode, setCurrentNode] = useState<TreeViewNodeData>();
-
-  // Initial Servers load
-  useEffect(() => {
-    async function getServers() {
-
-      const isConnectedToDB = databaseServerConnections && databaseServerConnections.length > 0;
-      if (databaseSchemas && isConnectedToDB) {
-
-        const connectedResult =
-          databaseServerConnections.filter(c => root
-            ? !getServerNodeFromServersNode(root, c.connectedResult?.connectionId || '')
-            : true)[0]?.connectedResult;
-
-        if (connectedResult) {
-          const serversNode = root ? {...root} : createServersNode(true);
-
-          const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
-          serversNode.nodes!.push(serverNode);
-
-          setRoot(serversNode);
-        }
-      }
-    }
-
-    getServers();
-
-  }, [fetchDatabases, databaseSchemas, root, databaseServerConnections]);
-
-  // Databases refresh
-  useEffect(() => {
-
-    if (!root) {
-      return;
-    }
-
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshDatabases);
-    if(!databaseSchemasForRresh?.length) {
-      return;
-    }
-
-    const newRoot = { ...root };
-    databaseSchemasForRresh.forEach(schema => {
-
-      schema.refreshDatabases = false;
-      const serverNode = getServerNodeFromServersNode(newRoot!, schema.connectionId);
-      if (!serverNode) {
-        return;
-      }
-
-      const databaseFolderNodes = createDatabasesFolderNode(serverNode, true);
-      serverNode.nodes = [];
-      serverNode.nodes = [databaseFolderNodes];
-
-      schema.databasesDetails?.databases?.forEach(db => databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes, true)));
-    });
-
-    setRoot(newRoot);
-  }, [root, databaseSchemas]);
-
-  // disconnect server
-  useEffect(() => {
-    if (!root) {
-      return;
-    }
-    const connectedServerIds = databaseServerConnections.map(c => c.connectedResult?.connectionId);
-    const newRoot = { ...root };
-    let hasChanges = false;
-    newRoot.nodes = newRoot.nodes!.filter(serverNode => {
-      if (serverNode.type === NodeType.Server) {
-        if (!connectedServerIds.includes(serverNode.id)) {
-          hasChanges = true;
-          return false;
-        }
-      }
-      return true;
-    });
-
-    if (hasChanges) {
-      setRoot(newRoot);
-    }
-  }, [databaseServerConnections, root]);
-
-  // Tables refresh
-  useEffect(() => {
-    if (!root) {
-      return;
-    }
-
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshTables);
-    if (!databaseSchemasForRresh?.length) {
-      return;
-    }
-
-    const newRoot = { ...root };
-    databaseSchemasForRresh.forEach(schema => {
-      schema.refreshTables = false;
-
-      const serverNode = getServerNodeFromServersNode(newRoot!, schema.connectionId);
-      if (!serverNode) {
-        return;
-      }
-
-      const databaseNode = getDatabaseNodeFromServerNode(serverNode!, schema.lastUpdatedDatabaseName || '');
-      if (!databaseNode) {
-        return;
-      }
-
-      const tablesFoldersNode = getTablesFolderNode(databaseNode);
-      if (!tablesFoldersNode) {
-        return;
-      }
-
-      const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
-      if (!database) {
-        return;
-      }
-
-      tablesFoldersNode.nodes = [];
-      tablesFoldersNode.nodes = database.tablesDetails?.tables?.map(t =>
-        createTableNode(t.databaseSchema, t.name, tablesFoldersNode)
-      ) || [];
-    });
-
-    setRoot(newRoot);
-
-  }, [databaseSchemas, root]);
-
-
-  // SP Refresh
-  useEffect(() => {
-    if (!root) {
-      return;
-    }
-
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshStoredProcedures);
-    if (!databaseSchemasForRresh?.length) {
-      return;
-    }
-
-    const newRoot = { ...root };
-    databaseSchemasForRresh.forEach(schema => {
-      schema.refreshStoredProcedures = false;
-
-      const serverNode = getServerNodeFromServersNode(newRoot!, schema.connectionId);
-      if (!serverNode) {
-        return;
-      }
-
-      const databaseNode = getDatabaseNodeFromServerNode(serverNode!, schema.lastUpdatedDatabaseName || '');
-      if (!databaseNode) {
-        return;
-      }
-
-      const storedproceduresFoldersNode = getStoredProceduresNode(databaseNode);
-      if (!storedproceduresFoldersNode) {
-        return;
-      }
-
-      const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
-      if (!database) {
-        return;
-      }
-
-      storedproceduresFoldersNode.nodes = [];
-      storedproceduresFoldersNode.nodes = database.storedProceduresDetails?.procedures?.map(t =>
-        createStoredProcedureNode(t.databaseSchema, t.name, storedproceduresFoldersNode)
-      ) || [];
-
-    });
-
-    setRoot(newRoot);
-
-  }, [databaseSchemas, root]);
-
-  // Functions refresh
-  useEffect(() => {
-     if (!root) {
-      return;
-    }
-
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshFunctions);
-    if (!databaseSchemasForRresh?.length) {
-      return;
-    }
-
-    const newRoot = { ...root };
-    databaseSchemasForRresh.forEach(schema => {
-      schema.refreshFunctions = false;
-
-      const serverNode = getServerNodeFromServersNode(newRoot!, schema.connectionId);
-      if (!serverNode) {
-        return;
-      }
-
-      const databaseNode = getDatabaseNodeFromServerNode(serverNode!, schema.lastUpdatedDatabaseName || '');
-      if (!databaseNode) {
-        return;
-      }
-
-      const functionsFoldersNode = getFunctionsNode(databaseNode);
-      if (!functionsFoldersNode) {
-        return;
-      }
-
-      const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
-      if (!database) {
-        return;
-      }
-
-      functionsFoldersNode.nodes = [];
-      functionsFoldersNode.nodes = database.functionsDetails?.procedures?.map(t =>
-        createFunctionNode(t.databaseSchema, t.name, functionsFoldersNode)
-      ) || [];
-    });
-
-    setRoot(newRoot);
-
-  }, [databaseSchemas, root]);
 
   function handleOnNodeClick(node: TreeViewNodeData, e: CoordPosition) {
     setCurrentNode(node);
@@ -307,7 +73,6 @@ function DatabaseTreeView() {
       }
     }
   }
-
 
   function handleNewServerConnection(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
@@ -509,5 +274,3 @@ function DatabaseTreeView() {
     </Menus>
   </>)
 }
-
-export default DatabaseTreeView
