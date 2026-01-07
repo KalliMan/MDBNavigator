@@ -132,7 +132,7 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
       return;
     }
 
-    tablesToRefresh?.forEach((schema) => {
+    tablesToRefresh.forEach((schema) => {
       schema.refreshTables = false;
       updateTablesForSchema(schema);
     });
