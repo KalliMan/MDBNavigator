@@ -10,7 +10,7 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
 
   // Initial Servers load
   useEffect(() => {
-    async function getServers() {
+    function getServers() {
 
       const isConnectedToDB = databaseServerConnections && databaseServerConnections.length > 0;
       if (databaseSchemas && isConnectedToDB) {
@@ -40,8 +40,8 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
 
   // Databases refresh
   useEffect(() => {
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshDatabases);
-    if(!databaseSchemasForRresh?.length) {
+    const databaseSchemasForRefresh = databaseSchemas?.filter(s => s.refreshDatabases);
+    if(!databaseSchemasForRefresh?.length) {
       return;
     }
 
@@ -52,7 +52,7 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
 
       const newRoot = { ...prevRoot, nodes: prevRoot.nodes?.map(node => ({ ...node })) || [] };
 
-      databaseSchemasForRresh.forEach(schema => {
+      databaseSchemasForRefresh.forEach(schema => {
         schema.refreshDatabases = false;
         const serverNode = getServerNodeFromServersNode(newRoot, schema.connectionId);
         if (!serverNode) {
@@ -148,8 +148,8 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
 
   // SP Refresh
   useEffect(() => {
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshStoredProcedures);
-    if (!databaseSchemasForRresh?.length) {
+    const databaseSchemasForRefresh = databaseSchemas?.filter(s => s.refreshStoredProcedures);
+    if (!databaseSchemasForRefresh?.length) {
       return;
     }
 
@@ -186,7 +186,7 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
         ) || [];
       }
 
-      databaseSchemasForRresh.forEach(schema => {
+      databaseSchemasForRefresh.forEach(schema => {
         schema.refreshStoredProcedures = false;
         updateStoredProceduresForSchema(schema);
       });
@@ -197,8 +197,8 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
 
   // Functions refresh
   useEffect(() => {
-    const databaseSchemasForRresh = databaseSchemas?.filter(s => s.refreshFunctions);
-    if (!databaseSchemasForRresh?.length) {
+    const databaseSchemasForRefresh = databaseSchemas?.filter(s => s.refreshFunctions);
+    if (!databaseSchemasForRefresh?.length) {
       return;
     }
 
@@ -235,7 +235,7 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
         ) || [];
       }
 
-      databaseSchemasForRresh.forEach(schema => {
+      databaseSchemasForRefresh.forEach(schema => {
         schema.refreshFunctions = false;
         updateFunctionsForSchema(schema);
       });

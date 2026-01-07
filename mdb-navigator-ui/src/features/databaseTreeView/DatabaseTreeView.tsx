@@ -1,6 +1,6 @@
 import { useState } from "react";
-import TreeView from "../../ui/treeView/TreeView"
-import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData"
+import TreeView from "../../ui/treeView/TreeView";
+import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { EmptyPosition } from "../../types/coordPosition";
 import useDatabaseConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
 import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseSchema";
