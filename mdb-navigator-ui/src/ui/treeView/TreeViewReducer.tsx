@@ -1,6 +1,6 @@
 import { NodeDataActionTypes, TreeNodeActions } from "./TreeViewNodeActionTypes";
 import { TreeViewNodeData } from "./TreeViewNodeData";
-import { addNode, expandNode } from "./treeViewUtils";
+import { addNode, expandNode, selectNode } from "./treeViewUtils";
 
 export type NodeDataState = {
   nodeData: TreeViewNodeData | null;
@@ -34,6 +34,18 @@ export function treeReducer(state: NodeDataState, action: TreeNodeActions): Node
       const nodeData = addNode(state.nodeData, action.payload.parentId, action.payload.newNode);
       return {
         nodeData: { ...nodeData }
+      };
+    }
+
+    case NodeDataActionTypes.SELECT_NODE: {
+
+      if (!state.nodeData) {
+        return { nodeData: null }
+      }
+
+      selectNode(state.nodeData, action.payload.id, action.payload.selected);
+      return {
+        nodeData: { ...state.nodeData }
       };
     }
 

@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { DatabaseSchema } from "../../contexts/databaseSchema/DatabaseSchemaReducer";
+import { RefreshFlagType } from "../../contexts/databaseSchema/DatabaseSchemaActionTypes";
 import { createDatabaseNode, createDatabasesFolderNode, createFunctionNode, createServerNode, createServersNode, createStoredProcedureNode, createTableNode, getDatabaseNodeFromServerNode, getFunctionsNode, getServerNodeFromServersNode, getStoredProceduresNode, getTablesFolderNode } from "./databaseTreeViewUtils";
 import { NodeType } from "./NodeType";
 import { DatabaseServerConnection } from "../../contexts/databaseServerConnect/DatabaseServerConnectReducer";
 
-export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] | null, databaseServerConnections: DatabaseServerConnection[] | null) {
+export default function useDatabaseTreeState(
+  databaseSchemas: DatabaseSchema[] | null,
+  databaseServerConnections: DatabaseServerConnection[] | null,
+  clearRefreshFlags: (connectionId: string, flags: RefreshFlagType[]) => void
+) {
   const [root, setRoot] = useState<TreeViewNodeData | null>(null);
 
   // Initial Servers load
@@ -53,7 +58,6 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
       const newRoot = { ...prevRoot, nodes: prevRoot.nodes?.map(node => ({ ...node })) || [] };
 
       databaseSchemasForRefresh.forEach(schema => {
-        schema.refreshDatabases = false;
         const serverNode = getServerNodeFromServersNode(newRoot, schema.connectionId);
         if (!serverNode) {
           return;
@@ -67,7 +71,11 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
 
       return newRoot;
     });
-  }, [databaseSchemas]);
+
+    databaseSchemasForRefresh.forEach(schema => {
+      clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshDatabases]);
+    });
+  }, [databaseSchemas, clearRefreshFlags]);
 
   // disconnect server
   useEffect(() => {
@@ -138,13 +146,16 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
       }
 
       tablesToRefresh.forEach((schema) => {
-        schema.refreshTables = false;
         updateTablesForSchema(schema);
       });
 
       return newRoot;
     });
-  }, [databaseSchemas]);
+
+    tablesToRefresh.forEach((schema) => {
+      clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshTables]);
+    });
+  }, [databaseSchemas, clearRefreshFlags]);
 
   // SP Refresh
   useEffect(() => {
@@ -187,13 +198,16 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
       }
 
       databaseSchemasForRefresh.forEach(schema => {
-        schema.refreshStoredProcedures = false;
         updateStoredProceduresForSchema(schema);
       });
 
       return newRoot;
     });
-  }, [databaseSchemas]);
+
+    databaseSchemasForRefresh.forEach(schema => {
+      clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshStoredProcedures]);
+    });
+  }, [databaseSchemas, clearRefreshFlags]);
 
   // Functions refresh
   useEffect(() => {
@@ -236,13 +250,16 @@ export default function useDatabaseTreeState(databaseSchemas: DatabaseSchema[] |
       }
 
       databaseSchemasForRefresh.forEach(schema => {
-        schema.refreshFunctions = false;
         updateFunctionsForSchema(schema);
       });
 
       return newRoot;
     });
-  }, [databaseSchemas]);
+
+    databaseSchemasForRefresh.forEach(schema => {
+      clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshFunctions]);
+    });
+  }, [databaseSchemas, clearRefreshFlags]);
 
   return { root };
 }

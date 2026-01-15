@@ -71,7 +71,7 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchema : s)
       };
     }
-    
+
     case DatabaseSchemaActionTypes.FetchedTables: {
       const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
       if (!schema) {
@@ -163,11 +163,29 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
     }
 
     case DatabaseSchemaActionTypes.Error: {
-      
+
       return {
         ...state,
         isLoading: false,
         error: action.payload
+      };
+    }
+
+    case DatabaseSchemaActionTypes.ClearRefreshFlags: {
+      const { connectionId, flags } = action.payload;
+
+      return {
+        ...state,
+        databaseSchemas: state.databaseSchemas?.map(schema => {
+          if (schema.connectionId === connectionId) {
+            const updates: Partial<DatabaseSchema> = {};
+            flags.forEach(flag => {
+              updates[flag] = false;
+            });
+            return { ...schema, ...updates };
+          }
+          return schema;
+        }) || null
       };
     }
 

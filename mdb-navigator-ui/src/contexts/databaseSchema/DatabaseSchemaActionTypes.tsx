@@ -3,6 +3,13 @@ import { ProceduresDetails } from "../../models/schema/procedureDetails";
 import { TablesDetails } from "../../models/schema/tablesDetails";
 import { DatabaseSchema } from "./DatabaseSchemaReducer";
 
+export enum RefreshFlagType {
+  RefreshDatabases = 'refreshDatabases',
+  RefreshTables = 'refreshTables',
+  RefreshStoredProcedures = 'refreshStoredProcedures',
+  RefreshFunctions = 'refreshFunctions'
+}
+
 export enum DatabaseSchemaActionTypes {
   Loading = 'schema/loading',
   AddedSchema = 'schema/addedSchema',
@@ -10,6 +17,7 @@ export enum DatabaseSchemaActionTypes {
   FetchedTables = 'schema/fetchedTables',
   FetchedStoredProcedures = 'schema/fetchedStoredProcedures',
   FetchedFunctions = 'schema/fetchedFunctions',
+  ClearRefreshFlags = 'schema/clearRefreshFlags',
   Error = 'schema/error'
 }
 
@@ -47,10 +55,19 @@ export type ErrorDatabaseSchemaActionAction = {
   payload: string;
 };
 
+export type ClearRefreshFlagsAction = {
+  type: DatabaseSchemaActionTypes.ClearRefreshFlags;
+  payload: {
+    connectionId: string;
+    flags: RefreshFlagType[];
+  };
+};
+
 export type DatabaseSchemaActions = LoadingAction
   | AddedSchemaAction
   | FetchedDatabasesAction
   | FetchedTablesAction
   | FetchedStoredProceduresAction
   | FetchedFunctionsAction
+  | ClearRefreshFlagsAction
   | ErrorDatabaseSchemaActionAction;

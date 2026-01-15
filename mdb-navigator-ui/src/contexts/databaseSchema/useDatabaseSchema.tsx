@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useEffect } from "react";
 import { DatabaseConnectContextType } from "./DatabaseSchemaReducer";
-import { DatabaseSchemaActionTypes } from "./DatabaseSchemaActionTypes";
+import { DatabaseSchemaActionTypes, RefreshFlagType } from "./DatabaseSchemaActionTypes";
 import agent from "../../services/apiAgent";
 import useDatabaseConnectContext from "../databaseServerConnect/useDatabaseServerConnect";
 
@@ -14,7 +14,7 @@ export default function useDatabaseSchemaContext() {
     throw new Error('useDatabaseSchema must be used within a DatabaseSchemaProvider');
   }
 
-  const dispatch = context.dispatch;  
+  const dispatch = context.dispatch;
 
   useEffect(() => {
     async function addSchema() {
@@ -75,7 +75,7 @@ export default function useDatabaseSchemaContext() {
 
     addSchema();
 
-  }, [context, context.state.databaseSchemas, databaseServerConnections, dispatch]);  
+  }, [context, context.state.databaseSchemas, databaseServerConnections, dispatch]);
 
   const fetchDatabases = useCallback(async (connectionId: string) => {
     dispatch({
@@ -150,6 +150,13 @@ export default function useDatabaseSchemaContext() {
     }
   }, [dispatch]);
 
+  const clearRefreshFlags = useCallback((connectionId: string, flags: RefreshFlagType[]) => {
+    dispatch({
+      type: DatabaseSchemaActionTypes.ClearRefreshFlags,
+      payload: { connectionId, flags }
+    });
+  }, [dispatch]);
+
   const {isLoading, databaseSchemas,  /*error, databasesDetails, tablesDetails, storedProceduresDetails, functionsDetails*/} = context.state;
 
   return {
@@ -163,6 +170,7 @@ export default function useDatabaseSchemaContext() {
     fetchDatabases,
     fetchTables,
     fetchStoredProcedures,
-    fetchFunctions
+    fetchFunctions,
+    clearRefreshFlags
   };
 };

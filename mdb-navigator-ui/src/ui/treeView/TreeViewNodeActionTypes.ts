@@ -5,7 +5,8 @@ export enum NodeDataActionTypes {
   EXPAND_NODE = 'EXPAND',
   ADD_NODE = 'ADD',
   REMOVE_NODE = 'REMOVE',
-  UPDATE_NODE = 'UPDATE'
+  UPDATE_NODE = 'UPDATE',
+  SELECT_NODE = 'SELECT'
 }
 
 export type SetNodesAction = {
@@ -39,8 +40,17 @@ export type UpdateNodeAction = {
   newNode: TreeViewNodeData;
 }
 
+export type SelectNodeAction = {
+  type: NodeDataActionTypes.SELECT_NODE;
+  payload: {
+    id: string;
+    selected: boolean;
+  }
+}
+
 export type TreeNodeActions =
   SetNodesAction
   | ExpandNodeAction
   | AddNodeAction
+  | SelectNodeAction;
 

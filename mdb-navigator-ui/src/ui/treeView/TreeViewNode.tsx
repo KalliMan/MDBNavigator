@@ -3,14 +3,17 @@ import { useTreeViewContext } from "./TreeViewContextProvider";
 import TreeViewIExpandedIcon from "./TreeViewIExpandedIcon";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
 import { TreeViewNodeData } from "./TreeViewNodeData";
+import { TreeViewSettings } from "./TreeViewSettings";
 
 export interface Props {
   node: TreeViewNodeData;
+  settings: TreeViewSettings;
+
   onNodeClick: (node: TreeViewNodeData, target: CoordPosition) => void;
   onExpand: (id: string, expanded: boolean) => void;
 }
 
-export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
+export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
 
   function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
@@ -19,6 +22,16 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
       x: e.pageX,
       y: e.pageY
     });
+
+    if (settings.allowKeepSelectedNode) {
+      dispatch({
+        type: NodeDataActionTypes.SELECT_NODE,
+        payload: {
+          id: node.id,
+          selected: true
+        }
+      });
+    }
   }
 
   function handleSetIsExpanded() {
@@ -40,7 +53,7 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
     <>
     <ul className="ml-5">
         <div
-          className={`flex hover:bg-sky-200 ${node.className ?? ''}`}>
+          className={`flex hover:bg-sky-200 ${node.className ?? ''} ${node.isSelected ? 'bg-sky-300' : ''}`}>
           {hasChildNodes && <TreeViewIExpandedIcon
             isExpanded={node.isExpanded}
             onExpand={handleSetIsExpanded}
@@ -65,6 +78,7 @@ export function TreeViewNode({node, onNodeClick, onExpand}: Props) {
           {node.nodes?.map((childNode) => (
             <li className="" key={childNode.id}>
               <TreeViewNode node={childNode}
+                settings={settings}
                 onNodeClick={onNodeClick}
                 onExpand={(id, expanded) => onExpand(id, expanded)} />
             </li>

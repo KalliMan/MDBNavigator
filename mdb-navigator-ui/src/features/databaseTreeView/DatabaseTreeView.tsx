@@ -17,8 +17,9 @@ export default function DatabaseTreeView() {
     databaseSchemas,
     fetchTables,
     fetchStoredProcedures,
-    fetchFunctions
-  } = useDatabaseSchemaContext()
+    fetchFunctions,
+    clearRefreshFlags
+  } = useDatabaseSchemaContext();
 
   const {
     queryCommandGetTopNTableRecords,
@@ -28,7 +29,7 @@ export default function DatabaseTreeView() {
     queryCommandDropTableScript
   } = useCommandQueryContext();
 
-  const { root } = useDatabaseTreeState(databaseSchemas, databaseServerConnections);
+  const { root } = useDatabaseTreeState(databaseSchemas, databaseServerConnections, clearRefreshFlags);
 
   const [contextMenuTarget, setContextMenuTarget] = useState(EmptyPosition);
   const [currentNode, setCurrentNode] = useState<TreeViewNodeData>();
@@ -55,7 +56,13 @@ export default function DatabaseTreeView() {
 
   return (
     <>
-      <TreeView root={root} onNodeClick={handlers.handleOnNodeClick} onExpand={handlers.handleExpand}/>
+      <TreeView root={root}
+        settings={{
+          allowKeepSelectedNode: true
+        }}
+        onNodeClick={handlers.handleOnNodeClick}
+        onExpand={handlers.handleExpand}
+      />
       <DatabaseContextMenu
         targetPosition={contextMenuTarget}
         currentNode={currentNode}
