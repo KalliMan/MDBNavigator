@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer } from "react";
+import { createContext, useContext, useMemo, useReducer } from "react";
 import { TreeNodeActions } from "./TreeViewNodeActionTypes";
 import { initialState, NodeDataState, treeReducer } from "./TreeViewReducer";
 
@@ -11,8 +11,9 @@ const TreeViewContext = createContext<NodeDataContextType | null>(null);
 
 export function TreeContextProvider({ children }: React.PropsWithChildren) {
   const [state, dispatch] = useReducer(treeReducer, initialState);
+  const value = useMemo(() => ({ state, dispatch }), [state]);
 
-  return ( <TreeViewContext.Provider value={{ state, dispatch }}>
+  return ( <TreeViewContext.Provider value={value}>
       {children}
     </TreeViewContext.Provider>
   );
