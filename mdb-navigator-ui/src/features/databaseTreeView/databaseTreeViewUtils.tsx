@@ -7,6 +7,7 @@ import { FaTable } from "react-icons/fa6";
 import { PiBracketsCurly } from "react-icons/pi";
 import { LuSquareFunction } from "react-icons/lu";
 import { findFirstParentOfType, findNodeOfType } from "../../ui/treeView/treeViewUtils";
+import { DatabaseSchema } from "../../contexts/databaseSchema/DatabaseSchemaReducer";
 
 export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
@@ -233,4 +234,82 @@ export function getNodeHierarchy(targetNode: TreeViewNodeData | undefined) {
   }
 
   return { databaseNode, serverNode };
+}
+
+export function updateTablesForSchema(root: TreeViewNodeData, schema: DatabaseSchema) {
+  const serverNode = getServerNodeFromServersNode(root, schema.connectionId);
+  if (!serverNode) {
+    return;
+  }
+
+  const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
+  if (!databaseNode) {
+    return;
+  }
+
+  const tablesFoldersNode = getTablesFolderNode(databaseNode);
+  if (!tablesFoldersNode) {
+    return;
+  }
+
+  const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
+  if (!database) {
+    return;
+  }
+
+  tablesFoldersNode.nodes = database.tablesDetails?.tables?.map(t =>
+    createTableNode(t.databaseSchema, t.name, tablesFoldersNode)
+  ) || [];
+}
+
+export function updateStoredProceduresForSchema(root: TreeViewNodeData, schema: DatabaseSchema) {
+  const serverNode = getServerNodeFromServersNode(root, schema.connectionId);
+  if (!serverNode) {
+    return;
+  }
+
+  const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
+  if (!databaseNode) {
+    return;
+  }
+
+  const storedproceduresFoldersNode = getStoredProceduresNode(databaseNode);
+  if (!storedproceduresFoldersNode) {
+    return;
+  }
+
+  const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
+  if (!database) {
+    return;
+  }
+
+  storedproceduresFoldersNode.nodes = database.storedProceduresDetails?.procedures?.map(t =>
+    createStoredProcedureNode(t.databaseSchema, t.name, storedproceduresFoldersNode)
+  ) || [];
+}
+
+export function updateFunctionsForSchema(root: TreeViewNodeData, schema: DatabaseSchema) {
+  const serverNode = getServerNodeFromServersNode(root, schema.connectionId);
+  if (!serverNode) {
+    return;
+  }
+
+  const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
+  if (!databaseNode) {
+    return;
+  }
+
+  const functionsFoldersNode = getFunctionsNode(databaseNode);
+  if (!functionsFoldersNode) {
+    return;
+  }
+
+  const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
+  if (!database) {
+    return;
+  }
+
+  functionsFoldersNode.nodes = database.functionsDetails?.procedures?.map(t =>
+    createFunctionNode(t.databaseSchema, t.name, functionsFoldersNode)
+  ) || [];
 }

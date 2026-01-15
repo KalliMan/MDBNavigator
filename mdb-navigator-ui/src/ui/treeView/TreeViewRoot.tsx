@@ -27,10 +27,14 @@ export function TreeViewRoot({root, settings, onNodeClick, onExpand}: Props) {
 
   return (
     <div className="w-fit text-left cursor-pointer">
-      <TreeViewNode node={state.nodeData!}
-        settings={settings}
-        onNodeClick={onNodeClick}
-        onExpand={onExpand}/>
+      <ul className="ml-5">
+        <TreeViewNode
+          node={state.nodeData!}
+          settings={settings}
+          onNodeClick={onNodeClick}
+          onExpand={onExpand}
+        />
+      </ul>
     </div>
   );
 }

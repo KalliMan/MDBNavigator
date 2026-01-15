@@ -50,41 +50,44 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
   const iconExpanded = node.IconExpanded ?? node.Icon;
 
   return (
-    <>
-    <ul className="ml-5">
-        <div
-          className={`flex hover:bg-sky-200 ${node.className ?? ''} ${node.isSelected ? 'bg-sky-300' : ''}`}>
-          {hasChildNodes && <TreeViewIExpandedIcon
+    <li>
+      <div
+        className={`flex hover:bg-sky-200 ${node.className ?? ''} ${node.isSelected ? 'bg-sky-300' : ''}`}
+      >
+        {hasChildNodes && (
+          <TreeViewIExpandedIcon
             isExpanded={node.isExpanded}
             onExpand={handleSetIsExpanded}
-          />}
-          <div
-            className="flex select-none w-fit pl-2 pr-3"
-          >
-            <div className="mt-1">
-              {iconExpanded ?? (<span >{iconExpanded}</span>)}
-            </div>
-
-            <span className="ml-1" onClick={handleOnClick}>{node.nodeName}</span>
+          />
+        )}
+        <div className="flex select-none w-fit pl-2 pr-3">
+          <div className="mt-1">
+            {iconExpanded ?? (<span>{iconExpanded}</span>)}
           </div>
+
+          <span className="ml-1" onClick={handleOnClick}>{node.nodeName}</span>
         </div>
+      </div>
 
       <div
         className={`${
           node.isExpanded ? "opacity-100 " : "opacity-0 max-h-0 h-0 pointer-events-none"
         } transition-all ease-in-out delay-150 duration-150`}
       >
-
-          {node.nodes?.map((childNode) => (
-            <li className="" key={childNode.id}>
-              <TreeViewNode node={childNode}
+        {hasChildNodes && (
+          <ul className="ml-5">
+            {node.nodes?.map((childNode) => (
+              <TreeViewNode
+                key={childNode.id}
+                node={childNode}
                 settings={settings}
                 onNodeClick={onNodeClick}
-                onExpand={(id, expanded) => onExpand(id, expanded)} />
-            </li>
-          ))}
+                onExpand={onExpand}
+              />
+            ))}
+          </ul>
+        )}
       </div>
-      </ul>
-    </>
+    </li>
   );
 }

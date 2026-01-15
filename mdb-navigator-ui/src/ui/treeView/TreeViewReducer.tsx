@@ -1,93 +1,95 @@
+import { produce } from "immer";
 import { NodeDataActionTypes, TreeNodeActions } from "./TreeViewNodeActionTypes";
 import { TreeViewNodeData } from "./TreeViewNodeData";
 import { findNode, findSelectedNode } from "./treeViewUtils";
 
 export type NodeDataState = {
   nodeData: TreeViewNodeData | null;
-}
+};
 
 export const initialState: NodeDataState = {
-  nodeData: null
+  nodeData: null,
 };
 
 export function treeReducer(state: NodeDataState, action: TreeNodeActions): NodeDataState {
-  switch(action.type) {
-    case NodeDataActionTypes.SET_NODES:
-      return {
-        nodeData: {...action.payload}
-      };
-    case NodeDataActionTypes.EXPAND_NODE:
-      if (!state.nodeData) {
-        return { nodeData: null }
+  return produce(state, draft => {
+    switch (action.type) {
+      case NodeDataActionTypes.SET_NODES: {
+        if (!draft.nodeData) {
+          draft.nodeData = action.payload;
+        } else {
+          draft.nodeData = mergeTreeState(draft.nodeData, action.payload);
+        }
+        break;
       }
 
-      expandNode(state.nodeData, action.payload.id, action.payload.expand)
-      return {
-        nodeData: { ...state.nodeData }
-      };
+      case NodeDataActionTypes.EXPAND_NODE: {
+        if (!draft.nodeData) {
+          break;
+        }
 
-    case NodeDataActionTypes.ADD_NODE: {
-
-      if (!state.nodeData) {
-        return { nodeData: null }
+        const node = findNode(draft.nodeData, action.payload.id);
+        if (node) {
+          node.isExpanded = action.payload.expand;
+        }
+        break;
       }
-      const nodeData = addNode(state.nodeData, action.payload.parentId, action.payload.newNode);
-      return {
-        nodeData: { ...nodeData }
-      };
+
+      case NodeDataActionTypes.ADD_NODE: {
+        if (!draft.nodeData) {
+          break;
+        }
+
+        const parentNode = findNode(draft.nodeData, action.payload.parentId);
+        if (!parentNode) {
+          break;
+        }
+
+        if (!parentNode.nodes) {
+          parentNode.nodes = [action.payload.newNode];
+        } else {
+          parentNode.nodes.push(action.payload.newNode);
+        }
+        break;
+      }
+
+      case NodeDataActionTypes.SELECT_NODE: {
+        if (!draft.nodeData) {
+          break;
+        }
+
+        const prevSelectedNode = findSelectedNode(draft.nodeData);
+        if (prevSelectedNode) {
+          prevSelectedNode.isSelected = false;
+        }
+
+        const node = findNode(draft.nodeData, action.payload.id);
+        if (node) {
+          node.isSelected = action.payload.selected;
+        }
+        break;
+      }
+
+      default:
+        throw new Error("Unsupported Action type");
     }
-
-    case NodeDataActionTypes.SELECT_NODE: {
-
-      if (!state.nodeData) {
-        return { nodeData: null }
-      }
-
-      selectNode(state.nodeData, action.payload.id, action.payload.selected);
-      return {
-        nodeData: { ...state.nodeData }
-      };
-    }
-
-    default:
-      throw new Error('Unsupported Action type');
-  }
-
-  return state;
+  });
 }
 
-function expandNode(root: TreeViewNodeData, id: string, expand: boolean): void {
-  const node = findNode(root, id);
-  if (node) {
-    node.isExpanded = expand;
+function mergeTreeState(prev: TreeViewNodeData, next: TreeViewNodeData): TreeViewNodeData {
+  // Start from new data, but carry over UI flags from previous tree
+  const merged: TreeViewNodeData = {
+    ...next,
+    isExpanded: prev.isExpanded ?? next.isExpanded,
+  };
+
+  if (prev.nodes && next.nodes) {
+    merged.nodes = next.nodes.map(nextChild => {
+      const matchingPrev = prev.nodes!.find(p => p.id === nextChild.id);
+      return matchingPrev ? mergeTreeState(matchingPrev, nextChild) : nextChild;
+    });
   }
+
+  return merged;
 }
 
-function selectNode(root: TreeViewNodeData, id: string, selected: boolean): void {
-  const prevSelectedNode = findSelectedNode(root);
-  if (prevSelectedNode) {
-    prevSelectedNode.isSelected = false;
-  }
-
-  const node = findNode(root, id);
-  if (node) {
-    node.isSelected = selected;
-  }
-}
-
-function addNode(nodeData: TreeViewNodeData, parentId: string, newNode: TreeViewNodeData): TreeViewNodeData {
-
-  const parentNode = findNode(nodeData,parentId);
-
-  if (!parentNode) {
-    return nodeData;
-  }
-
-  if (!parentNode.nodes) {
-    parentNode.nodes = [newNode];
-  } else {
-    parentNode.nodes.push(newNode);
-  }
-
-  return nodeData;
-}

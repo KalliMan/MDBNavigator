@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { produce } from "immer";
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { DatabaseSchema } from "../../contexts/databaseSchema/DatabaseSchemaReducer";
 import { RefreshFlagType } from "../../contexts/databaseSchema/DatabaseSchemaActionTypes";
-import { createDatabaseNode, createDatabasesFolderNode, createFunctionNode, createServerNode, createServersNode, createStoredProcedureNode, createTableNode, getDatabaseNodeFromServerNode, getFunctionsNode, getServerNodeFromServersNode, getStoredProceduresNode, getTablesFolderNode } from "./databaseTreeViewUtils";
+import { createDatabaseNode, createDatabasesFolderNode, createServerNode, createServersNode, getServerNodeFromServersNode, updateFunctionsForSchema, updateStoredProceduresForSchema, updateTablesForSchema } from "./databaseTreeViewUtils";
 import { NodeType } from "./NodeType";
 import { DatabaseServerConnection } from "../../contexts/databaseServerConnect/DatabaseServerConnectReducer";
 
@@ -20,22 +21,29 @@ export default function useDatabaseTreeState(
       const isConnectedToDB = databaseServerConnections && databaseServerConnections.length > 0;
       if (databaseSchemas && isConnectedToDB) {
 
-        setRoot(prevRoot => {
+        setRoot(prevRoot => produce(prevRoot, draft => {
           const connectedResult =
-            databaseServerConnections.filter(c => prevRoot
-              ? !getServerNodeFromServersNode(prevRoot, c.connectedResult?.connectionId || '')
+            databaseServerConnections.filter(c => draft && getServerNodeFromServersNode(draft as TreeViewNodeData, c.connectedResult?.connectionId || '')
+              ? false
               : true)[0]?.connectedResult;
 
-          if (connectedResult) {
-            const newRoot = prevRoot || createServersNode(true);
-            const updatedRoot = { ...newRoot, nodes: [...(newRoot.nodes || [])] };
-            const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
-            updatedRoot.nodes.push(serverNode);
-            return updatedRoot;
+          if (!connectedResult) {
+            return;
           }
 
-          return prevRoot;
-        });
+          if (!draft) {
+            const serversRoot = createServersNode(true);
+            const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
+            serversRoot.nodes?.push(serverNode);
+            return serversRoot;
+          }
+
+          if (!draft.nodes) {
+            draft.nodes = [];
+          }
+          const serverNode = createServerNode(connectedResult.connectionId, connectedResult.serverName, true);
+          draft.nodes.push(serverNode);
+        }));
       }
     }
 
@@ -50,15 +58,15 @@ export default function useDatabaseTreeState(
       return;
     }
 
-    setRoot(prevRoot => {
-      if (!prevRoot) {
-        return prevRoot;
+    setRoot(prevRoot => produce(prevRoot, draft => {
+      if (!draft) {
+        return;
       }
 
-      const newRoot = { ...prevRoot, nodes: prevRoot.nodes?.map(node => ({ ...node })) || [] };
+      const rootDraft = draft as TreeViewNodeData;
 
       databaseSchemasForRefresh.forEach(schema => {
-        const serverNode = getServerNodeFromServersNode(newRoot, schema.connectionId);
+        const serverNode = getServerNodeFromServersNode(rootDraft, schema.connectionId);
         if (!serverNode) {
           return;
         }
@@ -66,11 +74,11 @@ export default function useDatabaseTreeState(
         const databaseFolderNodes = createDatabasesFolderNode(serverNode, true);
         serverNode.nodes = [databaseFolderNodes];
 
-        schema.databasesDetails?.databases?.forEach(db => databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes, true)));
+        schema.databasesDetails?.databases?.forEach(db => {
+          databaseFolderNodes.nodes?.push(createDatabaseNode(db.name, databaseFolderNodes, true));
+        });
       });
-
-      return newRoot;
-    });
+    }));
 
     databaseSchemasForRefresh.forEach(schema => {
       clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshDatabases]);
@@ -81,28 +89,18 @@ export default function useDatabaseTreeState(
   useEffect(() => {
     const connectedServerIds = databaseServerConnections?.map(c => c.connectedResult?.connectionId) || [];
 
-    setRoot(prevRoot => {
-      if (!prevRoot) {
-        return prevRoot;
+    setRoot(prevRoot => produce(prevRoot, draft => {
+      if (!draft || !draft.nodes) {
+        return;
       }
 
-      let hasChanges = false;
-      const filteredNodes = prevRoot.nodes!.filter(serverNode => {
+      draft.nodes = draft.nodes.filter(serverNode => {
         if (serverNode.type === NodeType.Server) {
-          if (!connectedServerIds.includes(serverNode.id)) {
-            hasChanges = true;
-            return false;
-          }
+          return connectedServerIds.includes(serverNode.id);
         }
         return true;
       });
-
-      if (hasChanges) {
-        return { ...prevRoot, nodes: filteredNodes };
-      }
-
-      return prevRoot;
-    });
+    }));
   }, [databaseServerConnections]);
 
   // Tables refresh
@@ -112,45 +110,17 @@ export default function useDatabaseTreeState(
       return;
     }
 
-    setRoot(prevRoot => {
-      if (!prevRoot) {
-        return prevRoot;
+    setRoot(prevRoot => produce(prevRoot, draft => {
+      if (!draft) {
+        return;
       }
 
-      const newRoot = { ...prevRoot, nodes: prevRoot.nodes?.map(node => ({ ...node })) || [] };
-
-      function updateTablesForSchema(schema: DatabaseSchema) {
-        const serverNode = getServerNodeFromServersNode(newRoot, schema.connectionId);
-        if (!serverNode) {
-          return;
-        }
-
-        const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
-        if (!databaseNode) {
-          return;
-        }
-
-        const tablesFoldersNode = getTablesFolderNode(databaseNode);
-        if (!tablesFoldersNode) {
-          return;
-        }
-
-        const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
-        if (!database) {
-          return;
-        }
-
-        tablesFoldersNode.nodes = database.tablesDetails?.tables?.map(t =>
-          createTableNode(t.databaseSchema, t.name, tablesFoldersNode)
-        ) || [];
-      }
+      const rootDraft = draft as TreeViewNodeData;
 
       tablesToRefresh.forEach((schema) => {
-        updateTablesForSchema(schema);
+        updateTablesForSchema(rootDraft, schema);
       });
-
-      return newRoot;
-    });
+    }));
 
     tablesToRefresh.forEach((schema) => {
       clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshTables]);
@@ -164,45 +134,17 @@ export default function useDatabaseTreeState(
       return;
     }
 
-    setRoot(prevRoot => {
-      if (!prevRoot) {
-        return prevRoot;
+    setRoot(prevRoot => produce(prevRoot, draft => {
+      if (!draft) {
+        return;
       }
 
-      const newRoot = { ...prevRoot, nodes: prevRoot.nodes?.map(node => ({ ...node })) || [] };
-
-      function updateStoredProceduresForSchema(schema: DatabaseSchema) {
-        const serverNode = getServerNodeFromServersNode(newRoot, schema.connectionId);
-        if (!serverNode) {
-          return;
-        }
-
-        const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
-        if (!databaseNode) {
-          return;
-        }
-
-        const storedproceduresFoldersNode = getStoredProceduresNode(databaseNode);
-        if (!storedproceduresFoldersNode) {
-          return;
-        }
-
-        const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
-        if (!database) {
-          return;
-        }
-
-        storedproceduresFoldersNode.nodes = database.storedProceduresDetails?.procedures?.map(t =>
-          createStoredProcedureNode(t.databaseSchema, t.name, storedproceduresFoldersNode)
-        ) || [];
-      }
+      const rootDraft = draft as TreeViewNodeData;
 
       databaseSchemasForRefresh.forEach(schema => {
-        updateStoredProceduresForSchema(schema);
+        updateStoredProceduresForSchema(rootDraft, schema);
       });
-
-      return newRoot;
-    });
+    }));
 
     databaseSchemasForRefresh.forEach(schema => {
       clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshStoredProcedures]);
@@ -216,45 +158,17 @@ export default function useDatabaseTreeState(
       return;
     }
 
-    setRoot(prevRoot => {
-      if (!prevRoot) {
-        return prevRoot;
+    setRoot(prevRoot => produce(prevRoot, draft => {
+      if (!draft) {
+        return;
       }
 
-      const newRoot = { ...prevRoot, nodes: prevRoot.nodes?.map(node => ({ ...node })) || [] };
-
-      function updateFunctionsForSchema(schema: DatabaseSchema) {
-        const serverNode = getServerNodeFromServersNode(newRoot, schema.connectionId);
-        if (!serverNode) {
-          return;
-        }
-
-        const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
-        if (!databaseNode) {
-          return;
-        }
-
-        const functionsFoldersNode = getFunctionsNode(databaseNode);
-        if (!functionsFoldersNode) {
-          return;
-        }
-
-        const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
-        if (!database) {
-          return;
-        }
-
-        functionsFoldersNode.nodes = database.functionsDetails?.procedures?.map(t =>
-          createFunctionNode(t.databaseSchema, t.name, functionsFoldersNode)
-        ) || [];
-      }
+      const rootDraft = draft as TreeViewNodeData;
 
       databaseSchemasForRefresh.forEach(schema => {
-        updateFunctionsForSchema(schema);
+        updateFunctionsForSchema(rootDraft, schema);
       });
-
-      return newRoot;
-    });
+    }));
 
     databaseSchemasForRefresh.forEach(schema => {
       clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshFunctions]);
