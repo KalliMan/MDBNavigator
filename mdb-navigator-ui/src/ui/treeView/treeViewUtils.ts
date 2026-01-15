@@ -44,25 +44,6 @@ export function findNodeOfType(node: TreeViewNodeData, type: string): TreeViewNo
   return undefined;
 }
 
-export function expandNode(root: TreeViewNodeData, id: string, expand: boolean): void {
-  const node = findNode(root, id);
-  if (node) {
-    node.isExpanded = expand;
-  }
-}
-
-export function selectNode(root: TreeViewNodeData, id: string, selected: boolean): void {
-  const prevSelectedNode = findSelectedNode(root);
-  if (prevSelectedNode) {
-    prevSelectedNode.isSelected = false;
-  }
-
-  const node = findNode(root, id);
-  if (node) {
-    node.isSelected = selected;
-  }
-}
-
 export function findNode(root: TreeViewNodeData, id: string): TreeViewNodeData | null {
   if (root.id === id) {
     return root;
@@ -99,21 +80,4 @@ export function findSelectedNode(root: TreeViewNodeData): TreeViewNodeData | nul
     }
   }
   return null;
-}
-
-export function addNode(nodeData: TreeViewNodeData, parentId: string, newNode: TreeViewNodeData): TreeViewNodeData {
-
-  const parentNode = findNode(nodeData,parentId);
-
-  if (!parentNode) {
-    return nodeData;
-  }
-
-  if (!parentNode.nodes) {
-    parentNode.nodes = [newNode];
-  } else {
-    parentNode.nodes.push(newNode);
-  }
-
-  return nodeData;
 }

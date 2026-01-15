@@ -1,6 +1,6 @@
 import { NodeDataActionTypes, TreeNodeActions } from "./TreeViewNodeActionTypes";
 import { TreeViewNodeData } from "./TreeViewNodeData";
-import { addNode, expandNode, selectNode } from "./treeViewUtils";
+import { findNode, findSelectedNode } from "./treeViewUtils";
 
 export type NodeDataState = {
   nodeData: TreeViewNodeData | null;
@@ -54,4 +54,40 @@ export function treeReducer(state: NodeDataState, action: TreeNodeActions): Node
   }
 
   return state;
+}
+
+function expandNode(root: TreeViewNodeData, id: string, expand: boolean): void {
+  const node = findNode(root, id);
+  if (node) {
+    node.isExpanded = expand;
+  }
+}
+
+function selectNode(root: TreeViewNodeData, id: string, selected: boolean): void {
+  const prevSelectedNode = findSelectedNode(root);
+  if (prevSelectedNode) {
+    prevSelectedNode.isSelected = false;
+  }
+
+  const node = findNode(root, id);
+  if (node) {
+    node.isSelected = selected;
+  }
+}
+
+function addNode(nodeData: TreeViewNodeData, parentId: string, newNode: TreeViewNodeData): TreeViewNodeData {
+
+  const parentNode = findNode(nodeData,parentId);
+
+  if (!parentNode) {
+    return nodeData;
+  }
+
+  if (!parentNode.nodes) {
+    parentNode.nodes = [newNode];
+  } else {
+    parentNode.nodes.push(newNode);
+  }
+
+  return nodeData;
 }
