@@ -14,7 +14,7 @@ interface Props {
  /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function ModalWindow({ children, name, title, canClose = true }: React.PropsWithChildren<Props>) {
   const [openName, setOpenName] = useState(name);
-  const ref = useOutsideClick(canClose ? close : () => {});
+  const ref = useOutsideClick(canClose ? () => close(null) : () => {});
 
   if (!openName) {
     return null;
