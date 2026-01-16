@@ -115,7 +115,11 @@ namespace MDBNavigator.PostgreSQL
                         "WHERE proname = @Name AND nspname = @Schema" +
                         "));";
 
-            return await _connection.QueryFirstAsync<string>(query, new { Name = name, Schema = schema });
+            return await _connection.QueryFirstAsync<string>(query, new
+            {
+                Name = name,
+                Schema = schema
+            });
         }
 
         public async Task<IEnumerable<ViewDto>> GetViews()
@@ -126,6 +130,19 @@ namespace MDBNavigator.PostgreSQL
                 "WHERE table_schema NOT IN ('pg_catalog', 'information_schema') " +
                 "AND table_type = 'VIEW'";
             return await _connection.QueryAsync<ViewDto>(query);
+        }
+
+        public async Task<string> GetViewDefinition(string schema, string name)
+        {
+            var query = "SELECT 'CREATE OR REPLACE VIEW ' || table_name || ' AS ' || view_definition " +
+                "FROM information_schema.views " +
+                "WHERE table_name = @ViewName AND table_schema = @Schema;";
+
+            return await _connection.QueryFirstAsync<string>(query, new
+                {
+                    Schema = schema, 
+                    ViewName  = name
+                });
         }
 
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)

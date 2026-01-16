@@ -119,6 +119,7 @@ export function createProgrammabilityFoldersNode(parentNode: TreeViewNodeData): 
 
   result.nodes!.push(createStoredProceduresFoldersNode(result));
   result.nodes!.push(createFunctionsFoldersNode(result));
+  result.nodes!.push(createViewsNode(result));
   return result;
 }
 
@@ -180,6 +181,34 @@ export function createFunctionNode(databaseSchema: string, name: string, parentN
   };
 }
 
+export function createViewsNode(parentNode: TreeViewNodeData): TreeViewNodeData {
+  const result: TreeViewNodeData = {
+    id: uuidv4(),
+    nodeName: 'Views',
+    isExpanded: false,
+    Icon: <FcFolder />,
+    IconExpanded: <FcOpenedFolder />,
+    nodes: [],
+    type: NodeType.Views,
+    parentNode
+  };
+  result.nodes!.push(createLoaderNode(result));
+  return result;
+}
+
+export function createViewNode(databaseSchema: string, name: string, parentNode: TreeViewNodeData): TreeViewNodeData {
+  return {
+    id: uuidv4(),
+    nodeName: name,
+    isExpanded: true,
+    Icon: <FcDatabase />,
+    nodes: [],
+    type: NodeType.View,
+    metaData: databaseSchema,
+    parentNode
+  };
+}
+
 export function hasLoaderNode(databaseNode: TreeViewNodeData): boolean {
   return databaseNode?.nodes?.length === 1 && databaseNode?.nodes?.[0].type === NodeType.Loader;
 }
@@ -219,6 +248,10 @@ export function getStoredProceduresNode(databaseNode: TreeViewNodeData): TreeVie
 
 export function getFunctionsNode(databaseNode: TreeViewNodeData): TreeViewNodeData | undefined {
   return findNodeOfType(databaseNode, NodeType.Functions);
+}
+
+export function getViewsFolderNode(databaseNode: TreeViewNodeData): TreeViewNodeData | undefined {
+  return findNodeOfType(databaseNode, NodeType.Views);
 }
 
 export function getNodeHierarchy(targetNode: TreeViewNodeData | undefined) {
@@ -311,5 +344,31 @@ export function updateFunctionsForSchema(root: TreeViewNodeData, schema: Databas
 
   functionsFoldersNode.nodes = database.functionsDetails?.procedures?.map(t =>
     createFunctionNode(t.databaseSchema, t.name, functionsFoldersNode)
+  ) || [];
+}
+
+export function updateViewsForSchema(root: TreeViewNodeData, schema: DatabaseSchema) {
+  const serverNode = getServerNodeFromServersNode(root, schema.connectionId);
+  if (!serverNode) {
+    return;
+  }
+
+  const databaseNode = getDatabaseNodeFromServerNode(serverNode, schema.lastUpdatedDatabaseName || '');
+  if (!databaseNode) {
+    return;
+  }
+
+  const viewsFolderNode = getViewsFolderNode(databaseNode);
+  if (!viewsFolderNode) {
+    return;
+  }
+
+  const database = schema.databasesDetails?.databases.find(db => db.name === schema.lastUpdatedDatabaseName);
+  if (!database) {
+    return;
+  }
+
+  viewsFolderNode.nodes = database.viewsDetails?.views?.map(t =>
+    createViewNode(t.databaseSchema, t.name, viewsFolderNode)
   ) || [];
 }

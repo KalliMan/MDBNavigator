@@ -15,9 +15,10 @@ namespace MDBNavigator.DAL.Interfaces
         Task<IEnumerable<TableDto>> GetTables();
         Task<IEnumerable<ProcedureDto>> GetStoredProcedures();
         Task<IEnumerable<ProcedureDto>> GetFunctions();
-        Task<string> GetProcedureDefinition(string schema, string name);
         Task<IEnumerable<ViewDto>> GetViews();
 
+        Task<string> GetProcedureDefinition(string schema, string name);
+        Task<string> GetViewDefinition(string schema, string name);
 
         Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber);
         string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber);

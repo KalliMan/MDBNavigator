@@ -69,5 +69,15 @@ namespace MDBNavigator.API.Controllers
             }
             return Ok(await _dbManager.GetProcedureDefinition(sessionId, connectionId, databaseName, schema, name));
         }
+
+        [HttpGet("viewDefinition/{connectionId}/{databaseName}/{schema}/{name}")]
+        public async Task<IActionResult> GetViewDefinition(string connectionId, string databaseName, string schema, string name)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetViewDefinition(sessionId, connectionId, databaseName, schema, name));
+        }
     }
 }

@@ -18,13 +18,15 @@ export default function DatabaseTreeView() {
     fetchTables,
     fetchStoredProcedures,
     fetchFunctions,
-    clearRefreshFlags
+    fetchViews,
+    clearRefreshFlags,
   } = useDatabaseSchemaContext();
 
   const {
     queryCommandGetTopNTableRecords,
     queryForDatabase,
     queryCommandProcedureDefinition,
+    queryCommandViewDefinition,
     queryCommandCreateTableScript,
     queryCommandDropTableScript
   } = useCommandQueryContext();
@@ -43,9 +45,11 @@ export default function DatabaseTreeView() {
     fetchTables,
     fetchStoredProcedures,
     fetchFunctions,
+    fetchViews,
     queryForDatabase,
     queryCommandGetTopNTableRecords,
     queryCommandProcedureDefinition,
+    queryCommandViewDefinition,
     queryCommandCreateTableScript,
     queryCommandDropTableScript
   });

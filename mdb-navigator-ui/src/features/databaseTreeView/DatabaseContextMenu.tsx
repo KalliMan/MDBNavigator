@@ -24,6 +24,8 @@ interface DatabaseContextMenuProps {
     handleRefreshProcedures: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshFunctions: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleQueryProcedureDefinition: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleQueryViewDefinition: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleRefreshViews: (node: TreeViewNodeData | undefined) => Promise<void>;
   };
 }
 
@@ -95,6 +97,19 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
           Query Definition
         </Menus.MenuItem>
       )}
+
+      {currentNodeType === NodeType.Views && (
+        <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshViews(currentNode)}>
+          Refresh
+        </Menus.MenuItem>
+      )}
+
+      {currentNodeType === NodeType.View && (
+        <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
+          Query Definition
+        </Menus.MenuItem>
+      )}
+
     </Menus>
   );
 }

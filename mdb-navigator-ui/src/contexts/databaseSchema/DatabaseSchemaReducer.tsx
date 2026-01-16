@@ -12,6 +12,7 @@ export type DatabaseSchema = {
   refreshTables?: boolean;
   refreshStoredProcedures?: boolean;
   refreshFunctions?: boolean;
+  refreshViews?: boolean;
 
   databasesDetails: DatabasesDetails | null,
 }
@@ -75,12 +76,12 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
     case DatabaseSchemaActionTypes.FetchedTables: {
       const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
       if (!schema) {
-        return {...state};
+        return { ...state, isLoading: false };
       }
 
       const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
       if (!database) {
-        return {...state};
+        return { ...state, isLoading: false };
       }
 
       database.tablesDetails = action.payload;
@@ -104,12 +105,12 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
     case DatabaseSchemaActionTypes.FetchedStoredProcedures: {
       const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
       if (!schema) {
-        return {...state};
+        return { ...state, isLoading: false };
       }
 
       const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
       if (!database) {
-        return {...state};
+        return { ...state, isLoading: false };
       }
 
       database.storedProceduresDetails = action.payload;
@@ -134,12 +135,12 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
     case DatabaseSchemaActionTypes.FetchedFunctions: {
       const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
       if (!schema) {
-        return {...state};
+        return { ...state, isLoading: false };
       }
 
       const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
       if (!database) {
-        return {...state};
+        return { ...state, isLoading: false };
       }
 
       database.functionsDetails = action.payload;
@@ -159,6 +160,38 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...schema,
         isLoading: false,
         databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaProcedures : s)
+      };
+    }
+
+    case DatabaseSchemaActionTypes.FetchedViews: {
+      const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+
+      if (!schema) {
+        return { ...state, isLoading: false };
+      }
+
+      const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
+      if (!database) {
+        return { ...state, isLoading: false };
+      }
+
+      database.viewsDetails = action.payload;
+      const updatedSchemaViews: DatabaseSchema = {
+        ...schema,
+        isLoading: false,
+        error: null,
+        refreshDatabases: false,
+        refreshTables: false,
+        refreshStoredProcedures: false,
+        refreshFunctions: false,
+        refreshViews: true,
+        lastUpdatedDatabaseName: action.payload.databaseName,
+      };
+
+      return {
+        ...schema,
+        isLoading: false,
+        databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaViews : s)
       };
     }
 

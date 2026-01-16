@@ -15,7 +15,8 @@ namespace MDBNavigator.BL.Services
         Task<ProceduresDetailsDto> GetStoredProcedures(string sessionId, string connectionId, string databaseName);
         Task<ProceduresDetailsDto> GetFunctions(string sessionId, string connectionId, string databaseName);
         Task<string> GetProcedureDefinition(string sessionId, string connectionId, string databaseName, string schema, string name);
-        
+        Task<string> GetViewDefinition(string sessionId, string connectionId, string databaseName, string schema, string name);
+
         Task<ViewDetailsDto> GetViews(string sessionId, string connectionId, string databaseName);
 
         Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber);
@@ -23,6 +24,6 @@ namespace MDBNavigator.BL.Services
         Task<string> GetCreateTableScript(string sessionId, string connectionId, string databaseName, string schema);
         Task<string> GetDropTableScript(string sessionId, string connectionId, string databaseName, string schema, string table);
 
-        Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery);
+        Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery);        
     }
 }

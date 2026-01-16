@@ -112,6 +112,7 @@ namespace MDBNavigator.BL.Services
             var views = await connection.GetViews();
             return new()
             {
+                ConnectionId = connectionId,
                 DataSource = connection.DataSource,
                 DatabaseName = databaseName,
                 Views = views
@@ -122,6 +123,12 @@ namespace MDBNavigator.BL.Services
         {
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return await connection.GetProcedureDefinition(schema, name);
+        }
+
+        public async Task<string> GetViewDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return await connection.GetViewDefinition(schema, name);
         }
 
         public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)

@@ -150,6 +150,25 @@ export default function useDatabaseSchemaContext() {
     }
   }, [dispatch]);
 
+  const fetchViews = useCallback(async (connectionId: string, databaseName: string) => {
+    dispatch({
+      type: DatabaseSchemaActionTypes.Loading,
+    });
+    try {
+      const result = await agent.databaseSchemaApi.fetchViews(connectionId, databaseName);
+      dispatch({
+        type: DatabaseSchemaActionTypes.FetchedViews,
+        payload: result
+      });
+    }
+    catch (error: unknown) {
+      dispatch({
+        type: DatabaseSchemaActionTypes.Error,
+        payload: error instanceof Error ? error.message : 'An error occurred'
+      });
+    }
+  }, [dispatch]);
+
   const clearRefreshFlags = useCallback((connectionId: string, flags: RefreshFlagType[]) => {
     dispatch({
       type: DatabaseSchemaActionTypes.ClearRefreshFlags,
@@ -163,14 +182,11 @@ export default function useDatabaseSchemaContext() {
     isLoading,
     databaseSchemas,
     // error,
-    // databasesDetails,
-    // tablesDetails,
-    // storedProceduresDetails,
-    // functionsDetails,
     fetchDatabases,
     fetchTables,
     fetchStoredProcedures,
     fetchFunctions,
+    fetchViews,
     clearRefreshFlags
   };
 };

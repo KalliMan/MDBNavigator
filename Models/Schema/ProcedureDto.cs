@@ -7,10 +7,8 @@
         Function
     }
 
-    public class ProcedureDto
+    public class ProcedureDto : DbObjectDtoBase
     {
-        public required string DatabaseSchema { get; set; }
-        public required string Name { get; set; }
         public required ProcedureType ProcedureType { get; set; }
     }
 }

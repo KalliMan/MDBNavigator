@@ -1,8 +1,6 @@
 ﻿namespace Models.Schema
 {
-    public class ViewDto
+    public class ViewDto : DbObjectDtoBase
     {
-        public required string DatabaseSchema { get; set; }
-        public required string Name { get; set; }
     }
 }

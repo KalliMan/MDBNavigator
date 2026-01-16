@@ -1,13 +1,15 @@
 import { DatabasesDetails } from "../../models/schema/databasesDetails";
-import { ProceduresDetails } from "../../models/schema/procedureDetails";
+import { ProceduresDetails } from "../../models/schema/proceduresDetails";
 import { TablesDetails } from "../../models/schema/tablesDetails";
+import { ViewDetails } from "../../models/schema/viewsDetails";
 import { DatabaseSchema } from "./DatabaseSchemaReducer";
 
 export enum RefreshFlagType {
   RefreshDatabases = 'refreshDatabases',
   RefreshTables = 'refreshTables',
   RefreshStoredProcedures = 'refreshStoredProcedures',
-  RefreshFunctions = 'refreshFunctions'
+  RefreshFunctions = 'refreshFunctions',
+  RefreshViews = 'refreshViews'
 }
 
 export enum DatabaseSchemaActionTypes {
@@ -17,6 +19,7 @@ export enum DatabaseSchemaActionTypes {
   FetchedTables = 'schema/fetchedTables',
   FetchedStoredProcedures = 'schema/fetchedStoredProcedures',
   FetchedFunctions = 'schema/fetchedFunctions',
+  FetchedViews = 'schema/fetchedViews',
   ClearRefreshFlags = 'schema/clearRefreshFlags',
   Error = 'schema/error'
 }
@@ -50,6 +53,11 @@ export type FetchedFunctionsAction = {
   payload: ProceduresDetails;
 };
 
+export type FetchedViewsAction = {
+  type: DatabaseSchemaActionTypes.FetchedViews;
+  payload: ViewDetails;
+};
+
 export type ErrorDatabaseSchemaActionAction = {
   type: DatabaseSchemaActionTypes.Error;
   payload: string;
@@ -69,5 +77,6 @@ export type DatabaseSchemaActions = LoadingAction
   | FetchedTablesAction
   | FetchedStoredProceduresAction
   | FetchedFunctionsAction
+  | FetchedViewsAction
   | ClearRefreshFlagsAction
   | ErrorDatabaseSchemaActionAction;

@@ -70,6 +70,26 @@ export default function useCommandQueryContext(){
     });
   }
 
+
+  async function queryCommandViewDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
+    const viewCodeQuery = await agent.databaseCommandApi.getViewDefinition(connectionId, databaseName, schema, name);
+
+    const id = uuidv4();
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id,
+      databaseName,
+      name: `${schema}.${name}`,
+      cmdQuery: viewCodeQuery,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
   async function queryCommandCreateTableScript(connectionId: string, databaseName: string) {
     const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, '[schema]');
 
@@ -120,6 +140,7 @@ export default function useCommandQueryContext(){
     queryCommandGetTopNTableRecords,
     queryForDatabase,
     queryCommandProcedureDefinition,
+    queryCommandViewDefinition,
     queryCommandCreateTableScript,
     queryCommandDropTableScript,
     clearDatabaseCommandQuery

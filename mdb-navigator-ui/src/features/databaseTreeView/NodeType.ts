@@ -14,6 +14,9 @@ export enum NodeType {
   Functions = 'Functions',
   Function = 'Function',
 
+  Views = 'Views',
+  View = 'View',
+
   Loader = 'Loader',
 //  DatabasesFolder = "DatabasesFolder"
 }

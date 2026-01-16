@@ -3,7 +3,7 @@ import { produce } from "immer";
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { DatabaseSchema } from "../../contexts/databaseSchema/DatabaseSchemaReducer";
 import { RefreshFlagType } from "../../contexts/databaseSchema/DatabaseSchemaActionTypes";
-import { createDatabaseNode, createDatabasesFolderNode, createServerNode, createServersNode, getServerNodeFromServersNode, updateFunctionsForSchema, updateStoredProceduresForSchema, updateTablesForSchema } from "./databaseTreeViewUtils";
+import { createDatabaseNode, createDatabasesFolderNode, createServerNode, createServersNode, getServerNodeFromServersNode, updateFunctionsForSchema, updateStoredProceduresForSchema, updateTablesForSchema, updateViewsForSchema } from "./databaseTreeViewUtils";
 import { NodeType } from "./NodeType";
 import { DatabaseServerConnection } from "../../contexts/databaseServerConnect/DatabaseServerConnectReducer";
 
@@ -175,5 +175,28 @@ export default function useDatabaseTreeState(
     });
   }, [databaseSchemas, clearRefreshFlags]);
 
+  // Views refresh
+  useEffect(() => {
+    const databaseSchemasForRefresh = databaseSchemas?.filter(s => s.refreshViews);
+    if (!databaseSchemasForRefresh?.length) {
+      return;
+    }
+
+    setRoot(prevRoot => produce(prevRoot, draft => {
+      if (!draft) {
+        return;
+      }
+
+      const rootDraft = draft as TreeViewNodeData;
+
+      databaseSchemasForRefresh.forEach(schema => {
+        updateViewsForSchema(rootDraft, schema);
+      });
+    }));
+
+    databaseSchemasForRefresh.forEach(schema => {
+      clearRefreshFlags(schema.connectionId, [RefreshFlagType.RefreshViews]);
+    });
+  }, [databaseSchemas, clearRefreshFlags]);
   return { root };
 }

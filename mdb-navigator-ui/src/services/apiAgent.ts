@@ -7,8 +7,9 @@ import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databas
 import { DatabaseCommandResult } from '../models/databaseCommand/result/databaseCommandResult';
 import { toast } from 'react-toastify';
 import { sleep } from '../common/helpers/commonHelpers';
-import { ProceduresDetails } from '../models/schema/procedureDetails';
+import { ProceduresDetails } from '../models/schema/proceduresDetails';
 import { ConnectedResult } from '../models/connect/connectedResult';
+import { ViewDetails } from '../models/schema/viewsDetails';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL; //'https://localhost:7262/api';
 
@@ -93,7 +94,9 @@ const databaseSchemaApi = {
   fetchStoredProcedures: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
     requests.get<ProceduresDetails>(`/databaseSchema/storedProcedures/${connectionId}/${databaseName}`),
   fetchFunctions: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
-    requests.get<ProceduresDetails>(`/databaseSchema/functions/${connectionId}/${databaseName}`)
+    requests.get<ProceduresDetails>(`/databaseSchema/functions/${connectionId}/${databaseName}`),
+  fetchViews: (connectionId: string, databaseName: string): Promise<ViewDetails> =>
+    requests.get<ViewDetails>(`/databaseSchema/views/${connectionId}/${databaseName}`),
 };
 
 const databaseCommandApi = {
@@ -101,6 +104,8 @@ const databaseCommandApi = {
     requests.post<DatabaseCommandResult>('/databaseCommand', cmdQuery),
   getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<DatabaseCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
+  getViewDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/viewDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
 
   getTopNTableRecords: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommandResult> =>
     requests.get<DatabaseCommandResult>(`/databaseCommand/tableRecords/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),

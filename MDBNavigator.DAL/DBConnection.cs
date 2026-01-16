@@ -64,6 +64,9 @@ namespace MDBNavigator.DAL
         public async Task<string> GetProcedureDefinition(string schema, string name)
             => await _dbServer.GetProcedureDefinition(schema, name);
 
+        public async Task<string> GetViewDefinition(string schema, string name)
+            => await _dbServer.GetViewDefinition(schema, name);
+
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)
             => await _dbServer.GetTopNTableRecords(schema, table, recordsNumber);
 
