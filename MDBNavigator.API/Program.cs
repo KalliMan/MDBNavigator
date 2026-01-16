@@ -15,18 +15,13 @@ app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors("CorsPolicy");
 
 // Configure the HTTP request pipeline.
-
 app.UseHttpsRedirection();
-app.UseAuthorization();
+// app.UseAuthorization();
 
-// -> needed for production
-//app.UseDefaultFiles();
-//app.UseStaticFiles();
-//app.MapFallbackToController("Index", "Fallback");
 
 app.MapHub<BatchCommandResultHub>("/batchCommandResult");
 
-app.UseSession();
+// app.UseSession();
 app.MapControllers();
 
 app.Run();

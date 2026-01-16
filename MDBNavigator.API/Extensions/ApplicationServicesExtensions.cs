@@ -20,15 +20,17 @@ namespace MDBNavigator.API.Extensions
                 opt.AddPolicy("CorsPolicy", policy =>
                 {
                     policy
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowAnyOrigin()
-                    //                    .AllowCredentials();
-                    .WithOrigins("http://localhost:3000");
-//                    .WithOrigins(["https://localhost:3001", "http://localhost:3000"]);
-//                    .WithOrigins("http://localhost:5173");
+                        .WithOrigins(
+                            "http://localhost:3000",
+                            "http://localhost:5173"
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
                 });
-            });          
+            });
+
+            services.AddDataProtection();
 
             services.AddDistributedMemoryCache();
             services.Configure<CookiePolicyOptions>(options =>
@@ -36,18 +38,17 @@ namespace MDBNavigator.API.Extensions
                 options.CheckConsentNeeded = context => true; // consent required
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
-
-
+/*
             services.AddSession(options =>
             {
-                options.Cookie.Name = ".AdventureWorks.Session";
-                options.IdleTimeout = TimeSpan.FromSeconds(10);
-                options.Cookie.HttpOnly = false;
+                options.Cookie.Name = ".MDBNavigator.Session";
+                options.IdleTimeout = TimeSpan.FromMinutes(20);
+                options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
                 options.Cookie.SameSite = SameSiteMode.None;
             });
-            //added to access session
-
+*/
+            // added to access session
             services.AddMemoryCache();
             services.AddSignalR();
 
@@ -55,8 +56,6 @@ namespace MDBNavigator.API.Extensions
 
             services.AddScoped<IDBManager, DBManager>();
             services.AddSingleton<IConnectionSettingsMemoryCache, ConnectionSettingsMemoryCache>();
-
-            services.AddSingleton<BatchCommandResultHub>();
             services.AddScoped<IBatchCommandResultHubProxy, BatchCommandResultHubProxy>();
 
             services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();

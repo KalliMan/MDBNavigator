@@ -9,6 +9,7 @@ using Models.Schema;
 using Models.Command;
 using Models.Connect;
 using MDBNavigator.BL.DTOs;
+using MDBNavigator.DAL.Enums;
 
 namespace MDBNavigator.BL.Services
 {
@@ -32,9 +33,18 @@ namespace MDBNavigator.BL.Services
 
             await using var connection = await DBConnection.CreateConnection(details);
             _memoryCache[cachekey] = details;
+
+            var serverType = details.ServerType switch
+            {
+                "PostgreSQL" => ServerType.PostgreSQL,
+                "MS SQL Server" => ServerType.MSSQLServer,
+                _ => ServerType.None
+            };
+
             return new()
             {
                 ConnectionId = connectionId,
+                ServerType = serverType,
                 ServerName = $"{details.ServerName}:{details.Port}",
             };
         }
@@ -98,7 +108,7 @@ namespace MDBNavigator.BL.Services
 
         public async Task<ViewDetailsDto> GetViews(string sessionId, string connectionId, string databaseName)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var views = await connection.GetViews();
             return new()
             {
@@ -116,7 +126,7 @@ namespace MDBNavigator.BL.Services
 
         public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
         {
-            await using var connection = await CreateConnection(sessionId, databaseName);
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
 
             var rawResult = await connection.GetTopNTableRecords(schema, table, recordsNumber);
 
@@ -129,8 +139,8 @@ namespace MDBNavigator.BL.Services
                 {
                     Index = index,
                     FieldName = rawResult.Result.Columns[index].ColumnName,
-                    FieldType = rawResult.Result.Columns[index].GetType().ToString(),
-                    FieldDataTypeName = rawResult.Result.Columns[index].DataType.ToString(),
+                    FieldType = rawResult.Result.Columns[index].DataType.Name,
+                    FieldDataTypeName = rawResult.Result.Columns[index].DataType.FullName ?? rawResult.Result.Columns[index].DataType.ToString(),
                 }).ToList(),
 
                 ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Select(r => r.ItemArray))
@@ -172,8 +182,8 @@ namespace MDBNavigator.BL.Services
                 {
                     Index = index,
                     FieldName = rawResult.Result.Columns[index].ColumnName,
-                    FieldType = rawResult.Result.Columns[index].GetType().ToString(),
-                    FieldDataTypeName = rawResult.Result.Columns[index].DataType.ToString(),
+                    FieldType = rawResult.Result.Columns[index].DataType.Name,
+                    FieldDataTypeName = rawResult.Result.Columns[index].DataType.FullName ?? rawResult.Result.Columns[index].DataType.ToString(),
                 }).ToList(),
 
                 ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
@@ -211,7 +221,7 @@ namespace MDBNavigator.BL.Services
         }
 
         private async Task<DBConnection> CreateConnection(string sessionId, string connectionId, string? databaseName = null)
-        {            
+        {
             var result = _memoryCache.TryGetValue(GetSessionConnectionID(sessionId, connectionId), out var details);
             if (!result || details == null)
             {

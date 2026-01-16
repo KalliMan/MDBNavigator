@@ -1,22 +1,22 @@
 ﻿using MDBNavigator.BL.BatchCommandResultHub;
+using Microsoft.AspNetCore.SignalR;
 using Models.Command;
 
 namespace MDBNavigator.API.SignalRHub
 {
     public class BatchCommandResultHubProxy : IBatchCommandResultHubProxy
     {
-        BatchCommandResultHub _batchCommandResultHub;
+        private readonly IHubContext<BatchCommandResultHub> _hubContext;
 
-        public BatchCommandResultHubProxy(BatchCommandResultHub batchCommandResultHub)
+        public BatchCommandResultHubProxy(IHubContext<BatchCommandResultHub> hubContext)
         {
-            this._batchCommandResultHub = batchCommandResultHub;
+            _hubContext = hubContext;
         }
 
         public async Task SendBatchCommandResult(DatabaseCommandBatchResultDto command, string applicationId)
         {
-//            _hubContext.Clients.Client(_hubContext.Context.ConnectionId)
-//            await _hubContext.Clients.All.SendAsync("ReceiveBatchCommandResult", command);
-            await _batchCommandResultHub.SendBatchCommandResult(command, applicationId);
+            await _hubContext.Clients.Group(applicationId)
+                .SendAsync("BatchCommandResult", command);
         }
     }
 }

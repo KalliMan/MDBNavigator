@@ -31,14 +31,20 @@ namespace MDBNavigator.DAL
 
         private async Task Connect(ConnectionSettings details)
         {
-            var connectionType = DBConnectionType.ConnectionTypes[details.ServerType];
+            if (!DBConnectionType.ConnectionTypes.TryGetValue(details.ServerType, out var connectionType))
+            {
+                throw new NotSupportedException($"Unsupported server type '{details.ServerType}'.");
+            }
+
             switch (connectionType)
             {
                 case Enums.ServerType.PostgreSQL:
                     _dbServer = new PostgreSQL.PostgreSQL();
                     break;
+                case Enums.ServerType.MSSQLServer:
+                    throw new NotSupportedException("MS SQL Server provider is not implemented yet.");
                 default:
-                    throw new Exception("Not supported Server");
+                    throw new NotSupportedException($"Server type '{connectionType}' is not supported.");
             }
 
             await _dbServer.Connect(details);
@@ -69,7 +75,7 @@ namespace MDBNavigator.DAL
         public string GetDropTableScript(string schema, string table)
           => _dbServer.GetDropTableScript(schema, table);
 
-        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery)        
+        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery)
             => await _dbServer.ExecuteQuery(cmdQuery);
     }
 }

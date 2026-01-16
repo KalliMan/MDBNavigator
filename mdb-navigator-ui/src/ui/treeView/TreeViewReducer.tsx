@@ -15,6 +15,8 @@ export function treeReducer(state: NodeDataState, action: TreeNodeActions): Node
   return produce(state, draft => {
     switch (action.type) {
       case NodeDataActionTypes.SET_NODES: {
+        // When new data comes in, preserve UI state (expanded/selected)
+        // from the previous tree where node ids match.
         if (!draft.nodeData) {
           draft.nodeData = action.payload;
         } else {
@@ -81,6 +83,7 @@ function mergeTreeState(prev: TreeViewNodeData, next: TreeViewNodeData): TreeVie
   const merged: TreeViewNodeData = {
     ...next,
     isExpanded: prev.isExpanded ?? next.isExpanded,
+    isSelected: prev.isSelected ?? next.isSelected,
   };
 
   if (prev.nodes && next.nodes) {

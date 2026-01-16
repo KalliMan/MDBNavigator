@@ -3,7 +3,6 @@ using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 namespace MDBNavigator.API.Controllers
 {
     [Route("api/[controller]")]
@@ -23,61 +22,56 @@ namespace MDBNavigator.API.Controllers
         [HttpGet("databases/{connectionId}")]
         public async Task<IActionResult> Databases(string connectionId)
         {
-            var sessionId = GetSessionId();
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
-            return Ok(await _dbManager.GetDatabases(sessionId!, connectionId));
+            return Ok(await _dbManager.GetDatabases(sessionId, connectionId));
         }
 
         [HttpGet("tables/{connectionId}/{databaseName}")]
         public async Task<IActionResult> Tables(string connectionId, string databaseName)
         {
-            var sessionId = GetSessionId();
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
-            return Ok(await _dbManager.GetTables(sessionId!, connectionId, databaseName));
+            return Ok(await _dbManager.GetTables(sessionId, connectionId, databaseName));
         }
 
         [HttpGet("storedProcedures/{connectionId}/{databaseName}")]
         public async Task<IActionResult> StoredProcedures(string connectionId, string databaseName)
         {
-            var sessionId = GetSessionId();
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
-            return Ok(await _dbManager.GetStoredProcedures(sessionId!, connectionId, databaseName));
+            return Ok(await _dbManager.GetStoredProcedures(sessionId, connectionId, databaseName));
         }
 
         [HttpGet("functions/{connectionId}/{databaseName}")]
         public async Task<IActionResult> Functions(string connectionId, string databaseName)
         {
-            var sessionId = GetSessionId();
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
-            return Ok(await _dbManager.GetFunctions(sessionId!, connectionId, databaseName));
+            return Ok(await _dbManager.GetFunctions(sessionId, connectionId, databaseName));
         }
 
         [HttpGet("views/{connectionId}/{databaseName}")]
         public async Task<IActionResult> Views(string connectionId, string databaseName)
         {
-            var sessionId = GetSessionId();
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
-            return Ok(await _dbManager.GetViews(sessionId!, connectionId, databaseName));
+            return Ok(await _dbManager.GetViews(sessionId, connectionId, databaseName));
         }
     }
 }

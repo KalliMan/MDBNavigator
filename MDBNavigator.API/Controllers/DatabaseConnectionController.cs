@@ -22,27 +22,25 @@ namespace MDBNavigator.API.Controllers
         [HttpPost("connect")]
         public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value)
         {
-            var sessionId = Request.Headers["id"];
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
             var connectionSettings = _mapper.Map<ConnectionSettings>(value);
-            var result = await _dbManager.Connect(sessionId!, connectionSettings);
+            var result = await _dbManager.Connect(sessionId, connectionSettings);
             return Ok(result);
         }
 
         [HttpPost("disconnect/{connectionId}")]
         public IActionResult Disconnect([FromRoute] string connectionId)
         {
-            var sessionId = Request.Headers["id"];
-            if (string.IsNullOrEmpty(sessionId))
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
-                return BadRequest("The provided request header does not contain ID property.");
+                return errorResult!;
             }
 
-            _dbManager.Disconnect(sessionId!, connectionId);
+            _dbManager.Disconnect(sessionId, connectionId);
             return Ok();
         }
 
