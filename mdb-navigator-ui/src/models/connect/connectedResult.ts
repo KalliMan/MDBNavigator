@@ -1,4 +1,6 @@
-export interface ConnectedResult {
+import { ConnectionBase } from "./connectionBase";
+
+export interface ConnectedResult extends ConnectionBase {
   connectionId: string;
-  serverName: string;
+  connectionName: string;
 }

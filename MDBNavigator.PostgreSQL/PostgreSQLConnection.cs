@@ -14,7 +14,9 @@ namespace MDBNavigator.PostgreSQL
     {
         NpgsqlConnection _connection = null!;
 
-        private static readonly Regex ValidIdentifierRegex = new Regex("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
+        // Allow common PostgreSQL identifier characters (letters, digits, underscore, brackets, dot, dash, space)
+        // while still rejecting dangerous characters like double quotes or semicolons.
+        private static readonly Regex ValidIdentifierRegex = new Regex(@"^[A-Za-z0-9_\[\]\.\- ]+$", RegexOptions.Compiled);
 
         public string DataSource
         {
@@ -140,7 +142,7 @@ namespace MDBNavigator.PostgreSQL
 
             return await _connection.QueryFirstAsync<string>(query, new
                 {
-                    Schema = schema, 
+                    Schema = schema,
                     ViewName  = name
                 });
         }

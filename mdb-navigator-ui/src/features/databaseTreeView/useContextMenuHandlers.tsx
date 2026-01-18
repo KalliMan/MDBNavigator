@@ -11,6 +11,7 @@ interface UseContextMenuHandlersProps {
   setCurrentNode: (node: TreeViewNodeData | undefined) => void;
   connectNewDatabase: () => void;
   disconnect: (connectionId: string) => void;
+  promptReconnectWithSettings: (connectionId: string) => void;
   fetchTables: (serverId: string, databaseName: string) => Promise<void>;
   fetchStoredProcedures: (serverId: string, databaseName: string) => Promise<void>;
   fetchFunctions: (serverId: string, databaseName: string) => Promise<void>;
@@ -29,6 +30,7 @@ export default function useContextMenuHandlers({
   setCurrentNode,
   connectNewDatabase,
   disconnect,
+  promptReconnectWithSettings,
   fetchTables,
   fetchStoredProcedures,
   fetchFunctions,
@@ -91,6 +93,13 @@ export default function useContextMenuHandlers({
     setContextMenuTarget(EmptyPosition);
     if (targetNode) {
       disconnect(targetNode.id);
+    }
+  }
+
+  function handleReconnect(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    if (targetNode) {
+      promptReconnectWithSettings(targetNode.id);
     }
   }
 
@@ -249,6 +258,7 @@ export default function useContextMenuHandlers({
     handleExpand,
     handleNewServerConnection,
     handleDisconnect,
+    handleReconnect,
     handleNewQueryForDatabase,
     handleSelectTop100Records,
     handleSelectAllRecords,

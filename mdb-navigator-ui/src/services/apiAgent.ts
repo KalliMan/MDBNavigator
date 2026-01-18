@@ -82,6 +82,8 @@ const requests = {
 const databaseConnectionApi = {
   connect: (connectionSettings: ConnectionSettings): Promise<ConnectedResult> =>
     requests.post<ConnectedResult>('/databaseConnection/connect', connectionSettings),
+  reconnect: (connectionId: string, reconnectionSettings: ConnectionSettings): Promise<ConnectedResult> =>
+    requests.post<ConnectedResult>(`/databaseConnection/reconnect/${connectionId}`, reconnectionSettings),
   disconnect: (connectionId: string): Promise<void> =>
     requests.post<void>(`/databaseConnection/disconnect/${connectionId}`, { }),
 }

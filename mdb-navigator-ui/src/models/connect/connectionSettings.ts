@@ -1,9 +1,5 @@
-import { ServerType } from "../../types/serverTypeOptions";
+import { ConnectionBase } from "./connectionBase";
 
-export interface ConnectionSettings {
-  serverType: ServerType;
-  serverName: string;
-  port: number;
-  userName: string;
+export interface ConnectionSettings extends ConnectionBase {
   password: string;
 }

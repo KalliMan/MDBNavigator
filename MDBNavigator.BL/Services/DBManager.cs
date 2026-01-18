@@ -26,15 +26,20 @@ namespace MDBNavigator.BL.Services
             _backgroundTaskQueue = backgroundTaskQueue;
         }
 
-        public async Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings details)
+        public async Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings connectionSettings)
+            => await ConnectInt(sessionId, Guid.NewGuid().ToString(), connectionSettings);
+
+        public async Task<ConnectedResultDto> Reconnect(string sessionId, string connectionId, ConnectionSettings connectionSettings)        
+            => await ConnectInt(sessionId, connectionId, connectionSettings);
+
+        private async Task<ConnectedResultDto> ConnectInt(string sessionId, string connectionId, ConnectionSettings connectionSettings)
         {
-            var connectionId = Guid.NewGuid().ToString();
             var cachekey = GetSessionConnectionID(sessionId, connectionId);
 
-            await using var connection = await DBConnection.CreateConnection(details);
-            _memoryCache[cachekey] = details;
+            await using var connection = await DBConnection.CreateConnection(connectionSettings);
+            _memoryCache[cachekey] = connectionSettings;
 
-            var serverType = details.ServerType switch
+            var serverType = connectionSettings.ServerType switch
             {
                 "PostgreSQL" => ServerType.PostgreSQL,
                 "MS SQL Server" => ServerType.MSSQLServer,
@@ -44,8 +49,11 @@ namespace MDBNavigator.BL.Services
             return new()
             {
                 ConnectionId = connectionId,
+                ConnectionName = $"{connectionSettings.ServerName}:{connectionSettings.Port}",
+                ServerName = connectionSettings.ServerName,
+                Port = connectionSettings.Port,
                 ServerType = serverType,
-                ServerName = $"{details.ServerName}:{details.Port}",
+                UserName = connectionSettings.UserName,
             };
         }
 
@@ -232,7 +240,7 @@ namespace MDBNavigator.BL.Services
             var result = _memoryCache.TryGetValue(GetSessionConnectionID(sessionId, connectionId), out var details);
             if (!result || details == null)
             {
-                throw new Exception("Not Connected");
+                throw new Exception("Not Connected! Please reconnect.");
             }
 
             if (!string.IsNullOrEmpty(databaseName))

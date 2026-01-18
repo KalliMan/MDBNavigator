@@ -1,8 +1,8 @@
 import { ServerType } from "../../types/serverTypeOptions";
 
-export interface DatabaseConnectionInfo {
+export interface ConnectionBase {
   serverType: ServerType;
-  dataSource: string;
-  serverVersion: string;
+  serverName: string;
+  port: number;
   userName: string;
 }

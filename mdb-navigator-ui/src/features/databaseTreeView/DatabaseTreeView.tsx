@@ -11,7 +11,7 @@ import DatabaseContextMenu from "./DatabaseContextMenu";
 
 
 export default function DatabaseTreeView() {
-  const { databaseServerConnections, connectNewDatabase, disconnect } = useDatabaseConnectContext();
+  const { databaseServerConnections, connectNewDatabase, disconnect, promptReconnectWithSettings } = useDatabaseConnectContext();
 
   const {
     databaseSchemas,
@@ -42,6 +42,7 @@ export default function DatabaseTreeView() {
     setCurrentNode,
     connectNewDatabase,
     disconnect,
+    promptReconnectWithSettings,
     fetchTables,
     fetchStoredProcedures,
     fetchFunctions,

@@ -2,10 +2,11 @@ import Menus from "../../ui/contextMenu/Menus";
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { CoordPosition } from "../../types/coordPosition";
 import { NodeType } from "./NodeType";
-import { PiRows } from "react-icons/pi";
+import { PiPlugsConnectedFill, PiRows } from "react-icons/pi";
 import { BsFiletypeSql } from "react-icons/bs";
 import { TiDelete } from "react-icons/ti";
 import { GrRefresh, GrTableAdd } from "react-icons/gr";
+import { TbPlugConnected, TbPlugConnectedX } from "react-icons/tb";
 
 interface DatabaseContextMenuProps {
   targetPosition: CoordPosition;
@@ -14,6 +15,7 @@ interface DatabaseContextMenuProps {
     handleCloseContextMenu: () => void;
     handleNewServerConnection: (node: TreeViewNodeData | undefined) => void;
     handleDisconnect: (node: TreeViewNodeData | undefined) => void;
+    handleReconnect: (node: TreeViewNodeData | undefined) => void;
     handleNewQueryForDatabase: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleCreateNewTable: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleNewQueryForTables: (node: TreeViewNodeData | undefined) => Promise<void>;
@@ -35,15 +37,19 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
   return (
     <Menus targetPosition={targetPosition} id="DatabaseMenu" clickedOutside={handlers.handleCloseContextMenu}>
       {currentNodeType === NodeType.Servers && (
-        <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleNewServerConnection(currentNode)}>
+        <Menus.MenuItem icon={<PiPlugsConnectedFill />} onClick={() => handlers.handleNewServerConnection(currentNode)}>
           New Connection
         </Menus.MenuItem>
       )}
 
-      {currentNodeType === NodeType.Server && (
-        <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleDisconnect(currentNode)}>
-          Disconnect
-        </Menus.MenuItem>
+      {currentNodeType === NodeType.Server && (<>
+          <Menus.MenuItem icon={<TbPlugConnectedX />} onClick={() => handlers.handleDisconnect(currentNode)}>
+            Disconnect
+          </Menus.MenuItem>
+          <Menus.MenuItem icon={<TbPlugConnected />} onClick={() => handlers.handleReconnect(currentNode)}>
+            Reconnect
+          </Menus.MenuItem>
+        </>
       )}
 
       {currentNodeType === NodeType.Database && (

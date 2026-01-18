@@ -1,5 +1,4 @@
 ﻿using MDBNavigator.BL.DTOs;
-using Microsoft.Extensions.Primitives;
 using Models.Command;
 using Models.Connect;
 using Models.Schema;
@@ -7,7 +6,8 @@ namespace MDBNavigator.BL.Services
 {
     public interface IDBManager
     {
-        Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings details);
+        Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings connectionSettings);
+        Task<ConnectedResultDto> Reconnect(string sessionId, string connectionId, ConnectionSettings connectionSettings);
         void Disconnect(string sessionId, string connectionId);
 
         Task<DatabasesDetailsDto> GetDatabases(string sessionId, string connectionId);
@@ -24,6 +24,6 @@ namespace MDBNavigator.BL.Services
         Task<string> GetCreateTableScript(string sessionId, string connectionId, string databaseName, string schema);
         Task<string> GetDropTableScript(string sessionId, string connectionId, string databaseName, string schema, string table);
 
-        Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery);        
+        Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery);
     }
 }

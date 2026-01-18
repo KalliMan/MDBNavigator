@@ -32,6 +32,20 @@ namespace MDBNavigator.API.Controllers
             return Ok(result);
         }
 
+        // POST api/<DatabaseController>
+        [HttpPost("reconnect/{connectionId}")]
+        public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            var connectionSettings = _mapper.Map<ConnectionSettings>(value);
+            var result = await _dbManager.Reconnect(sessionId, connectionId, connectionSettings);
+            return Ok(result);
+        }
+
         [HttpPost("disconnect/{connectionId}")]
         public IActionResult Disconnect([FromRoute] string connectionId)
         {

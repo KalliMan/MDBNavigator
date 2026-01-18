@@ -3,8 +3,12 @@ namespace MDBNavigator.BL.DTOs
 {
     public class ConnectedResultDto
     {
-        public string ConnectionId { get; set; } = string.Empty;
-        public ServerType ServerType { get; set; }
-        public string ServerName { get; set; } = string.Empty;
+        public required string ConnectionId { get; set; }
+
+        public required string ConnectionName { get; set; }
+        public required string ServerName { get; set; }
+        public int Port { get; set; }
+        public required ServerType ServerType { get; set; }
+        public required string UserName { get; set; }
     }
 }

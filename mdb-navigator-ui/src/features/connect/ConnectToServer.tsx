@@ -5,20 +5,50 @@ import Select from '../../ui/common/Select';
 import Input from '../../ui/common/Input';
 import Button from '../../ui/common/Button';
 import { ButtonType } from '../../ui/common/ButtonType.enum';
+import { ConnectedResult } from '../../models/connect/connectedResult';
 
 interface Props {
+  initialConnectionSettings?: ConnectionSettings | ConnectedResult | null;
   onCloseModal?: () => void;
   onOk?: (connectionSettings: ConnectionSettings) => void;
 }
 
-export default function ConnectToServer({ onCloseModal, onOk }: Props) {
-  const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>({
+export default function ConnectToServer({ initialConnectionSettings = null, onCloseModal, onOk }: Props) {
+  const defaultConnectionSettings: ConnectionSettings = {
     serverType: ServerType.PostgreSQL,
     serverName: 'localhost',
     port: 5432,
     userName: 'admin',
     password: 'secret',
-  });
+  };
+
+  function isConnectedResult(source: ConnectionSettings | ConnectedResult): source is ConnectedResult {
+    return (source as ConnectedResult).connectionId !== undefined;
+  }
+
+  function toConnectionSettings(source: ConnectionSettings | ConnectedResult | null): ConnectionSettings {
+    if (!source) {
+      return defaultConnectionSettings;
+    }
+
+    if (isConnectedResult(source)) {
+      return {
+        ...defaultConnectionSettings,
+        serverName: source.serverName,
+        userName: source.userName,
+        serverType: source.serverType,
+        port: source.port,
+      };
+    }
+
+    return source as ConnectionSettings;
+  }
+
+  const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>(
+    toConnectionSettings(initialConnectionSettings)
+  );
+
+  console.log('ConnectToServer rendered', {initialConnectionSettings, connectionSettings});
 
   const dataOk = connectionSettings?.serverName && connectionSettings?.userName && connectionSettings.password;
 
@@ -40,7 +70,7 @@ export default function ConnectToServer({ onCloseModal, onOk }: Props) {
           <Select
             label="Server Type:"
             values={serverTypeOptions}
-            initialValue={ServerType.PostgreSQL}
+            initialValue={connectionSettings.serverType}
             onChange={(val: string) =>
               setConnectionSettings({ ...connectionSettings, serverType: val as ServerType })}
           />

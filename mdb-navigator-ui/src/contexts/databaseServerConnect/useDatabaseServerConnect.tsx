@@ -40,10 +40,53 @@ export default function useDatabaseServerConnectContext() {
     }
   }
 
+  async function promptReconnectWithSettings(connectionId: string) {
+    try {
+      context!.dispatch({
+        type: DatabaseServerConnectActionTypes.PromptReconnectWithSettings,
+        payload: connectionId
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      context!.dispatch({
+        type: DatabaseServerConnectActionTypes.Error,
+        payload: errorMessage
+      });
+    }
+  }
+
+  async function reconnect(connectionId: string, connectionSettings: ConnectionSettings) {
+    try {
+      context!.dispatch({
+        type: DatabaseServerConnectActionTypes.Connecting,
+        payload: connectionSettings
+      });
+
+      const result = await agent.databaseConnectionApi.reconnect(connectionId, connectionSettings);
+      if (result) {
+        context!.dispatch({
+          type: DatabaseServerConnectActionTypes.Reconnected,
+          payload: result
+        });
+      } else {
+        context!.dispatch({
+          type: DatabaseServerConnectActionTypes.Error,
+          payload: `Cannot reconnect to ${connectionSettings.serverName}`
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      context!.dispatch({
+        type: DatabaseServerConnectActionTypes.Error,
+        payload: errorMessage
+      });
+    }
+  }
+
   function connectNewDatabase() {
     context!.dispatch({
       type: DatabaseServerConnectActionTypes.ConnectNewDatabaseServer,
-    });    
+    });
   }
 
   async function disconnect(connectionId: string) {
@@ -62,15 +105,19 @@ export default function useDatabaseServerConnectContext() {
     }
   }
 
-  const {isConnecting, error, connectNewDatabaseServer, databaseServerConnections } = context.state;
+  const {isConnecting, error, connectNewDatabaseServer, databaseServerConnections, reconnectDatabaseServer, reconnectDatabaseServerId } = context.state;
 
   return {
     isConnecting,
     error,
     connectNewDatabaseServer,
     databaseServerConnections,
+    reconnectDatabaseServer,
+    reconnectDatabaseServerId,
     connect,
     connectNewDatabase,
-    disconnect
+    disconnect,
+    promptReconnectWithSettings,
+    reconnect,
   };
 };

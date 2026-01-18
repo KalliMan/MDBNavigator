@@ -13,15 +13,17 @@ namespace MDBNavigator.API.Controllers
 
         protected bool TryGetSessionId(out string sessionId, out IActionResult? errorResult)
         {
-            sessionId = Request.Headers["id"];
+            errorResult = null;
+            var id = GetSessionId();
 
-            if (string.IsNullOrEmpty(sessionId))
+            if (string.IsNullOrEmpty(id))
             {
+                sessionId = string.Empty;
                 errorResult = BadRequest("The provided request header does not contain ID property.");
                 return false;
             }
 
-            errorResult = null;
+            sessionId = id;
             return true;
         }
     }
