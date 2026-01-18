@@ -9,17 +9,25 @@ function HorisontalSidebar({children, initialHeight = 580}: React.PropsWithChild
   const isResized = useRef(false);
 
   useEffect(() => {
-    document.addEventListener("mousemove", (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (!isResized.current) {
         return;
       }
 
-      setHeight((previousHeight) => previousHeight + e.movementY / 2);
-    });
+      setHeight((previousHeight) => previousHeight + e.movementY);
+    };
 
-    document.addEventListener("mouseup", () => {
+    const handleMouseUp = () => {
       isResized.current = false;
-    });
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
   }, []);
 
   return (
