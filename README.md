@@ -1,7 +1,7 @@
 # MDBnvigator Overiew
 
 This is a sample fullstack demonstration application. The main purpose is to demonstrate various amount of technologies required for a modern Web development. Application allows user to connect to a Postgre DB and to perform basic DB operations. There are scripst for a composed dockerization. This is an ongoing project which is going to be enhanced in the future. 
-<img width="2559" height="1219" alt="image" src="https://github.com/user-attachments/assets/49887969-fb58-463f-869d-50e392f6e6f4" />
+<img width="2559" height="1231" alt="image" src="https://github.com/user-attachments/assets/2e6217f4-a86c-4a44-8815-502414dccc5a" />
 
 If the result table recordset is huge then initially only a small portion is directly trnasfered from BE to the FE. The rest is transferred async using SignalR. The application design allows easy to implement further improvements like adding support for other DB servers.
 
@@ -14,6 +14,7 @@ If the result table recordset is huge then initially only a small portion is dir
    **SignalR** for transferring huge amount of rows. <br>
    **context** React BuiltIn technology for managing the context. IMO better and lightweight than Redux, escpecially when there are many server calls.
    **react-toastify** for displaying inline messages.
+   **monaco-editor** for SQL Editor.
 ### MDBNavigator.API - Backend base on .NET Core
   Technology stack:<br>
     **Middleware** For better exception handling (ExceptionMiddleware.) <br>
