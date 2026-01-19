@@ -101,6 +101,12 @@ namespace MDBNavigator.BL.Services
             };
         }
 
+        public async Task<string> GetCreateStoredProcedureScript(string sessionId, string connectionId, string databaseName, string schema)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return connection.GetCreateStoredProcedureScript(schema);
+        }
+
         public async Task<ProceduresDetailsDto> GetFunctions(string sessionId, string connectionId, string databaseName)
         {
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
@@ -112,6 +118,24 @@ namespace MDBNavigator.BL.Services
                 DatabaseName = databaseName,
                 Procedures = functions
             };
+        }
+
+        public async Task<string> GetCreateFunctionProcedureScript(string sessionId, string connectionId, string databaseName, string schema)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return connection.GetCreateFunctionProcedureScript(schema);
+        }
+
+        public async Task<string> GetProcedureDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return await connection.GetProcedureDefinition(schema, name);
+        }
+
+        public async Task<string> GetDropProcedureScript(string sessionId, string connectionId, string databaseName, string schema, string name)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return connection.GetDropProcedureScript(schema, name);
         }
 
         public async Task<ViewDetailsDto> GetViews(string sessionId, string connectionId, string databaseName)
@@ -127,16 +151,21 @@ namespace MDBNavigator.BL.Services
             };
         }
 
-        public async Task<string> GetProcedureDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
-        {
-            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
-            return await connection.GetProcedureDefinition(schema, name);
-        }
-
         public async Task<string> GetViewDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
         {
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return await connection.GetViewDefinition(schema, name);
+        }
+
+        public async Task<string> GetCreateViewScript(string sessionId, string connectionId, string databaseName, string schema)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return connection.GetCreateViewScript(schema);
+        }
+        public async Task<string> GetDropViewScript(string sessionId, string connectionId, string databaseName, string schema, string name)
+        {
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return connection.GetDropViewScript(schema, name);
         }
 
         public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)

@@ -70,6 +70,42 @@ export default function useCommandQueryContext(){
     });
   }
 
+  async function queryCommandCreateStoredProcedureScript(connectionId: string, databaseName: string, schema: string) {
+    const createProcedureScript = await agent.databaseCommandApi.getCreateStoredProcedureScript(connectionId, databaseName, 'public');
+
+    const id = uuidv4();
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id,
+      databaseName,
+      name: '[schema].[ProcedureName]',
+      cmdQuery: createProcedureScript,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
+  async function queryCommandCreateFunctionScript(connectionId: string, databaseName: string, schema: string) {
+    const createFunctionScript = await agent.databaseCommandApi.getCreateFunctionScript(connectionId, databaseName, 'public');
+
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id: uuidv4(),
+      databaseName,
+      name: '[schema].[FunctionName]',
+      cmdQuery: createFunctionScript,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
 
   async function queryCommandViewDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
     const viewCodeQuery = await agent.databaseCommandApi.getViewDefinition(connectionId, databaseName, schema, name);
@@ -90,8 +126,26 @@ export default function useCommandQueryContext(){
     });
   }
 
+  async function queryCommandCreateViewScript(connectionId: string, databaseName: string, schema: string) {
+    const createViewScript = await agent.databaseCommandApi.getCreateViewScript(connectionId, databaseName, 'public');
+
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id: uuidv4(),
+      databaseName,
+      name: '[schema].[ViewName]',
+      cmdQuery: createViewScript,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
   async function queryCommandCreateTableScript(connectionId: string, databaseName: string) {
-    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, '[schema]');
+    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, 'public');
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
@@ -126,6 +180,42 @@ export default function useCommandQueryContext(){
     });
   }
 
+  async function queryCommandDropProcedureScript(connectionId: string, databaseName: string, schema: string, name: string) {
+    const dropProcedureScript = await agent.databaseCommandApi.getDropProcedureScript(connectionId, databaseName, schema, name);
+
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id: uuidv4(),
+      databaseName,
+      name: `${schema}.${name}`,
+      cmdQuery: dropProcedureScript,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
+  async function queryCommandDropViewScript(connectionId: string, databaseName: string, schema: string, name: string) {
+    const dropViewScript = await agent.databaseCommandApi.getDropViewScript(connectionId, databaseName, schema, name);
+
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id: uuidv4(),
+      databaseName,
+      name: `${schema}.${name}`,
+      cmdQuery: dropViewScript,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
   function clearDatabaseCommandQuery() {
     context!.dispatch({
       type: CommandQueryActionTypes.Cleared
@@ -140,9 +230,14 @@ export default function useCommandQueryContext(){
     queryCommandGetTopNTableRecords,
     queryForDatabase,
     queryCommandProcedureDefinition,
+    queryCommandCreateStoredProcedureScript,
+    queryCommandCreateFunctionScript,
     queryCommandViewDefinition,
+    queryCommandCreateViewScript,
     queryCommandCreateTableScript,
     queryCommandDropTableScript,
+    queryCommandDropProcedureScript,
+    queryCommandDropViewScript,
     clearDatabaseCommandQuery
   };
 }

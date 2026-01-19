@@ -104,10 +104,22 @@ const databaseSchemaApi = {
 const databaseCommandApi = {
   execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseCommandResult> =>
     requests.post<DatabaseCommandResult>('/databaseCommand', cmdQuery),
+
   getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<DatabaseCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
+  getCreateStoredProcedureScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createStoredProcedureScript/${connectionId}/${databaseName}/${schema}`),
+  getCreateFunctionScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createFunctionScript/${connectionId}/${databaseName}/${schema}`),
+  getDropProcedureScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/dropProcedureScript/${connectionId}/${databaseName}/${schema}/${name}`),
+
   getViewDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/viewDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
+  getCreateViewScript: (connectionId: string, databaseName: string, schema: string,): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createViewScript/${connectionId}/${databaseName}/${schema}`),
+  getDropViewScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/dropViewScript/${connectionId}/${databaseName}/${schema}/${name}`),
 
   getTopNTableRecords: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommandResult> =>
     requests.get<DatabaseCommandResult>(`/databaseCommand/tableRecords/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),

@@ -70,6 +70,37 @@ namespace MDBNavigator.API.Controllers
             return Ok(await _dbManager.GetProcedureDefinition(sessionId, connectionId, databaseName, schema, name));
         }
 
+        [HttpGet("createStoredProcedureScript/{connectionId}/{databaseName}/{schema}")]
+        public async Task<IActionResult> GetCreateStoredProcedureScript(string connectionId, string databaseName, string schema)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetCreateStoredProcedureScript(sessionId, connectionId, databaseName, schema));
+        }
+
+
+        [HttpGet("createFunctionScript/{connectionId}/{databaseName}/{schema}")]
+        public async Task<IActionResult> GetCreateFunctionScript(string connectionId, string databaseName, string schema)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetCreateFunctionProcedureScript(sessionId, connectionId, databaseName, schema));
+        }
+
+        [HttpGet("dropProcedureScript/{connectionId}/{databaseName}/{schema}/{name}")]
+        public async Task<IActionResult> GetDropProcedureScript(string connectionId, string databaseName, string schema, string name)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetDropProcedureScript(sessionId, connectionId, databaseName, schema, name));
+        }
+
         [HttpGet("viewDefinition/{connectionId}/{databaseName}/{schema}/{name}")]
         public async Task<IActionResult> GetViewDefinition(string connectionId, string databaseName, string schema, string name)
         {
@@ -78,6 +109,27 @@ namespace MDBNavigator.API.Controllers
                 return errorResult!;
             }
             return Ok(await _dbManager.GetViewDefinition(sessionId, connectionId, databaseName, schema, name));
+        }
+
+
+        [HttpGet("createViewScript/{connectionId}/{databaseName}/{schema}")]
+        public async Task<IActionResult> GetCreateViewScript(string connectionId, string databaseName, string schema)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetCreateViewScript(sessionId, connectionId, databaseName, schema));
+        }
+
+        [HttpGet("dropViewScript/{connectionId}/{databaseName}/{schema}/{name}")]
+        public async Task<IActionResult> GetDropViewScript(string connectionId, string databaseName, string schema, string name)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetDropViewScript(sessionId, connectionId, databaseName, schema, name));
         }
     }
 }

@@ -19,9 +19,14 @@ interface UseContextMenuHandlersProps {
   queryForDatabase: (serverId: string, databaseName: string, schema: string) => Promise<void>;
   queryCommandGetTopNTableRecords: (serverId: string, databaseName: string, schema: string, tableName: string, recordsNumber: number) => Promise<void>;
   queryCommandProcedureDefinition: (serverId: string, databaseName: string, schema: string, procedureName: string) => Promise<void>;
+  queryCommandCreateStoredProcedureScript: (serverId: string, databaseName: string, schema: string) => Promise<void>;
   queryCommandViewDefinition: (serverId: string, databaseName: string, schema: string, procedureName: string) => Promise<void>;
   queryCommandCreateTableScript: (serverId: string, databaseName: string) => Promise<void>;
   queryCommandDropTableScript: (serverId: string, databaseName: string, schema: string, tableName: string) => void;
+  queryCommandCreateFunctionScript: (serverId: string, databaseName: string, schema: string) => Promise<void>;
+  queryCommandCreateViewScript: (serverId: string, databaseName: string, schema: string) => Promise<void>;
+  queryCommandDropProcedureScript: (serverId: string, databaseName: string, schema: string, name: string) => Promise<void>;
+  queryCommandDropViewScript: (serverId: string, databaseName: string, schema: string, name: string) => Promise<void>;
 }
 
 export default function useContextMenuHandlers({
@@ -38,9 +43,14 @@ export default function useContextMenuHandlers({
   queryForDatabase,
   queryCommandGetTopNTableRecords,
   queryCommandProcedureDefinition,
+  queryCommandCreateStoredProcedureScript,
   queryCommandViewDefinition,
   queryCommandCreateTableScript,
-  queryCommandDropTableScript
+  queryCommandDropTableScript,
+  queryCommandCreateFunctionScript,
+  queryCommandCreateViewScript,
+  queryCommandDropProcedureScript,
+  queryCommandDropViewScript
 }: UseContextMenuHandlersProps) {
 
   function handleOnNodeClick(node: TreeViewNodeData, e: CoordPosition) {
@@ -167,7 +177,31 @@ export default function useContextMenuHandlers({
         nodes.serverNode.id,
         nodes.databaseNode.nodeName,
         targetNode?.metaData || "",
-        targetNode?.nodeName
+        targetNode?.nodeName || ""
+      );
+    }
+  }
+
+  async function handleQueryCreateStoredProcedureScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes && targetNode) {
+      await queryCommandCreateStoredProcedureScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || ""
+      );
+    }
+  }
+
+  async function handleQueryCreateFunctionScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await queryCommandCreateFunctionScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || ""
       );
     }
   }
@@ -185,6 +219,18 @@ export default function useContextMenuHandlers({
     }
   }
 
+  async function handleQueryCreateViewScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes) {
+      await queryCommandCreateViewScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || ""
+      );
+    }
+  }
+
   async function handleRefreshProcedures(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
     const nodes = getNodeHierarchy(targetNode);
@@ -192,6 +238,19 @@ export default function useContextMenuHandlers({
       await fetchStoredProcedures(
         nodes.serverNode.id,
         nodes.databaseNode.nodeName
+      );
+    }
+  }
+
+  async function handleQueryDropProcedureScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes && targetNode) {
+      await queryCommandDropProcedureScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || "",
+        targetNode?.nodeName
       );
     }
   }
@@ -249,6 +308,19 @@ export default function useContextMenuHandlers({
     }
   }
 
+  async function handleQueryDropViewScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes && targetNode) {
+      await queryCommandDropViewScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || "",
+        targetNode?.nodeName
+      );
+    }
+  }
+
   const handleCloseContextMenu = useCallback(() => {
     setContextMenuTarget(EmptyPosition);
   }, [setContextMenuTarget]);
@@ -264,13 +336,18 @@ export default function useContextMenuHandlers({
     handleSelectAllRecords,
     handleNewQueryForTables,
     handleQueryProcedureDefinition,
+    handleQueryCreateStoredProcedureScript,
+    handleQueryCreateFunctionScript,
     handleQueryViewDefinition,
+    handleQueryCreateViewScript,
     handleRefreshProcedures,
     handleRefreshFunctions,
     handleCreateNewTable,
     handleRefreshTables,
     handleDeleteTable,
     handleRefreshViews,
+    handleQueryDropProcedureScript,
+    handleQueryDropViewScript,
     handleCloseContextMenu
   };
 }

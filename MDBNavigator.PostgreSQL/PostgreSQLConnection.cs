@@ -10,7 +10,7 @@ using static Dapper.SqlMapper;
 
 namespace MDBNavigator.PostgreSQL
 {
-    public class PostgreSQL : IDBServerBase
+    public class PostgreSQLConnection : IDBServerBase
     {
         NpgsqlConnection _connection = null!;
 
@@ -80,9 +80,52 @@ namespace MDBNavigator.PostgreSQL
 
         public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures()
             => await GetProcedures("PROCEDURE");
+        
+        public string GetCreateStoredProcedureScript(string schema)
+        {
+            string result =
+ @"CREATE OR REPLACE PROCEDURE {0}.MyProcName(
+    p_id INT,
+    INOUT p_status VARCHAR(255)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_timestamp TIMESTAMP := NOW();
+BEGIN
+    UPDATE {0}.orders SET processed_at = v_timestamp WHERE id = p_id;
+
+    p_status := 'SUCCESS';
+
+    RAISE NOTICE 'Procedure executed at %', v_timestamp;
+END;
+$$;";
+            return string.Format(result, schema,  "VARCHAR");
+        }
+
 
         public async Task<IEnumerable<ProcedureDto>> GetFunctions()
             => await GetProcedures("FUNCTION");
+
+        public string GetCreateFunctionProcedureScript(string schema)
+        {
+            string result =
+@"CREATE OR REPLACE FUNCTION {0}.MyFuncName(p_id INT)
+RETURNS VARCHAR(255)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_status VARCHAR(255);
+    v_timestamp TIMESTAMP := NOW();
+BEGIN
+    UPDATE {0}.orders SET processed_at = v_timestamp WHERE id = p_id;
+    v_status := 'SUCCESS';
+    RAISE NOTICE 'Function executed at %', v_timestamp;
+    RETURN v_status;
+END;
+$$;";
+            return string.Format(result, schema);
+        }
 
         public async Task<IEnumerable<ProcedureDto>> GetProcedures(string type)
         {
@@ -124,6 +167,13 @@ namespace MDBNavigator.PostgreSQL
             });
         }
 
+        public string GetDropProcedureScript(string schema, string name)
+        {
+            schema = EnsureValidIdentifier(schema, nameof(schema));
+            name = EnsureValidIdentifier(name, nameof(name));
+            return $"DROP PROCEDURE {schema}.\"{name}\";";
+        }
+
         public async Task<IEnumerable<ViewDto>> GetViews()
         {
             var query =
@@ -145,6 +195,27 @@ namespace MDBNavigator.PostgreSQL
                     Schema = schema,
                     ViewName  = name
                 });
+        }
+
+        public string GetCreateViewScript(string schema)
+        {
+            var result =
+@"CREATE OR REPLACE VIEW {0}.MyView AS
+SELECT
+    -- columns
+FROM
+    -- tables
+WHERE
+    -- conditions";
+
+            return string.Format(result, schema);
+        }
+
+        public string GetDropViewScript(string schema, string name)
+        {
+            schema = EnsureValidIdentifier(schema, nameof(schema));
+            name = EnsureValidIdentifier(name, nameof(name));
+            return $"DROP VIEW {schema}.{name};";
         }
 
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)

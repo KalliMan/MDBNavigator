@@ -26,9 +26,14 @@ export default function DatabaseTreeView() {
     queryCommandGetTopNTableRecords,
     queryForDatabase,
     queryCommandProcedureDefinition,
+    queryCommandCreateStoredProcedureScript,
     queryCommandViewDefinition,
     queryCommandCreateTableScript,
-    queryCommandDropTableScript
+    queryCommandDropTableScript,
+    queryCommandCreateFunctionScript,
+    queryCommandCreateViewScript,
+    queryCommandDropProcedureScript,
+    queryCommandDropViewScript
   } = useCommandQueryContext();
 
   const { root } = useDatabaseTreeState(databaseSchemas, databaseServerConnections, clearRefreshFlags);
@@ -50,9 +55,14 @@ export default function DatabaseTreeView() {
     queryForDatabase,
     queryCommandGetTopNTableRecords,
     queryCommandProcedureDefinition,
+    queryCommandCreateStoredProcedureScript,
     queryCommandViewDefinition,
     queryCommandCreateTableScript,
-    queryCommandDropTableScript
+    queryCommandDropTableScript,
+    queryCommandCreateFunctionScript,
+    queryCommandCreateViewScript,
+    queryCommandDropProcedureScript,
+    queryCommandDropViewScript
   });
 
   if (!root) {

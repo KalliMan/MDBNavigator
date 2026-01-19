@@ -39,7 +39,7 @@ namespace MDBNavigator.DAL
             switch (connectionType)
             {
                 case Enums.ServerType.PostgreSQL:
-                    _dbServer = new PostgreSQL.PostgreSQL();
+                    _dbServer = new PostgreSQL.PostgreSQLConnection();
                     break;
                 case Enums.ServerType.MSSQLServer:
                     throw new NotSupportedException("MS SQL Server provider is not implemented yet.");
@@ -56,16 +56,31 @@ namespace MDBNavigator.DAL
             => await _dbServer.GetTables();
         public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures()
             => await _dbServer.GetStoredProcedures();
+        public string GetCreateStoredProcedureScript(string schema)
+            => _dbServer.GetCreateStoredProcedureScript(schema);
+
         public async Task<IEnumerable<ProcedureDto>> GetFunctions()
             => await _dbServer.GetFunctions();
-        public async Task<IEnumerable<ViewDto>> GetViews()
-            => await _dbServer.GetViews();
+        public string GetCreateFunctionProcedureScript(string schema)
+            => _dbServer.GetCreateFunctionProcedureScript(schema);
 
         public async Task<string> GetProcedureDefinition(string schema, string name)
             => await _dbServer.GetProcedureDefinition(schema, name);
 
+        public string GetDropProcedureScript(string schema, string name)
+            => _dbServer.GetDropProcedureScript(schema, name);
+
+        public async Task<IEnumerable<ViewDto>> GetViews()
+            => await _dbServer.GetViews();
+
         public async Task<string> GetViewDefinition(string schema, string name)
             => await _dbServer.GetViewDefinition(schema, name);
+
+        public string GetCreateViewScript(string schema)
+            => _dbServer.GetCreateViewScript(schema);
+
+        public  string GetDropViewScript(string schema, string name)
+            => _dbServer.GetDropViewScript(schema, name);
 
         public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)
             => await _dbServer.GetTopNTableRecords(schema, table, recordsNumber);

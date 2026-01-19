@@ -25,9 +25,14 @@ interface DatabaseContextMenuProps {
     handleDeleteTable: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshProcedures: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshFunctions: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleQueryCreateStoredProcedureScript: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleQueryProcedureDefinition: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleQueryViewDefinition: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshViews: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleQueryCreateFunctionScript: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleQueryCreateViewScript: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleQueryDropProcedureScript: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleQueryDropViewScript: (node: TreeViewNodeData | undefined) => Promise<void>;
   };
 }
 
@@ -86,16 +91,25 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
         </>
       )}
 
-      {currentNodeType === NodeType.StoredProcedures && (
-        <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshProcedures(currentNode)}>
-          Refresh
-        </Menus.MenuItem>
+      {currentNodeType === NodeType.StoredProcedures && (<>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
+            Query Definition
+          </Menus.MenuItem>
+
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryCreateStoredProcedureScript(currentNode)}>
+            Create New Procedure
+          </Menus.MenuItem>
+        </>
       )}
 
-      {currentNodeType === NodeType.Functions && (
-        <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshFunctions(currentNode)}>
-          Refresh
-        </Menus.MenuItem>
+      {currentNodeType === NodeType.Functions && (<>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryCreateFunctionScript(currentNode)}>
+            Create New Function
+          </Menus.MenuItem>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshFunctions(currentNode)}>
+            Refresh
+          </Menus.MenuItem>
+        </>
       )}
 
       {[NodeType.StoredProcedure, NodeType.Function].some(t => t === currentNodeType) && (
@@ -104,16 +118,30 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
         </Menus.MenuItem>
       )}
 
-      {currentNodeType === NodeType.Views && (
-        <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshViews(currentNode)}>
-          Refresh
+      {currentNodeType === NodeType.StoredProcedure && (
+        <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
+          Drop Procedure
         </Menus.MenuItem>
       )}
 
-      {currentNodeType === NodeType.View && (
-        <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
-          Query Definition
-        </Menus.MenuItem>
+      {currentNodeType === NodeType.Views && (<>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryCreateViewScript(currentNode)}>
+            Create New View
+          </Menus.MenuItem>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshViews(currentNode)}>
+            Refresh
+          </Menus.MenuItem>
+        </>
+      )}
+
+      {currentNodeType === NodeType.View && (<>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
+            Query Definition
+          </Menus.MenuItem>
+          <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropViewScript(currentNode)}>
+            Drop View
+          </Menus.MenuItem>
+        </>
       )}
 
     </Menus>
