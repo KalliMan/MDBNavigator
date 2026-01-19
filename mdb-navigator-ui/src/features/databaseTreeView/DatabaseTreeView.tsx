@@ -4,37 +4,18 @@ import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { EmptyPosition } from "../../types/coordPosition";
 import useDatabaseConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
 import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseSchema";
-import useCommandQueryContext from "../../contexts/commandQuery/useDatabaseCommand";
 import useDatabaseTreeState from "./useDatabaseTreeState";
 import useContextMenuHandlers from "./useContextMenuHandlers";
 import DatabaseContextMenu from "./DatabaseContextMenu";
 
-
 export default function DatabaseTreeView() {
-  const { databaseServerConnections, connectNewDatabase, disconnect, promptReconnectWithSettings } = useDatabaseConnectContext();
+  const { databaseServerConnections } = useDatabaseConnectContext();
 
   const {
     databaseSchemas,
-    fetchTables,
-    fetchStoredProcedures,
-    fetchFunctions,
-    fetchViews,
     clearRefreshFlags,
   } = useDatabaseSchemaContext();
 
-  const {
-    queryCommandGetTopNTableRecords,
-    queryForDatabase,
-    queryCommandProcedureDefinition,
-    queryCommandCreateStoredProcedureScript,
-    queryCommandViewDefinition,
-    queryCommandCreateTableScript,
-    queryCommandDropTableScript,
-    queryCommandCreateFunctionScript,
-    queryCommandCreateViewScript,
-    queryCommandDropProcedureScript,
-    queryCommandDropViewScript
-  } = useCommandQueryContext();
 
   const { root } = useDatabaseTreeState(databaseSchemas, databaseServerConnections, clearRefreshFlags);
 
@@ -45,24 +26,6 @@ export default function DatabaseTreeView() {
     root,
     setContextMenuTarget,
     setCurrentNode,
-    connectNewDatabase,
-    disconnect,
-    promptReconnectWithSettings,
-    fetchTables,
-    fetchStoredProcedures,
-    fetchFunctions,
-    fetchViews,
-    queryForDatabase,
-    queryCommandGetTopNTableRecords,
-    queryCommandProcedureDefinition,
-    queryCommandCreateStoredProcedureScript,
-    queryCommandViewDefinition,
-    queryCommandCreateTableScript,
-    queryCommandDropTableScript,
-    queryCommandCreateFunctionScript,
-    queryCommandCreateViewScript,
-    queryCommandDropProcedureScript,
-    queryCommandDropViewScript
   });
 
   if (!root) {

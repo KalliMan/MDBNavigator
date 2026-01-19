@@ -171,7 +171,7 @@ $$;";
         {
             schema = EnsureValidIdentifier(schema, nameof(schema));
             name = EnsureValidIdentifier(name, nameof(name));
-            return $"DROP PROCEDURE {schema}.\"{name}\";";
+            return $"DROP PROCEDURE {schema}.{name};";
         }
 
         public async Task<IEnumerable<ViewDto>> GetViews()
@@ -223,7 +223,7 @@ WHERE
             schema = EnsureValidIdentifier(schema, nameof(schema));
             table = EnsureValidIdentifier(table, nameof(table));
 
-            var sql = $"SELECT * FROM {schema}.\"{table}\"";
+            var sql = $"SELECT * FROM {schema}.{table}";
 
             if (recordsNumber.HasValue && recordsNumber.Value > -1)
             {
@@ -252,7 +252,7 @@ WHERE
             schema = EnsureValidIdentifier(schema, nameof(schema));
 
             return
-                $"CREATE TABLE {schema}.\"[MyTable]\"" +
+                $"CREATE TABLE {schema}.\"MyTable\"" +
                 "\r\n(" +
                 "\r\n    \"Id\" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 )," +
                 "\r\n    CONSTRAINT \"PK_[MyTable]_Id\" PRIMARY KEY (\"Id\")" +

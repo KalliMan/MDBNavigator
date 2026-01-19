@@ -4,54 +4,49 @@ import { CoordPosition, EmptyPosition } from "../../types/coordPosition";
 import { findNode } from "../../ui/treeView/treeViewUtils";
 import { getDatabaseParentNode, getNodeHierarchy, getServerNodeFromDatabaseNode, hasLoaderNode } from "./databaseTreeViewUtils";
 import { NodeType } from "./NodeType";
+import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseSchema";
+import useCommandQueryContext from "../../contexts/commandQuery/useDatabaseCommand";
+import useDatabaseConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
 
 interface UseContextMenuHandlersProps {
   root: TreeViewNodeData | null;
   setContextMenuTarget: (target: CoordPosition) => void;
   setCurrentNode: (node: TreeViewNodeData | undefined) => void;
-  connectNewDatabase: () => void;
-  disconnect: (connectionId: string) => void;
-  promptReconnectWithSettings: (connectionId: string) => void;
-  fetchTables: (serverId: string, databaseName: string) => Promise<void>;
-  fetchStoredProcedures: (serverId: string, databaseName: string) => Promise<void>;
-  fetchFunctions: (serverId: string, databaseName: string) => Promise<void>;
-  fetchViews: (serverId: string, databaseName: string) => Promise<void>;
-  queryForDatabase: (serverId: string, databaseName: string, schema: string) => Promise<void>;
-  queryCommandGetTopNTableRecords: (serverId: string, databaseName: string, schema: string, tableName: string, recordsNumber: number) => Promise<void>;
-  queryCommandProcedureDefinition: (serverId: string, databaseName: string, schema: string, procedureName: string) => Promise<void>;
-  queryCommandCreateStoredProcedureScript: (serverId: string, databaseName: string, schema: string) => Promise<void>;
-  queryCommandViewDefinition: (serverId: string, databaseName: string, schema: string, procedureName: string) => Promise<void>;
-  queryCommandCreateTableScript: (serverId: string, databaseName: string) => Promise<void>;
-  queryCommandDropTableScript: (serverId: string, databaseName: string, schema: string, tableName: string) => void;
-  queryCommandCreateFunctionScript: (serverId: string, databaseName: string, schema: string) => Promise<void>;
-  queryCommandCreateViewScript: (serverId: string, databaseName: string, schema: string) => Promise<void>;
-  queryCommandDropProcedureScript: (serverId: string, databaseName: string, schema: string, name: string) => Promise<void>;
-  queryCommandDropViewScript: (serverId: string, databaseName: string, schema: string, name: string) => Promise<void>;
 }
 
 export default function useContextMenuHandlers({
   root,
   setContextMenuTarget,
   setCurrentNode,
-  connectNewDatabase,
-  disconnect,
-  promptReconnectWithSettings,
-  fetchTables,
-  fetchStoredProcedures,
-  fetchFunctions,
-  fetchViews,
-  queryForDatabase,
-  queryCommandGetTopNTableRecords,
-  queryCommandProcedureDefinition,
-  queryCommandCreateStoredProcedureScript,
-  queryCommandViewDefinition,
-  queryCommandCreateTableScript,
-  queryCommandDropTableScript,
-  queryCommandCreateFunctionScript,
-  queryCommandCreateViewScript,
-  queryCommandDropProcedureScript,
-  queryCommandDropViewScript
 }: UseContextMenuHandlersProps) {
+
+  const {
+    connectNewDatabase,
+    disconnect,
+    promptReconnectWithSettings
+  } = useDatabaseConnectContext();
+
+  const {
+    fetchTables,
+    fetchStoredProcedures,
+    fetchFunctions,
+    fetchViews,
+  } = useDatabaseSchemaContext();
+
+  const {
+    queryCommandGetTopNTableRecords,
+    queryForDatabase,
+    queryCommandProcedureDefinition,
+    queryCommandCreateStoredProcedureScript,
+    queryCommandViewDefinition,
+    queryCommandCreateTableScript,
+    queryCommandDropTableScript,
+    queryCommandCreateFunctionScript,
+    queryCommandCreateViewScript,
+    queryCommandDropProcedureScript,
+    queryCommandDropViewScript
+  } = useCommandQueryContext();
+
 
   function handleOnNodeClick(node: TreeViewNodeData, e: CoordPosition) {
     setCurrentNode(node);
@@ -351,4 +346,3 @@ export default function useContextMenuHandlers({
     handleCloseContextMenu
   };
 }
-

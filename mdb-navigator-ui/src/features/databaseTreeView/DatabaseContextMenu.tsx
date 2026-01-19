@@ -92,12 +92,11 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
       )}
 
       {currentNodeType === NodeType.StoredProcedures && (<>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
-            Query Definition
-          </Menus.MenuItem>
-
           <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryCreateStoredProcedureScript(currentNode)}>
             Create New Procedure
+          </Menus.MenuItem>
+          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshProcedures(currentNode)}>
+            Refresh
           </Menus.MenuItem>
         </>
       )}
@@ -112,16 +111,14 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
         </>
       )}
 
-      {[NodeType.StoredProcedure, NodeType.Function].some(t => t === currentNodeType) && (
-        <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
-          Query Definition
-        </Menus.MenuItem>
-      )}
-
-      {currentNodeType === NodeType.StoredProcedure && (
-        <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
-          Drop Procedure
-        </Menus.MenuItem>
+      {[NodeType.StoredProcedure, NodeType.Function].some(t => t === currentNodeType) && ( <>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
+            Query Definition
+          </Menus.MenuItem>
+          <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
+            Drop Function
+          </Menus.MenuItem>
+        </>
       )}
 
       {currentNodeType === NodeType.Views && (<>
