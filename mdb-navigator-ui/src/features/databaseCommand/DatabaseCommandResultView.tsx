@@ -18,7 +18,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
   useEffect(() => {
 
     if (isExecuting) {
-      // If executing, clear everything      
+      // If executing, clear everything
       setFields([]);
       setRows([]);
       setRecordsAffected(0);
@@ -31,14 +31,14 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
 
     const newFields = result.fields;
     const initialRows = result.resultJson ? JSON.parse(result.resultJson) : [];
-    
+
     let allRows = [...initialRows];
-    
+
     const queryBatchResults = batchResults;
-    
+
     if (queryBatchResults && queryBatchResults.length > 0) {
       const sortedBatches = [...queryBatchResults].sort((a, b) => a.index - b.index);
-      
+
       sortedBatches.forEach(batch => {
         const batchRows = JSON.parse(batch.resultJson);
         allRows = allRows.concat(batchRows);
@@ -64,13 +64,13 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
       )}
       { fields && fields.length > 0 && (
         <table className="min-w-full text-left text-sm whitespace-nowrap">
-          <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t">
+          <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t sticky top-0">
             <tr>
-              <th className="w-[2%]" key={"rowIndex"}></th>
+              <th className="w-[2%] bg-neutral-400" key={"rowIndex"}></th>
               {fields?.map(field => (
                 <th
                   scope="col"
-                  className="px-3 py-2 border-x dark:border-neutral-600"
+                  className="px-3 py-2 border-x dark:border-neutral-600 bg-neutral-400"
                   key={field.index}
                  >
                   {field.fieldName}
@@ -81,7 +81,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
           <tbody>
             {rows && Array.isArray(rows) && rows.map((row, index) => (
               <tr className="border-b dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600" key={index}>
-                <td className="px-3 py-2 border-x dark:border-neutral-600 font-medium">{index + 1}</td>
+                <td className="px-3 py-2 border-x dark:border-neutral-600 bg-neutral-400 font-medium">{index + 1}</td>
                 {row && Array.isArray(row) && row.map((cell, cellIndex) => (
                   <td className="px-3 py-2 border-x dark:border-neutral-600" key={cellIndex}>
                     {cell}

@@ -63,7 +63,7 @@ function Mainbar() {
   }
 
   return (
-    <div className="pl-2 pr-2 overflow-auto">
+    <div className="pr-2 overflow-auto">
       {tabsData?.length > 0 && (
         <Tabs activeId={activeId.current}
           onClose={(id) => handleCloseTab(id)} >

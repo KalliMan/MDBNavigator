@@ -53,11 +53,11 @@ function App() {
         </ModalWindow>
       }
 
-      <div className="w-screen h-screen grid grid-cols-[max-content_auto] gap-y-1 border-2 border-stone-400">
+      <div className="w-screen h-screen grid grid-cols-[max-content_auto] gap-y-1 border-2 border-stone-400 overflow-hidden">
         <VerticalSidebar>
           <NavBar />
         </VerticalSidebar>
-        <div className=" overflow-hidden">
+        <div className="overflow-hidden">
           <Mainbar />
         </div>
       </div>
