@@ -5,8 +5,9 @@ import { NodeType } from "./NodeType";
 import { PiPlugsConnectedFill, PiRows } from "react-icons/pi";
 import { BsFiletypeSql } from "react-icons/bs";
 import { TiDelete } from "react-icons/ti";
-import { GrRefresh, GrTableAdd } from "react-icons/gr";
+import { GrNewWindow, GrRefresh, GrTableAdd } from "react-icons/gr";
 import { TbPlugConnected, TbPlugConnectedX } from "react-icons/tb";
+import { RiFunctionAddFill, RiFunctionAddLine } from "react-icons/ri";
 
 interface DatabaseContextMenuProps {
   targetPosition: CoordPosition;
@@ -92,7 +93,7 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
       )}
 
       {currentNodeType === NodeType.StoredProcedures && (<>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryCreateStoredProcedureScript(currentNode)}>
+          <Menus.MenuItem icon={<RiFunctionAddFill />} onClick={() => handlers.handleQueryCreateStoredProcedureScript(currentNode)}>
             Create New Procedure
           </Menus.MenuItem>
           <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshProcedures(currentNode)}>
@@ -102,7 +103,7 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
       )}
 
       {currentNodeType === NodeType.Functions && (<>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryCreateFunctionScript(currentNode)}>
+          <Menus.MenuItem icon={<RiFunctionAddLine />} onClick={() => handlers.handleQueryCreateFunctionScript(currentNode)}>
             Create New Function
           </Menus.MenuItem>
           <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshFunctions(currentNode)}>
@@ -122,7 +123,7 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
       )}
 
       {currentNodeType === NodeType.Views && (<>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryCreateViewScript(currentNode)}>
+          <Menus.MenuItem icon={<GrNewWindow />} onClick={() => handlers.handleQueryCreateViewScript(currentNode)}>
             Create New View
           </Menus.MenuItem>
           <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshViews(currentNode)}>
@@ -132,7 +133,7 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
       )}
 
       {currentNodeType === NodeType.View && (<>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
+          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
             Query Definition
           </Menus.MenuItem>
           <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropViewScript(currentNode)}>

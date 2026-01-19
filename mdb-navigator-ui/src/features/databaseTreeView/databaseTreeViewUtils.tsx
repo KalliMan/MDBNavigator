@@ -4,7 +4,7 @@ import { FcDatabase, FcFolder, FcOpenedFolder } from "react-icons/fc";
 import { NodeType } from "./NodeType";
 import { v4 as uuidv4 } from 'uuid';
 import { FaTable } from "react-icons/fa6";
-import { PiBracketsCurly } from "react-icons/pi";
+import { PiBracketsCurly, PiSelectionForegroundBold } from "react-icons/pi";
 import { LuSquareFunction } from "react-icons/lu";
 import { findFirstParentOfType, findNodeOfType } from "../../ui/treeView/treeViewUtils";
 import { DatabaseSchema } from "../../contexts/databaseSchema/DatabaseSchemaReducer";
@@ -207,7 +207,7 @@ export function createViewNode(databaseSchema: string, name: string, parentNode:
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
-    Icon: <FcDatabase />,
+    Icon: <PiSelectionForegroundBold />,
     nodes: [],
     type: NodeType.View,
     metaData: databaseSchema,
