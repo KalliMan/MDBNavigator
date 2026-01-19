@@ -36,6 +36,7 @@ export function createServerNode(id: string, name: string, isExpanded: boolean):
   return {
     id: id,
     nodeName: name,
+    nodeText: name,
     isExpanded: isExpanded,
     Icon: <FaHdd />,
     nodes: [],
@@ -61,6 +62,7 @@ export function createDatabaseNode(name: string, parentNode: TreeViewNodeData, i
   const dbNode: TreeViewNodeData = {
     id: name,
     nodeName: name,
+    nodeText: name,
     Icon: <FcDatabase />,
     IconExpanded: <FcDatabase />,
     isExpanded: isExpanded,
@@ -96,6 +98,7 @@ export function createTableNode(databaseSchema: string, name: string, parentNode
   return {
     id: uuidv4(),
     nodeName: name,
+    nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
     Icon: <FaTable />,
     nodes: [],
@@ -143,6 +146,7 @@ export function createStoredProcedureNode(databaseSchema: string, name: string, 
   return {
     id: uuidv4(),
     nodeName: name,
+    nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
     Icon: <PiBracketsCurly />,
     nodes: [],
@@ -172,6 +176,7 @@ export function createFunctionNode(databaseSchema: string, name: string, parentN
   return {
     id: uuidv4(),
     nodeName: name,
+    nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
     Icon: <LuSquareFunction />,
     nodes: [],
@@ -200,6 +205,7 @@ export function createViewNode(databaseSchema: string, name: string, parentNode:
   return {
     id: uuidv4(),
     nodeName: name,
+    nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
     Icon: <FcDatabase />,
     nodes: [],

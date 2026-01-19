@@ -65,7 +65,7 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
             {iconExpanded ?? (<span>{iconExpanded}</span>)}
           </div>
 
-          <span className="ml-1" onClick={handleOnClick}>{node.nodeName}</span>
+          <span className="ml-1" onClick={handleOnClick}>{node.nodeText || node.nodeName}</span>
         </div>
       </div>
 

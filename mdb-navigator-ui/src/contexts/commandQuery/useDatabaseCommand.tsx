@@ -70,15 +70,15 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandCreateStoredProcedureScript(connectionId: string, databaseName: string, schema: string) {
-    const createProcedureScript = await agent.databaseCommandApi.getCreateStoredProcedureScript(connectionId, databaseName, 'public');
+  async function queryCommandCreateStoredProcedureScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    const createProcedureScript = await agent.databaseCommandApi.getCreateStoredProcedureScript(connectionId, databaseName, schema);
 
     const id = uuidv4();
     const query: DatabaseSQLCommandQuery = {
       connectionId,
       id,
       databaseName,
-      name: '[schema].[ProcedureName]',
+      name: `[${schema}].[ProcedureName]`,
       cmdQuery: createProcedureScript,
       executeImmediately: false
     };
@@ -89,14 +89,14 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandCreateFunctionScript(connectionId: string, databaseName: string, schema: string) {
-    const createFunctionScript = await agent.databaseCommandApi.getCreateFunctionScript(connectionId, databaseName, 'public');
+  async function queryCommandCreateFunctionScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    const createFunctionScript = await agent.databaseCommandApi.getCreateFunctionScript(connectionId, databaseName, schema);
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: '[schema].[FunctionName]',
+      name: `[${schema}].[FunctionName]`,
       cmdQuery: createFunctionScript,
       executeImmediately: false
     };
@@ -126,14 +126,14 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandCreateViewScript(connectionId: string, databaseName: string, schema: string) {
-    const createViewScript = await agent.databaseCommandApi.getCreateViewScript(connectionId, databaseName, 'public');
+  async function queryCommandCreateViewScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    const createViewScript = await agent.databaseCommandApi.getCreateViewScript(connectionId, databaseName, schema);
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: '[schema].[ViewName]',
+      name: `[${schema}].[ViewName]`,
       cmdQuery: createViewScript,
       executeImmediately: false
     };
@@ -144,14 +144,14 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandCreateTableScript(connectionId: string, databaseName: string) {
-    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, 'public');
+  async function queryCommandCreateTableScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, schema);
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: '[schema].[TableName]',
+      name: `[${schema}].[TableName]`,
       cmdQuery: createTableQuery,
       executeImmediately: false
     };
@@ -169,7 +169,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `${schema}.${table}`,
+      name: `[${schema}].[${table}]`,
       cmdQuery: createTableQuery,
       executeImmediately: false
     };
@@ -187,7 +187,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `${schema}.${name}`,
+      name: `[${schema}].[${name}]`,
       cmdQuery: dropProcedureScript,
       executeImmediately: false
     };

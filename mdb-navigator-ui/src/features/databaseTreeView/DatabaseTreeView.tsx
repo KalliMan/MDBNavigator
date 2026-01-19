@@ -11,22 +11,12 @@ import DatabaseContextMenu from "./DatabaseContextMenu";
 export default function DatabaseTreeView() {
   const { databaseServerConnections } = useDatabaseConnectContext();
 
-  const {
-    databaseSchemas,
-    clearRefreshFlags,
-  } = useDatabaseSchemaContext();
-
-
+  const { databaseSchemas, clearRefreshFlags } = useDatabaseSchemaContext();
   const { root } = useDatabaseTreeState(databaseSchemas, databaseServerConnections, clearRefreshFlags);
-
   const [contextMenuTarget, setContextMenuTarget] = useState(EmptyPosition);
   const [currentNode, setCurrentNode] = useState<TreeViewNodeData>();
 
-  const handlers = useContextMenuHandlers({
-    root,
-    setContextMenuTarget,
-    setCurrentNode,
-  });
+  const handlers = useContextMenuHandlers({ root, setContextMenuTarget, setCurrentNode });
 
   if (!root) {
     return null;

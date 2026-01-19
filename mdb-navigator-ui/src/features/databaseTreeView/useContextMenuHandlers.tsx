@@ -183,8 +183,7 @@ export default function useContextMenuHandlers({
     if (nodes && targetNode) {
       await queryCommandCreateStoredProcedureScript(
         nodes.serverNode.id,
-        nodes.databaseNode.nodeName,
-        targetNode?.metaData || ""
+        nodes.databaseNode.nodeName
       );
     }
   }
@@ -195,8 +194,7 @@ export default function useContextMenuHandlers({
     if (nodes) {
       await queryCommandCreateFunctionScript(
         nodes.serverNode.id,
-        nodes.databaseNode.nodeName,
-        targetNode?.metaData || ""
+        nodes.databaseNode.nodeName
       );
     }
   }
@@ -220,8 +218,7 @@ export default function useContextMenuHandlers({
     if (nodes) {
       await queryCommandCreateViewScript(
         nodes.serverNode.id,
-        nodes.databaseNode.nodeName,
-        targetNode?.metaData || ""
+        nodes.databaseNode.nodeName
       );
     }
   }
