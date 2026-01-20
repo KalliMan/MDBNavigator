@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useEffect } from "react";
 import { DatabaseConnectContextType } from "./DatabaseSchemaReducer";
-import { DatabaseSchemaActionTypes, RefreshFlagType } from "./DatabaseSchemaActionTypes";
+import { DatabaseSchemaActionTypes, DatabaseSchemaErrorScope } from "./DatabaseSchemaActionTypes";
 import agent from "../../services/apiAgent";
 import useDatabaseConnectContext from "../databaseServerConnect/useDatabaseServerConnect";
 
@@ -40,9 +40,6 @@ export default function useDatabaseSchemaContext() {
           isLoading: false,
           error: null,
           databasesDetails: null,
-          tablesDetails: null,
-          storedProceduresDetails: null,
-          functionsDetails: null
         }
 
         context.state.databaseSchemas?.push(newSchema);
@@ -66,7 +63,11 @@ export default function useDatabaseSchemaContext() {
         } catch (error: unknown) {
           dispatch({
             type: DatabaseSchemaActionTypes.Error,
-            payload: error instanceof Error ? error.message : 'An error occurred'
+            payload: {
+              message: error instanceof Error ? error.message : "An error occurred",
+              connectionId: connectedResult.connectionId,
+              scope: DatabaseSchemaErrorScope.Databases,
+            },
           });
         }
 
@@ -103,9 +104,15 @@ export default function useDatabaseSchemaContext() {
         payload: result
       });
     } catch (error: unknown) {
+                              console.log('error', error);
       dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error instanceof Error ? error.message : 'An error occurred'
+        payload: {
+          message: error instanceof Error ? error.message : "An error occurred",
+          connectionId,
+          databaseName,
+          scope: DatabaseSchemaErrorScope.Tables,
+        },
       });
     }
   }, [dispatch]);
@@ -125,7 +132,12 @@ export default function useDatabaseSchemaContext() {
     } catch (error: unknown) {
       dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error instanceof Error ? error.message : 'An error occurred'
+        payload: {
+          message: error instanceof Error ? error.message : "An error occurred",
+          connectionId,
+          databaseName,
+          scope: DatabaseSchemaErrorScope.Procedures,
+        },
       });
     }
   }, [dispatch]);
@@ -145,7 +157,12 @@ export default function useDatabaseSchemaContext() {
     } catch (error: unknown) {
       dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error instanceof Error ? error.message : 'An error occurred'
+        payload: {
+          message: error instanceof Error ? error.message : "An error occurred",
+          connectionId,
+          databaseName,
+          scope: DatabaseSchemaErrorScope.Functions,
+        },
       });
     }
   }, [dispatch]);
@@ -164,19 +181,45 @@ export default function useDatabaseSchemaContext() {
     catch (error: unknown) {
       dispatch({
         type: DatabaseSchemaActionTypes.Error,
-        payload: error instanceof Error ? error.message : 'An error occurred'
+        payload: {
+          message: error instanceof Error ? error.message : "An error occurred",
+          connectionId,
+          databaseName,
+          scope: DatabaseSchemaErrorScope.Views,
+        },
       });
     }
   }, [dispatch]);
 
-  const clearRefreshFlags = useCallback((connectionId: string, flags: RefreshFlagType[]) => {
+  const resetTables = useCallback((connectionId: string, databaseName: string) => {
     dispatch({
-      type: DatabaseSchemaActionTypes.ClearRefreshFlags,
-      payload: { connectionId, flags }
+      type: DatabaseSchemaActionTypes.ResetTables,
+      payload: { connectionId, databaseName }
     });
   }, [dispatch]);
 
-  const {isLoading, databaseSchemas,  /*error, databasesDetails, tablesDetails, storedProceduresDetails, functionsDetails*/} = context.state;
+  const resetStoredProcedures = useCallback((connectionId: string, databaseName: string) => {
+    dispatch({
+      type: DatabaseSchemaActionTypes.ResetStoredProcedures,
+      payload: { connectionId, databaseName }
+    });
+  }, [dispatch]);
+
+  const resetFunctions = useCallback((connectionId: string, databaseName: string) => {
+    dispatch({
+      type: DatabaseSchemaActionTypes.ResetFunctions,
+      payload: { connectionId, databaseName }
+    });
+  }, [dispatch]);
+
+  const resetViews = useCallback((connectionId: string, databaseName: string) => {
+    dispatch({
+      type: DatabaseSchemaActionTypes.ResetViews,
+      payload: { connectionId, databaseName }
+    });
+  }, [dispatch]);
+
+  const {isLoading, databaseSchemas} = context.state;
 
   return {
     isLoading,
@@ -187,6 +230,9 @@ export default function useDatabaseSchemaContext() {
     fetchStoredProcedures,
     fetchFunctions,
     fetchViews,
-    clearRefreshFlags
+    resetTables,
+    resetStoredProcedures,
+    resetFunctions,
+    resetViews,
   };
 };

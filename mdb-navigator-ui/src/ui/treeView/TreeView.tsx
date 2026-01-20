@@ -8,7 +8,6 @@ export interface TreeViewNodeProps {
   root: TreeViewNodeData;
   onNodeClick: (node: TreeViewNodeData, target: CoordPosition) => void;
   onExpand: (id: string, expanded: boolean) => void;
-
   settings?: TreeViewSettings;
 }
 

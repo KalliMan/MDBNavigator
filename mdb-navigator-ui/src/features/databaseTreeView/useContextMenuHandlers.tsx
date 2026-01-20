@@ -31,6 +31,10 @@ export default function useContextMenuHandlers({
     fetchStoredProcedures,
     fetchFunctions,
     fetchViews,
+    resetTables,
+    resetStoredProcedures,
+    resetFunctions,
+    resetViews,
   } = useDatabaseSchemaContext();
 
   const {
@@ -227,6 +231,7 @@ export default function useContextMenuHandlers({
     setContextMenuTarget(EmptyPosition);
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
+      resetStoredProcedures(nodes.serverNode.id, nodes.databaseNode.nodeName);
       await fetchStoredProcedures(
         nodes.serverNode.id,
         nodes.databaseNode.nodeName
@@ -251,6 +256,7 @@ export default function useContextMenuHandlers({
     setContextMenuTarget(EmptyPosition);
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
+      resetFunctions(nodes.serverNode.id, nodes.databaseNode.nodeName);
       await fetchFunctions(nodes.serverNode.id, nodes.databaseNode.nodeName);
     }
   }
@@ -270,6 +276,7 @@ export default function useContextMenuHandlers({
     setContextMenuTarget(EmptyPosition);
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
+      resetTables(nodes.serverNode.id, nodes.databaseNode.nodeName);
       await fetchTables(nodes.serverNode.id, nodes.databaseNode.nodeName);
     }
   }
@@ -296,6 +303,7 @@ export default function useContextMenuHandlers({
     setContextMenuTarget(EmptyPosition);
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
+      resetViews(nodes.serverNode.id, nodes.databaseNode.nodeName);
       await fetchViews(nodes.serverNode.id, nodes.databaseNode.nodeName);
     }
   }

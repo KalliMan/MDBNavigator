@@ -4,12 +4,12 @@ import { TablesDetails } from "../../models/schema/tablesDetails";
 import { ViewDetails } from "../../models/schema/viewsDetails";
 import { DatabaseSchema } from "./DatabaseSchemaReducer";
 
-export enum RefreshFlagType {
-  RefreshDatabases = 'refreshDatabases',
-  RefreshTables = 'refreshTables',
-  RefreshStoredProcedures = 'refreshStoredProcedures',
-  RefreshFunctions = 'refreshFunctions',
-  RefreshViews = 'refreshViews'
+export enum DatabaseSchemaErrorScope {
+  Databases = "databases",
+  Tables = "tables",
+  Procedures = "procedures",
+  Functions = "functions",
+  Views = "views",
 }
 
 export enum DatabaseSchemaActionTypes {
@@ -20,7 +20,10 @@ export enum DatabaseSchemaActionTypes {
   FetchedStoredProcedures = 'schema/fetchedStoredProcedures',
   FetchedFunctions = 'schema/fetchedFunctions',
   FetchedViews = 'schema/fetchedViews',
-  ClearRefreshFlags = 'schema/clearRefreshFlags',
+  ResetTables = 'schema/resetTables',
+  ResetStoredProcedures = 'schema/resetStoredProcedures',
+  ResetFunctions = 'schema/resetFunctions',
+  ResetViews = 'schema/resetViews',
   Error = 'schema/error'
 }
 
@@ -58,16 +61,45 @@ export type FetchedViewsAction = {
   payload: ViewDetails;
 };
 
-export type ErrorDatabaseSchemaActionAction = {
-  type: DatabaseSchemaActionTypes.Error;
-  payload: string;
-};
-
-export type ClearRefreshFlagsAction = {
-  type: DatabaseSchemaActionTypes.ClearRefreshFlags;
+export type ResetTablesAction = {
+  type: DatabaseSchemaActionTypes.ResetTables;
   payload: {
     connectionId: string;
-    flags: RefreshFlagType[];
+    databaseName: string;
+  };
+};
+
+export type ResetStoredProceduresAction = {
+  type: DatabaseSchemaActionTypes.ResetStoredProcedures;
+  payload: {
+    connectionId: string;
+    databaseName: string;
+  };
+};
+
+export type ResetFunctionsAction = {
+  type: DatabaseSchemaActionTypes.ResetFunctions;
+  payload: {
+    connectionId: string;
+    databaseName: string;
+  };
+};
+
+export type ResetViewsAction = {
+  type: DatabaseSchemaActionTypes.ResetViews;
+  payload: {
+    connectionId: string;
+    databaseName: string;
+  };
+};
+
+export type ErrorDatabaseSchemaActionAction = {
+  type: DatabaseSchemaActionTypes.Error;
+  payload: {
+    message: string;
+    connectionId?: string;
+    databaseName?: string;
+    scope?: DatabaseSchemaErrorScope;
   };
 };
 
@@ -78,5 +110,8 @@ export type DatabaseSchemaActions = LoadingAction
   | FetchedStoredProceduresAction
   | FetchedFunctionsAction
   | FetchedViewsAction
-  | ClearRefreshFlagsAction
+  | ResetTablesAction
+  | ResetStoredProceduresAction
+  | ResetFunctionsAction
+  | ResetViewsAction
   | ErrorDatabaseSchemaActionAction;

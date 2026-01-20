@@ -1,19 +1,10 @@
 import { DatabasesDetails } from "../../models/schema/databasesDetails";
-import { DatabaseSchemaActions, DatabaseSchemaActionTypes } from "./DatabaseSchemaActionTypes";
+import { DatabaseSchemaActions, DatabaseSchemaActionTypes, DatabaseSchemaErrorScope } from "./DatabaseSchemaActionTypes";
 
 export type DatabaseSchema = {
   connectionId: string;
   isLoading: boolean;
   error: string | null;
-
-  refreshDatabases?: boolean;
-
-  lastUpdatedDatabaseName?: string;
-  refreshTables?: boolean;
-  refreshStoredProcedures?: boolean;
-  refreshFunctions?: boolean;
-  refreshViews?: boolean;
-
   databasesDetails: DatabasesDetails | null,
 }
 
@@ -62,7 +53,6 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...schema,
         isLoading: false,
         error: null,
-        refreshDatabases: true,
         databasesDetails: action.payload
       };
 
@@ -90,9 +80,6 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...schema,
         isLoading: false,
         error: null,
-        refreshDatabases: false,
-        refreshTables: true,
-        lastUpdatedDatabaseName: action.payload.databaseName,
       };
 
       return {
@@ -119,10 +106,6 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...schema,
         isLoading: false,
         error: null,
-        refreshDatabases: false,
-        refreshTables: false,
-        refreshStoredProcedures: true,
-        lastUpdatedDatabaseName: action.payload.databaseName,
       };
 
       return {
@@ -149,11 +132,6 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...schema,
         isLoading: false,
         error: null,
-        refreshDatabases: false,
-        refreshTables: false,
-        refreshStoredProcedures: false,
-        refreshFunctions: true,
-        lastUpdatedDatabaseName: action.payload.databaseName,
       };
 
       return {
@@ -180,12 +158,6 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...schema,
         isLoading: false,
         error: null,
-        refreshDatabases: false,
-        refreshTables: false,
-        refreshStoredProcedures: false,
-        refreshFunctions: false,
-        refreshViews: true,
-        lastUpdatedDatabaseName: action.payload.databaseName,
       };
 
       return {
@@ -196,29 +168,171 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
     }
 
     case DatabaseSchemaActionTypes.Error: {
+      const { message, connectionId, databaseName, scope } = action.payload;
+
+      if (!connectionId || !scope) {
+        return {
+          ...state,
+          isLoading: false,
+          error: message,
+        };
+      }
+
+      const schema = state.databaseSchemas?.find((s) => s.connectionId === connectionId);
+      if (!schema || !schema.databasesDetails) {
+        return {
+          ...state,
+          isLoading: false,
+          error: message,
+        };
+      }
+
+      if (scope === DatabaseSchemaErrorScope.Databases || !databaseName) {
+        return {
+          ...state,
+          isLoading: false,
+          databaseSchemas:
+            state.databaseSchemas?.map((s) =>
+              s.connectionId === connectionId ? { ...schema, error: message } : s
+            ) || null,
+        };
+      }
+
+      const database = schema.databasesDetails.databases.find((db) => db.name === databaseName);
+      if (!database) {
+        return {
+          ...state,
+          isLoading: false,
+          error: message,
+        };
+      }
+
+      switch (scope) {
+        case DatabaseSchemaErrorScope.Tables:
+          database.tablesDetails = null;
+          database.tablesError = message;
+          break;
+        case DatabaseSchemaErrorScope.Procedures:
+          database.storedProceduresDetails = null;
+          database.storedProceduresError = message;
+          break;
+        case DatabaseSchemaErrorScope.Functions:
+          database.functionsDetails = null;
+          database.functionsError = message;
+          break;
+        case DatabaseSchemaErrorScope.Views:
+          database.viewsDetails = null;
+          database.viewsError = message;
+          break;
+      }
 
       return {
         ...state,
         isLoading: false,
-        error: action.payload
+        databaseSchemas:
+          state.databaseSchemas?.map((s) =>
+            s.connectionId === connectionId ? { ...schema } : s
+          ) || null,
       };
     }
 
-    case DatabaseSchemaActionTypes.ClearRefreshFlags: {
-      const { connectionId, flags } = action.payload;
+    case DatabaseSchemaActionTypes.ResetTables: {
+      const schema = state.databaseSchemas?.find(
+        (s) => s.connectionId === action.payload.connectionId
+      );
+      if (!schema || !schema.databasesDetails) {
+        return state;
+      }
+
+      const database = schema.databasesDetails.databases.find(
+        (db) => db.name === action.payload.databaseName
+      );
+      if (!database) {
+        return state;
+      }
+
+      database.tablesDetails = null;
 
       return {
         ...state,
-        databaseSchemas: state.databaseSchemas?.map(schema => {
-          if (schema.connectionId === connectionId) {
-            const updates: Partial<DatabaseSchema> = {};
-            flags.forEach(flag => {
-              updates[flag] = false;
-            });
-            return { ...schema, ...updates };
-          }
-          return schema;
-        }) || null
+        databaseSchemas: state.databaseSchemas?.map((s) =>
+          s.connectionId === action.payload.connectionId ? { ...schema } : s
+        ) || null,
+      };
+    }
+
+    case DatabaseSchemaActionTypes.ResetStoredProcedures: {
+      const schema = state.databaseSchemas?.find(
+        (s) => s.connectionId === action.payload.connectionId
+      );
+      if (!schema || !schema.databasesDetails) {
+        return state;
+      }
+
+      const database = schema.databasesDetails.databases.find(
+        (db) => db.name === action.payload.databaseName
+      );
+      if (!database) {
+        return state;
+      }
+
+      database.storedProceduresDetails = null;
+
+      return {
+        ...state,
+        databaseSchemas: state.databaseSchemas?.map((s) =>
+          s.connectionId === action.payload.connectionId ? { ...schema } : s
+        ) || null,
+      };
+    }
+
+    case DatabaseSchemaActionTypes.ResetFunctions: {
+      const schema = state.databaseSchemas?.find(
+        (s) => s.connectionId === action.payload.connectionId
+      );
+      if (!schema || !schema.databasesDetails) {
+        return state;
+      }
+
+      const database = schema.databasesDetails.databases.find(
+        (db) => db.name === action.payload.databaseName
+      );
+      if (!database) {
+        return state;
+      }
+
+      database.functionsDetails = null;
+
+      return {
+        ...state,
+        databaseSchemas: state.databaseSchemas?.map((s) =>
+          s.connectionId === action.payload.connectionId ? { ...schema } : s
+        ) || null,
+      };
+    }
+
+    case DatabaseSchemaActionTypes.ResetViews: {
+      const schema = state.databaseSchemas?.find(
+        (s) => s.connectionId === action.payload.connectionId
+      );
+      if (!schema || !schema.databasesDetails) {
+        return state;
+      }
+
+      const database = schema.databasesDetails.databases.find(
+        (db) => db.name === action.payload.databaseName
+      );
+      if (!database) {
+        return state;
+      }
+
+      database.viewsDetails = null;
+
+      return {
+        ...state,
+        databaseSchemas: state.databaseSchemas?.map((s) =>
+          s.connectionId === action.payload.connectionId ? { ...schema } : s
+        ) || null,
       };
     }
 

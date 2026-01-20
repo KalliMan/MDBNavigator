@@ -12,6 +12,7 @@ import { RiFunctionAddFill, RiFunctionAddLine } from "react-icons/ri";
 interface DatabaseContextMenuProps {
   targetPosition: CoordPosition;
   currentNode: TreeViewNodeData | undefined;
+  isLoading: boolean;
   handlers: {
     handleCloseContextMenu: () => void;
     handleNewServerConnection: (node: TreeViewNodeData | undefined) => void;
@@ -37,42 +38,45 @@ interface DatabaseContextMenuProps {
   };
 }
 
-export default function DatabaseContextMenu({ targetPosition, currentNode, handlers }: DatabaseContextMenuProps) {
+export default function DatabaseContextMenu({ targetPosition, currentNode, isLoading, handlers }: DatabaseContextMenuProps) {
   const currentNodeType = currentNode?.type as NodeType;
 
   return (
-    <Menus targetPosition={targetPosition} id="DatabaseMenu" clickedOutside={handlers.handleCloseContextMenu}>
+    <Menus targetPosition={targetPosition}  id="DatabaseMenu" clickedOutside={handlers.handleCloseContextMenu}>
       {currentNodeType === NodeType.Servers && (
-        <Menus.MenuItem icon={<PiPlugsConnectedFill />} onClick={() => handlers.handleNewServerConnection(currentNode)}>
+        <Menus.MenuItem
+        disabled={isLoading}
+        icon={<PiPlugsConnectedFill />}
+        onClick={() => handlers.handleNewServerConnection(currentNode)}>
           New Connection
         </Menus.MenuItem>
       )}
 
       {currentNodeType === NodeType.Server && (<>
-          <Menus.MenuItem icon={<TbPlugConnectedX />} onClick={() => handlers.handleDisconnect(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<TbPlugConnectedX />} onClick={() => handlers.handleDisconnect(currentNode)}>
             Disconnect
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<TbPlugConnected />} onClick={() => handlers.handleReconnect(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<TbPlugConnected />} onClick={() => handlers.handleReconnect(currentNode)}>
             Reconnect
           </Menus.MenuItem>
         </>
       )}
 
       {currentNodeType === NodeType.Database && (
-        <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleNewQueryForDatabase(currentNode)}>
+        <Menus.MenuItem disabled={isLoading} icon={<BsFiletypeSql />} onClick={() => handlers.handleNewQueryForDatabase(currentNode)}>
           New Query for this database
         </Menus.MenuItem>
       )}
 
       {currentNodeType === NodeType.Tables && (
         <>
-          <Menus.MenuItem icon={<GrTableAdd />} onClick={() => handlers.handleCreateNewTable(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<GrTableAdd />} onClick={() => handlers.handleCreateNewTable(currentNode)}>
             Create New Table
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleNewQueryForTables(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<BsFiletypeSql />} onClick={() => handlers.handleNewQueryForTables(currentNode)}>
             New Query for this database
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshTables(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<GrRefresh />} onClick={() => handlers.handleRefreshTables(currentNode)}>
             Refresh
           </Menus.MenuItem>
         </>
@@ -80,63 +84,63 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
 
       {currentNodeType === NodeType.Table && (
         <>
-          <Menus.MenuItem icon={<PiRows />} onClick={() => handlers.handleSelectTop100Records(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<PiRows />} onClick={() => handlers.handleSelectTop100Records(currentNode)}>
             Select TOP 100 Records
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<PiRows />} onClick={() => handlers.handleSelectAllRecords(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<PiRows />} onClick={() => handlers.handleSelectAllRecords(currentNode)}>
             Select All Records
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleDeleteTable(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleDeleteTable(currentNode)}>
             Delete Table
           </Menus.MenuItem>
         </>
       )}
 
       {currentNodeType === NodeType.StoredProcedures && (<>
-          <Menus.MenuItem icon={<RiFunctionAddFill />} onClick={() => handlers.handleQueryCreateStoredProcedureScript(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<RiFunctionAddFill />} onClick={() => handlers.handleQueryCreateStoredProcedureScript(currentNode)}>
             Create New Procedure
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshProcedures(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<GrRefresh />} onClick={() => handlers.handleRefreshProcedures(currentNode)}>
             Refresh
           </Menus.MenuItem>
         </>
       )}
 
       {currentNodeType === NodeType.Functions && (<>
-          <Menus.MenuItem icon={<RiFunctionAddLine />} onClick={() => handlers.handleQueryCreateFunctionScript(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<RiFunctionAddLine />} onClick={() => handlers.handleQueryCreateFunctionScript(currentNode)}>
             Create New Function
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshFunctions(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<GrRefresh />} onClick={() => handlers.handleRefreshFunctions(currentNode)}>
             Refresh
           </Menus.MenuItem>
         </>
       )}
 
       {[NodeType.StoredProcedure, NodeType.Function].some(t => t === currentNodeType) && ( <>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
             Query Definition
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
             Drop {currentNodeType === NodeType.StoredProcedure ? 'Procedure' : 'Function'}
           </Menus.MenuItem>
         </>
       )}
 
       {currentNodeType === NodeType.Views && (<>
-          <Menus.MenuItem icon={<GrNewWindow />} onClick={() => handlers.handleQueryCreateViewScript(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<GrNewWindow />} onClick={() => handlers.handleQueryCreateViewScript(currentNode)}>
             Create New View
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<GrRefresh />} onClick={() => handlers.handleRefreshViews(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<GrRefresh />} onClick={() => handlers.handleRefreshViews(currentNode)}>
             Refresh
           </Menus.MenuItem>
         </>
       )}
 
       {currentNodeType === NodeType.View && (<>
-          <Menus.MenuItem icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
             Query Definition
           </Menus.MenuItem>
-          <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropViewScript(currentNode)}>
+          <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleQueryDropViewScript(currentNode)}>
             Drop View
           </Menus.MenuItem>
         </>
