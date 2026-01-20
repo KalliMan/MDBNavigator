@@ -126,7 +126,7 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
       };
 
       return {
-        ...schema,
+        ...state,
         isLoading: false,
         databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaProcedures : s)
       };
@@ -157,7 +157,7 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
       };
 
       return {
-        ...schema,
+        ...state,
         isLoading: false,
         databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaProcedures : s)
       };
@@ -189,7 +189,7 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
       };
 
       return {
-        ...schema,
+        ...state,
         isLoading: false,
         databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaViews : s)
       };

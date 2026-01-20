@@ -117,7 +117,7 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, handl
             Query Definition
           </Menus.MenuItem>
           <Menus.MenuItem icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
-            Drop Function
+            Drop {currentNodeType === NodeType.StoredProcedure ? 'Procedure' : 'Function'}
           </Menus.MenuItem>
         </>
       )}
