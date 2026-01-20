@@ -48,8 +48,6 @@ export default function ConnectToServer({ initialConnectionSettings = null, onCl
     toConnectionSettings(initialConnectionSettings)
   );
 
-  console.log('ConnectToServer rendered', {initialConnectionSettings, connectionSettings});
-
   const dataOk = connectionSettings?.serverName && connectionSettings?.userName && connectionSettings.password;
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {

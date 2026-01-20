@@ -8,7 +8,7 @@ namespace MDBNavigator.DAL.Interfaces
     {
         string DataSource { get; }
 
-        Task Connect(ConnectionSettings details);
+        Task Connect(ConnectionSettings details, string? databaseName = null);
         Task Disconnect();
 
         Task<IEnumerable<DatabaseDto>> GetDatabases();

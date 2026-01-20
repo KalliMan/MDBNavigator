@@ -1,6 +1,6 @@
 ﻿namespace MDBNavigator.API.DTOs
 {
-    public class ConnectionSettingsQuery
+    public record ConnectionSettingsQuery
     {
         public required string ServerType { get; set; }
         public required string ServerName { get; set; }

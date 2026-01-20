@@ -18,5 +18,6 @@ export enum NodeType {
   View = 'View',
 
   Loader = 'Loader',
+  Error = 'Error',
 //  DatabasesFolder = "DatabasesFolder"
 }

@@ -1,4 +1,6 @@
-﻿using MDBNavigator.API.Core;
+﻿using FluentValidation;
+using MDBNavigator.API.Core;
+using MDBNavigator.BL.Exceptions;
 using System.Net;
 using System.Text.Json;
 
@@ -27,13 +29,31 @@ namespace MDBNavigator.API.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
-                context.Response.ContentType = "application/json";
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-                var response = _env.IsDevelopment() ?
-                    new AppException(context.Response.StatusCode, ex.Message, ex.StackTrace?.ToString() ?? string.Empty) :
-                    new AppException(context.Response.StatusCode, "Internal Server Error");
+                context.Response.ContentType = "application/json";
+
+                int statusCode;
+                string message;
+
+                switch (ex)
+                {
+                    case NotConnectedException:
+                    case NotSupportedException:
+                    case ValidationException:                        
+                        statusCode = (int)HttpStatusCode.BadRequest;
+                        message = ex.Message;
+                        break;
+                    default:
+                        statusCode = (int)HttpStatusCode.InternalServerError;
+                        message = ex.Message;
+                        break;
+                }
+
+                context.Response.StatusCode = statusCode;
+
+                var response = _env.IsDevelopment()
+                    ? new AppException(statusCode, message, ex.StackTrace?.ToString() ?? string.Empty)
+                    : new AppException(statusCode, message);
 
                 var options = new JsonSerializerOptions
                 {

@@ -1,15 +1,17 @@
-﻿using MDBNavigator.BL.Cache;
-using MDBNavigator.BL.Common;
+﻿using MDBNavigator.BL.BackgroundTaskQueue;
 using MDBNavigator.BL.BatchCommandResultHub;
+using MDBNavigator.BL.Cache;
+using MDBNavigator.BL.Common;
+using MDBNavigator.BL.DTOs;
+using MDBNavigator.BL.Exceptions;
 using MDBNavigator.DAL;
-using Newtonsoft.Json;
-using System.Data;
-using MDBNavigator.BL.BackgroundTaskQueue;
-using Models.Schema;
+using MDBNavigator.DAL.Enums;
+using Microsoft.Extensions.Logging;
 using Models.Command;
 using Models.Connect;
-using MDBNavigator.BL.DTOs;
-using MDBNavigator.DAL.Enums;
+using Models.Schema;
+using Newtonsoft.Json;
+using System.Data;
 
 namespace MDBNavigator.BL.Services
 {
@@ -18,19 +20,63 @@ namespace MDBNavigator.BL.Services
         private readonly IConnectionSettingsMemoryCache _memoryCache;
         private readonly IBatchCommandResultHubProxy _batchCommandResultHubProxy;
         private readonly IBackgroundTaskQueue _backgroundTaskQueue;
+        private readonly ILogger<DBManager> _logger;
 
-        public DBManager(IConnectionSettingsMemoryCache memoryCache, IBackgroundTaskQueue backgroundTaskQueue, IBatchCommandResultHubProxy batchCommandResultHubProxy)
+        public DBManager(IConnectionSettingsMemoryCache memoryCache, IBackgroundTaskQueue backgroundTaskQueue, IBatchCommandResultHubProxy batchCommandResultHubProxy, ILogger<DBManager> logger)
         {
             _memoryCache = memoryCache;
             _batchCommandResultHubProxy = batchCommandResultHubProxy;
             _backgroundTaskQueue = backgroundTaskQueue;
+            _logger = logger;
         }
 
         public async Task<ConnectedResultDto> Connect(string sessionId, ConnectionSettings connectionSettings)
-            => await ConnectInt(sessionId, Guid.NewGuid().ToString(), connectionSettings);
+        {
+            _logger.LogInformation("Connecting session {SessionId} to {ServerName}:{Port} (server type: {ServerType})",
+                sessionId,
+                connectionSettings.ServerName,
+                connectionSettings.Port,
+                connectionSettings.ServerType);
+            try
+            {
+                return await ConnectInt(sessionId, Guid.NewGuid().ToString(), connectionSettings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Connection failed for session {SessionId} to {ServerName}:{Port} (server type: {ServerType})",
+                    sessionId,
+                    connectionSettings.ServerName,
+                    connectionSettings.Port,
+                    connectionSettings.ServerType);
+                throw new ConnectionFailedException("Connection failed!", ex);
+            }
+        }
 
-        public async Task<ConnectedResultDto> Reconnect(string sessionId, string connectionId, ConnectionSettings connectionSettings)        
-            => await ConnectInt(sessionId, connectionId, connectionSettings);
+        public async Task<ConnectedResultDto> Reconnect(string sessionId, string connectionId, ConnectionSettings connectionSettings)
+        {
+            _logger.LogInformation("Reconnecting session {SessionId}, connection {ConnectionId} to {ServerName}:{Port} (server type: {ServerType})",
+                sessionId,
+                connectionId,
+                connectionSettings.ServerName,
+                connectionSettings.Port,
+                connectionSettings.ServerType);
+            try
+            {
+                return await ConnectInt(sessionId, connectionId, connectionSettings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Reconnection failed for session {SessionId}, connection {ConnectionId} to {ServerName}:{Port} (server type: {ServerType})",
+                    sessionId,
+                    connectionId,
+                    connectionSettings.ServerName,
+                    connectionSettings.Port,
+                    connectionSettings.ServerType);
+                throw new ConnectionFailedException("Reconnection failed!", ex);
+            }
+        }
 
         private async Task<ConnectedResultDto> ConnectInt(string sessionId, string connectionId, ConnectionSettings connectionSettings)
         {
@@ -59,12 +105,14 @@ namespace MDBNavigator.BL.Services
 
         public void Disconnect(string sessionId, string connectionId)
         {
+            _logger.LogInformation("Disconnecting session {SessionId}, connection {ConnectionId}", sessionId, connectionId);
             var cachekey = GetSessionConnectionID(sessionId, connectionId);
             _memoryCache.Remove(cachekey);
         }
 
         public async Task<DatabasesDetailsDto> GetDatabases(string sessionId, string connectionId)
         {
+            _logger.LogInformation("Getting databases for session {SessionId}, connection {ConnectionId}", sessionId, connectionId);
             var connection = await CreateConnection(sessionId, connectionId);
             var databases = await connection.GetDatabases();
             return new()
@@ -77,6 +125,10 @@ namespace MDBNavigator.BL.Services
 
         public async Task<TablesDetailsDto> GetTables(string sessionId, string connectionId, string databaseName)
         {
+            _logger.LogInformation("Getting tables for session {SessionId}, connection {ConnectionId}, database {DatabaseName}",
+                sessionId,
+                connectionId,
+                databaseName);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var tables = await connection.GetTables();
             return new()
@@ -90,6 +142,10 @@ namespace MDBNavigator.BL.Services
 
         public async Task<ProceduresDetailsDto> GetStoredProcedures(string sessionId, string connectionId, string databaseName)
         {
+            _logger.LogInformation("Getting stored procedures for session {SessionId}, connection {ConnectionId}, database {DatabaseName}",
+                sessionId,
+                connectionId,
+                databaseName);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var procedures = await connection.GetStoredProcedures();
             return new()
@@ -103,12 +159,21 @@ namespace MDBNavigator.BL.Services
 
         public async Task<string> GetCreateStoredProcedureScript(string sessionId, string connectionId, string databaseName, string schema)
         {
+            _logger.LogInformation("Getting CREATE PROCEDURE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetCreateStoredProcedureScript(schema);
         }
 
         public async Task<ProceduresDetailsDto> GetFunctions(string sessionId, string connectionId, string databaseName)
         {
+            _logger.LogInformation("Getting functions for session {SessionId}, connection {ConnectionId}, database {DatabaseName}",
+                sessionId,
+                connectionId,
+                databaseName);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var functions = await connection.GetFunctions();
             return new()
@@ -122,24 +187,45 @@ namespace MDBNavigator.BL.Services
 
         public async Task<string> GetCreateFunctionProcedureScript(string sessionId, string connectionId, string databaseName, string schema)
         {
+            _logger.LogInformation("Getting CREATE FUNCTION script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetCreateFunctionProcedureScript(schema);
         }
 
         public async Task<string> GetProcedureDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
         {
+            _logger.LogInformation("Getting procedure definition for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, name {Name}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                name);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return await connection.GetProcedureDefinition(schema, name);
         }
 
         public async Task<string> GetDropProcedureScript(string sessionId, string connectionId, string databaseName, string schema, string name)
         {
+            _logger.LogInformation("Getting DROP PROCEDURE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, name {Name}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                name);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetDropProcedureScript(schema, name);
         }
 
         public async Task<ViewDetailsDto> GetViews(string sessionId, string connectionId, string databaseName)
         {
+            _logger.LogInformation("Getting views for session {SessionId}, connection {ConnectionId}, database {DatabaseName}",
+                sessionId,
+                connectionId,
+                databaseName);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             var views = await connection.GetViews();
             return new()
@@ -153,23 +239,48 @@ namespace MDBNavigator.BL.Services
 
         public async Task<string> GetViewDefinition(string sessionId, string connectionId, string databaseName, string schema, string name)
         {
+            _logger.LogInformation("Getting view definition for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, name {Name}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                name);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return await connection.GetViewDefinition(schema, name);
         }
 
         public async Task<string> GetCreateViewScript(string sessionId, string connectionId, string databaseName, string schema)
         {
+            _logger.LogInformation("Getting CREATE VIEW script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetCreateViewScript(schema);
         }
         public async Task<string> GetDropViewScript(string sessionId, string connectionId, string databaseName, string schema, string name)
         {
+            _logger.LogInformation("Getting DROP VIEW script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, name {Name}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                name);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetDropViewScript(schema, name);
         }
 
         public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
         {
+            _logger.LogInformation("Getting top {RecordsNumber} records for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}, command id {CommandId}",
+                recordsNumber,
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                table,
+                id);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
 
             var rawResult = await connection.GetTopNTableRecords(schema, table, recordsNumber);
@@ -195,24 +306,49 @@ namespace MDBNavigator.BL.Services
 
         public async Task<string> GetTopNTableRecordsScript(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
         {
+            _logger.LogInformation("Getting SELECT script for top {RecordsNumber} records for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}, command id {CommandId}",
+                recordsNumber,
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                table,
+                id);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetTopNTableRecordsScript(schema, table, recordsNumber);
         }
 
         public async Task<string> GetCreateTableScript(string sessionId, string connectionId, string databaseName, string schema)
         {
+            _logger.LogInformation("Getting CREATE TABLE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetCreateTableScript(schema);
         }
 
         public async Task<string> GetDropTableScript(string sessionId, string connectionId, string databaseName, string schema, string table)
         {
+            _logger.LogInformation("Getting DROP TABLE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                table);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
             return connection.GetDropTableScript(schema, table);
         }
 
         public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery)
         {
+            _logger.LogInformation("Executing query for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, command id {CommandId}. Query length: {QueryLength}",
+                sessionId,
+                connectionId,
+                databaseName,
+                id,
+                cmdQuery?.Length ?? 0);
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
 
             var rawResult = await connection.ExecuteQuery(cmdQuery);
@@ -266,18 +402,20 @@ namespace MDBNavigator.BL.Services
 
         private async Task<DBConnection> CreateConnection(string sessionId, string connectionId, string? databaseName = null)
         {
+            _logger.LogInformation("Creating DB connection for session {SessionId}, connection {ConnectionId}, database {DatabaseName}",
+                sessionId,
+                connectionId,
+                databaseName ?? "<default>");
             var result = _memoryCache.TryGetValue(GetSessionConnectionID(sessionId, connectionId), out var details);
             if (!result || details == null)
             {
-                throw new Exception("Not Connected! Please reconnect.");
+                _logger.LogWarning("Attempt to create DB connection for not connected session {SessionId}, connection {ConnectionId}",
+                    sessionId,
+                    connectionId);
+                throw new NotConnectedException("Not Connected! Please reconnect.");
             }
 
-            if (!string.IsNullOrEmpty(databaseName))
-            {
-                details.DatabaseName = databaseName;
-            }
-
-            return await DBConnection.CreateConnection(details);
+            return await DBConnection.CreateConnection(details, databaseName);
         }
 
         private static string GetSessionConnectionID(string sessionId, string connectionId)

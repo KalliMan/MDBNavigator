@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using MDBNavigator.DAL.Interfaces;
+using MDBNavigator.PostgreSQL.Modes;
 using Models.Command;
 using Models.Connect;
 using Models.Schema;
@@ -28,7 +29,7 @@ namespace MDBNavigator.PostgreSQL
             await Disconnect();
         }
 
-        public async Task Connect(ConnectionSettings settings)
+        public async Task Connect(ConnectionSettings settings, string? databaseName = null)
         {
             try
             {
@@ -44,9 +45,9 @@ namespace MDBNavigator.PostgreSQL
                     builder.Port = settings.Port;
                 }
 
-                if (!string.IsNullOrEmpty(settings.DatabaseName))
+                if (!string.IsNullOrEmpty(databaseName))
                 {
-                    builder.Database = settings.DatabaseName;
+                    builder.Database = databaseName;
                 }
 
                 _connection = new NpgsqlConnection(builder.ConnectionString);

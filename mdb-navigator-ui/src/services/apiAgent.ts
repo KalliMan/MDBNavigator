@@ -37,9 +37,9 @@ axios.interceptors.response.use(
       toast.error("Network error - cannot connect to the server!");
       return Promise.reject(error);
     }
-
     const { data, status } = error.response as AxiosResponse;
     switch (status) {
+
       case 400:
         if (data.errors) {
           const modalStateErrors = [];
@@ -49,9 +49,9 @@ axios.interceptors.response.use(
             }
           }
 
-          throw modalStateErrors.flat();
+          toast.error(modalStateErrors.flat());
         } else {
-          toast.error(data);
+          toast.error(data.message);
         }
         break;
       case 401:

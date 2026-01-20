@@ -1,7 +1,5 @@
-﻿using AutoMapper;
-using MDBNavigator.BL.Services;
+﻿using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace MDBNavigator.API.Controllers
 {
@@ -9,13 +7,9 @@ namespace MDBNavigator.API.Controllers
     [ApiController]
     public class DatabaseSchemaController : BaseApiController
     {
-        IMemoryCache _memoryCache;
-        IMapper _mapper;
         IDBManager _dbManager;
-        public DatabaseSchemaController(IMemoryCache memoryCache, IMapper mapper, IDBManager dbManager)
+        public DatabaseSchemaController(IDBManager dbManager)
         {
-            _memoryCache = memoryCache;
-            _mapper = mapper;
             _dbManager = dbManager;
         }
 

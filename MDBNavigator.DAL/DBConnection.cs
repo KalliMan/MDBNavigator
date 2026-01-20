@@ -16,10 +16,10 @@ namespace MDBNavigator.DAL
             _dbServer = null!;
         }
 
-        public static async Task<DBConnection> CreateConnection(ConnectionSettings details)
+        public static async Task<DBConnection> CreateConnection(ConnectionSettings details, string? databaseName = null)
         {
             var instance = new DBConnection();
-            await instance.Connect(details);
+            await instance.Connect(details, databaseName);
 
             return instance;
         }
@@ -29,7 +29,7 @@ namespace MDBNavigator.DAL
             get => _dbServer.DataSource;
         }
 
-        private async Task Connect(ConnectionSettings details)
+        private async Task Connect(ConnectionSettings details, string? databaseName = null)
         {
             if (!DBConnectionType.ConnectionTypes.TryGetValue(details.ServerType, out var connectionType))
             {
@@ -47,7 +47,7 @@ namespace MDBNavigator.DAL
                     throw new NotSupportedException($"Server type '{connectionType}' is not supported.");
             }
 
-            await _dbServer.Connect(details);
+            await _dbServer.Connect(details, databaseName);
         }
 
         public async Task<IEnumerable<DatabaseDto>> GetDatabases()

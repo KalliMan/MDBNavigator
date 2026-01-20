@@ -1,4 +1,6 @@
-﻿using MDBNavigator.API.DTOs;
+﻿using FluentValidation;
+using MDBNavigator.API.DTOs;
+using MDBNavigator.API.Validators;
 using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -52,6 +54,9 @@ namespace MDBNavigator.API.Controllers
         [HttpPost()]
         public async Task<IActionResult> Execute([FromBody] DatabaseSQLCommandQuery value)
         {
+            DatabaseSQLCommandQueryValidator validator = new DatabaseSQLCommandQueryValidator();
+            await validator.ValidateAndThrowAsync(value);
+
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;

@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using MDBNavigator.API.DTOs;
+using MDBNavigator.API.Validators;
 using MDBNavigator.BL.Services;
 using Microsoft.AspNetCore.Mvc;
 using Models.Connect;
@@ -22,6 +24,9 @@ namespace MDBNavigator.API.Controllers
         [HttpPost("connect")]
         public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value)
         {
+            ConnectionSettingsQueryValidator validator = new();
+            await validator.ValidateAndThrowAsync(value);
+
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
@@ -36,6 +41,9 @@ namespace MDBNavigator.API.Controllers
         [HttpPost("reconnect/{connectionId}")]
         public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value)
         {
+            ConnectionSettingsQueryValidator validator = new();
+            await validator.ValidateAndThrowAsync(value);
+
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;

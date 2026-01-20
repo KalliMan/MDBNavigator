@@ -1,6 +1,6 @@
-﻿namespace Models.Schema
+﻿namespace MDBNavigator.PostgreSQL.Modes
 {
-    public class ProcedureRaw
+    internal class ProcedureRaw
     {
         public required string DatabaseSchema { get; set; }
         public required string Name { get; set; }
