@@ -4,12 +4,13 @@ import { ConnectionSettings } from '../models/connect/connectionSettings';
 import { TablesDetails } from '../models/schema/tablesDetails';
 import { DatabasesDetails } from '../models/schema/databasesDetails';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
-import { DatabaseCommandResult } from '../models/databaseCommand/result/databaseCommandResult';
 import { toast } from 'react-toastify';
 import { sleep } from '../common/helpers/commonHelpers';
 import { ProceduresDetails } from '../models/schema/proceduresDetails';
 import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/viewsDetails';
+import { DatabaseSingleCommandResult } from '../models/databaseCommand/result/databaseSingleCommandResult';
+import { DatabaseCommandResult } from '../models/databaseCommand/result/databaseCommandResult';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL; //'https://localhost:7262/api';
 
@@ -104,9 +105,11 @@ const databaseSchemaApi = {
 const databaseCommandApi = {
   execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseCommandResult> =>
     requests.post<DatabaseCommandResult>('/databaseCommand', cmdQuery),
+  executeSingle: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseSingleCommandResult> =>
+    requests.post<DatabaseSingleCommandResult>('/databaseCommand/executeSingle', cmdQuery),
 
   getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<DatabaseCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
+    requests.get<DatabaseSingleCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
   getCreateStoredProcedureScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/createStoredProcedureScript/${connectionId}/${databaseName}/${schema}`),
   getCreateFunctionScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
@@ -121,8 +124,8 @@ const databaseCommandApi = {
   getDropViewScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/dropViewScript/${connectionId}/${databaseName}/${schema}/${name}`),
 
-  getTopNTableRecords: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseCommandResult> =>
-    requests.get<DatabaseCommandResult>(`/databaseCommand/tableRecords/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  getTopNTableRecords: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseSingleCommandResult> =>
+    requests.get<DatabaseSingleCommandResult>(`/databaseCommand/tableRecords/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
   getTopNTableRecordsScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
     requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
 

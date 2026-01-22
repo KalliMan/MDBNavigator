@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function DatabaseCommand({ databaseCommandQuery }: Props) {
-  const { executeDatabaseSQLCommand } = useDatabaseCommandContext();
+  const { executeDatabaseSingleSQLCommand, executeDatabaseSQLCommand } = useDatabaseCommandContext();
   const commandQuery = useRef<DatabaseSQLCommandQuery>(databaseCommandQuery);
   const [sqlQuery, setSqlQuery] = useState<string>(
     commandQuery.current.cmdQuery
@@ -27,10 +27,10 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
 
   useEffect(() => {
     if (commandQuery.current.executeImmediately) {
-      executeDatabaseSQLCommand(commandQuery.current);
+      executeDatabaseSingleSQLCommand(commandQuery.current);
       commandQuery.current.executeImmediately = false;
     }
-  }, [commandQuery, executeDatabaseSQLCommand]);
+  }, [commandQuery, executeDatabaseSingleSQLCommand]);
 
   function handleEditorChange(value: string | undefined) {
     setSqlQuery(value || "");

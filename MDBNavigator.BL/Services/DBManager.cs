@@ -271,7 +271,7 @@ namespace MDBNavigator.BL.Services
             return connection.GetDropViewScript(schema, name);
         }
 
-        public async Task<DatabaseCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
+        public async Task<DatabaseSingleCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber)
         {
             _logger.LogInformation("Getting top {RecordsNumber} records for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}, command id {CommandId}",
                 recordsNumber,
@@ -285,9 +285,10 @@ namespace MDBNavigator.BL.Services
 
             var rawResult = await connection.GetTopNTableRecords(schema, table, recordsNumber);
 
-            var result = new DatabaseCommandResultDto()
+            var result = new DatabaseSingleCommandResultDto()
             {
                 Id = id,
+                //CommandIndex = 0,
                 RecordsAffected = rawResult.RecordsAffected,
                 RowCount = rawResult.Result.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
@@ -341,6 +342,38 @@ namespace MDBNavigator.BL.Services
             return connection.GetDropTableScript(schema, table);
         }
 
+        public async Task<DatabaseSingleCommandResultDto> ExecuteSingleQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery)
+        {
+            _logger.LogInformation("Executing query for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, command id {CommandId}. Query length: {QueryLength}",
+                sessionId,
+                connectionId,
+                databaseName,
+                id,
+                cmdQuery?.Length ?? 0);
+
+            if (string.IsNullOrEmpty(cmdQuery))
+            {
+                throw new ArgumentException("Command query is null or empty!", nameof(cmdQuery));
+            }
+
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+
+            var rawResult = await connection.ExecuteSingleQuery(cmdQuery);
+            if (rawResult == null || rawResult.Result == null)
+            {
+                return new DatabaseSingleCommandResultDto()
+                {
+                    Id = id,
+                    RecordsAffected = 0,
+                    RowCount = 0,
+                    Fields = Array.Empty<DatabaseCommandResultFieldDto>(),
+                    ResultJson = "[]"
+                };
+            }
+
+            return ProcessQueryResult(sessionId, id, rawResult.Result);
+        }
+
         public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery)
         {
             _logger.LogInformation("Executing query for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, command id {CommandId}. Query length: {QueryLength}",
@@ -349,41 +382,67 @@ namespace MDBNavigator.BL.Services
                 databaseName,
                 id,
                 cmdQuery?.Length ?? 0);
+
+            if (string.IsNullOrEmpty(cmdQuery))
+            {
+                throw new ArgumentException("Command query is null or empty!", nameof(cmdQuery));
+            }
+
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
-
             var rawResult = await connection.ExecuteQuery(cmdQuery);
+            var commandResults = new List<DatabaseSingleCommandResultDto>();
 
-            var result = new DatabaseCommandResultDto()
+            int queryIndex = 0;
+            foreach (var res in rawResult.Results)
+            {
+                var single = ProcessQueryResult(sessionId, id, res);
+                commandResults.Add(single);
+                queryIndex++;
+            }
+
+            var result = new DatabaseCommandResultDto
             {
                 Id = id,
-                RecordsAffected = rawResult.RecordsAffected,
-                RowCount = rawResult.Result.Rows.Count,
-                Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
-                {
-                    Index = index,
-                    FieldName = rawResult.Result.Columns[index].ColumnName,
-                    FieldType = rawResult.Result.Columns[index].DataType.Name,
-                    FieldDataTypeName = rawResult.Result.Columns[index].DataType.FullName ?? rawResult.Result.Columns[index].DataType.ToString(),
-                }).ToList(),
-
-                ResultJson = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
+                Results = commandResults
             };
 
-            if (rawResult.Result.Rows.Count > Constants.MAX_ROW_BATCH)
+            return result;
+        }
+
+        private DatabaseSingleCommandResultDto ProcessQueryResult(string sessionId, string commandId, DataTable rawResult)
+        {
+            var databaseSingleCommandResultDto = new DatabaseSingleCommandResultDto()
+            {
+                Id = Guid.NewGuid().ToString(),
+                RecordsAffected = rawResult.Rows.Count,
+                RowCount = rawResult.Rows.Count,
+                Fields = Enumerable.Range(0, rawResult.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
+                {
+                    Index = index,
+                    FieldName = rawResult.Columns[index].ColumnName,
+                    FieldType = rawResult.Columns[index].DataType.Name,
+                    FieldDataTypeName = rawResult.Columns[index].DataType.FullName ?? rawResult.Columns[index].DataType.ToString(),
+                }).ToList(),
+
+                ResultJson = JsonConvert.SerializeObject(rawResult.AsEnumerable().Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray))
+            };
+
+            if (rawResult.Rows.Count > Constants.MAX_ROW_BATCH)
             {
                 _backgroundTaskQueue.EnqueueTask(async (serviceScopeFactory, cancellationToken) =>
                 {
                     var skipCount = Constants.MAX_ROW_BATCH;
-                    var maxIndex = ((rawResult.Result.Rows.Count - Constants.MAX_ROW_BATCH) / Constants.MAX_ROW_BATCH) + 1;
-                    for (int i = 0; i < maxIndex && skipCount < rawResult.Result.Rows.Count; ++i)
+                    var maxIndex = ((rawResult.Rows.Count - Constants.MAX_ROW_BATCH) / Constants.MAX_ROW_BATCH) + 1;
+                    for (int i = 0; i < maxIndex && skipCount < rawResult.Rows.Count; ++i)
                     {
-                        var json = JsonConvert.SerializeObject(rawResult.Result.AsEnumerable()
+                        var json = JsonConvert.SerializeObject(rawResult.AsEnumerable()
                             .Skip(skipCount)
                             .Take(Constants.MAX_ROW_BATCH).Select(r => r.ItemArray));
 
                         var batch = new DatabaseCommandBatchResultDto()
                         {
-                            Id = id,
+                            Id = databaseSingleCommandResultDto.Id,
+                            CommandId = commandId,
                             Index = i,
                             ResultJson = json
                         };
@@ -391,13 +450,11 @@ namespace MDBNavigator.BL.Services
                         await _batchCommandResultHubProxy.SendBatchCommandResult(batch, sessionId);
 
                         skipCount += Constants.MAX_ROW_BATCH;
-
-                        System.Diagnostics.Debug.WriteLine(json);
                     }
                 });
             }
 
-            return result;
+            return databaseSingleCommandResultDto;
         }
 
         private async Task<DBConnection> CreateConnection(string sessionId, string connectionId, string? databaseName = null)

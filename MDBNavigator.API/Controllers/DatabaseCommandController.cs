@@ -65,6 +65,20 @@ namespace MDBNavigator.API.Controllers
             return Ok(await _dbManager.ExecuteQuery(sessionId, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery));
         }
 
+        [HttpPost("executeSingle")]
+        public async Task<IActionResult> ExecuteSingle([FromBody] DatabaseSQLCommandQuery value)
+        {
+            DatabaseSQLCommandQueryValidator validator = new DatabaseSQLCommandQueryValidator();
+            await validator.ValidateAndThrowAsync(value);
+
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            return Ok(await _dbManager.ExecuteSingleQuery(sessionId, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery));
+        }
+
         [HttpGet("procedureDefinition/{connectionId}/{databaseName}/{schema}/{name}")]
         public async Task<IActionResult> GetProcedureDefinition(string connectionId, string databaseName, string schema, string name)
         {

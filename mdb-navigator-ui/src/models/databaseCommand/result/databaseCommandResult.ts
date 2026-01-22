@@ -1,8 +1,6 @@
-import { DatabaseCommandResultBase } from "./databaseCommandResultBase";
-import { DatabaseCommandResultField } from "./databaseCommandResultField";
+import { DatabaseSingleCommandResult } from "./databaseSingleCommandResult";
 
-export interface DatabaseCommandResult extends DatabaseCommandResultBase {
-  recordsAffected: number;
-  rowCount: number;
-  fields: DatabaseCommandResultField[];
+export interface DatabaseCommandResult {
+  id: string;
+  results: DatabaseSingleCommandResult[];
 }

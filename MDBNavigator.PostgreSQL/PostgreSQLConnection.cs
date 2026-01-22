@@ -81,7 +81,7 @@ namespace MDBNavigator.PostgreSQL
 
         public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures()
             => await GetProcedures("PROCEDURE");
-        
+
         public string GetCreateStoredProcedureScript(string schema)
         {
             string result =
@@ -219,7 +219,7 @@ WHERE
             return $"DROP VIEW {schema}.{name};";
         }
 
-        public async Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)
+        public async Task<DatabaseSingleCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)
         {
             schema = EnsureValidIdentifier(schema, nameof(schema));
             table = EnsureValidIdentifier(table, nameof(table));
@@ -229,10 +229,10 @@ WHERE
             if (recordsNumber.HasValue && recordsNumber.Value > -1)
             {
                 sql += " LIMIT @Limit";
-                return await ExecuteQuery(sql, new { Limit = recordsNumber.Value });
+                return await ExecuteSingleQuery(sql, new { Limit = recordsNumber.Value });
             }
 
-            return await ExecuteQuery(sql);
+            return await ExecuteSingleQuery(sql);
         }
 
         public string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber)
@@ -268,10 +268,7 @@ WHERE
             return $"DROP TABLE {schema}.\"{table}\"";
         }
 
-        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery)
-            => await ExecuteQuery(cmdQuery, null);
-
-        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters)
+        public async Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null)
         {
             using var reader = await _connection.ExecuteReaderAsync(cmdQuery, parameters);
             DataTable dt = new DataTable();
@@ -281,10 +278,80 @@ WHERE
                 dt.Load(reader);
             }
 
-            return new DatabaseCommandResultRaw()
+            return new DatabaseSingleCommandResultRaw()
             {
                 RecordsAffected = reader.RecordsAffected,
                 Result = dt
+            };
+        }
+
+        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters = null)
+        {
+            using var grid = await _connection.QueryMultipleAsync(cmdQuery, parameters);
+            var results = new List<DataTable>();
+
+            while (!grid.IsConsumed)
+            {
+                var rows = (await grid.ReadAsync()).ToList();
+                var table = new DataTable();
+
+                if (rows.Count > 0)
+                {
+
+                    var firstRow = (IDictionary<string, object>)rows[0];
+                    var columnNames = new Dictionary<string, int>();
+                    foreach (var kvp in firstRow)
+                    {
+                        var baseName = kvp.Key;
+                        var columnName = baseName;
+                        if (columnNames.ContainsKey(baseName))
+                        {
+                            columnNames[baseName]++;
+                            columnName = $"{baseName}_{columnNames[baseName]}";
+                        }
+                        else
+                        {
+                            columnNames[baseName] = 1;
+                        }
+                        var columnType = kvp.Value?.GetType() ?? typeof(object);
+                        table.Columns.Add(columnName, columnType);
+                    }
+
+                    foreach (var rowObj in rows)
+                    {
+                        var dict = (IDictionary<string, object>)rowObj;
+                        var values = new object[table.Columns.Count];
+                        var nameCounts = new Dictionary<string, int>();
+                        int colIdx = 0;
+                        foreach (var kvp in dict)
+                        {
+                            var baseName = kvp.Key;
+                            var columnName = baseName;
+                            if (nameCounts.ContainsKey(baseName))
+                            {
+                                nameCounts[baseName]++;
+                                columnName = $"{baseName}_{nameCounts[baseName]}";
+                            }
+                            else
+                            {
+                                nameCounts[baseName] = 1;
+                            }
+                            // Find the index of this columnName in the DataTable
+                            var idx = table.Columns.IndexOf(columnName);
+                            if (idx >= 0)
+                                values[idx] = kvp.Value ?? DBNull.Value;
+                        }
+                        table.Rows.Add(values);
+                    }
+                }
+
+                results.Add(table);
+            }
+
+            return new DatabaseCommandResultRaw()
+            {
+                RecordsAffected = results.Sum(t => t.Rows.Count),
+                Results = results
             };
         }
 

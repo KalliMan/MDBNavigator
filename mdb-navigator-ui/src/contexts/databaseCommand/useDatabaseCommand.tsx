@@ -14,7 +14,28 @@ export default function useDatabaseCommandContext(){
     throw new Error('useDatabaseCommandContext must be used within a DatabaseCommandContextProvider');
   }
 
-  async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
+  async function executeDatabaseSingleSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
+    context!.dispatch({
+      type: DatabaseCommandActionTypes.Executing,
+      payload: cmdQuery.id
+    });
+
+    try {
+      const result = await agent.databaseCommandApi.executeSingle(cmdQuery);
+
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.SingleResultReceived,
+        payload: result
+      });
+    } catch (error) {
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.Error,
+        payload: error instanceof AxiosError ? error.response?.data?.message ?? error.message : 'Unknown error occurred'
+      });
+    }
+  }
+
+    async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
     context!.dispatch({
       type: DatabaseCommandActionTypes.Executing,
       payload: cmdQuery.id
@@ -35,17 +56,17 @@ export default function useDatabaseCommandContext(){
     }
   }
 
-  async function getTopNTableRecords(id: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
+  async function getTopNTableRecords(connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
     context!.dispatch({
       type: DatabaseCommandActionTypes.Executing,
       payload: id
     });
 
     try {
-      const result = await agent.databaseCommandApi.getTopNTableRecords(id, databaseName, schema, table, recordsNumber);
+      const result = await agent.databaseCommandApi.getTopNTableRecords(connectionId, id, databaseName, schema, table, recordsNumber);
 
       context!.dispatch({
-        type: DatabaseCommandActionTypes.ResultReceived,
+        type: DatabaseCommandActionTypes.SingleResultReceived,
         payload: result
       });
     } catch (error) {
@@ -63,8 +84,9 @@ export default function useDatabaseCommandContext(){
     });
   }
 
-  return { 
+  return {
     commands: context.state.commands,
+    executeDatabaseSingleSQLCommand,
     executeDatabaseSQLCommand,
     getTopNTableRecords,
     onBatchCommandResult,

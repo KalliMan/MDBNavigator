@@ -1,12 +1,14 @@
-import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
+import { DatabaseSingleCommandResult } from "../../models/databaseCommand/result/databaseSingleCommandResult";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
   Queried = 'command/queried',
-  ResultReceived = 'command/ResultReceived',
-  BatchResultReceived = 'command/BatchResultReceived',
+  ResultReceived = 'command/resultReceived',
+  SingleResultReceived = 'command/singleResultReceived',
+  BatchResultReceived = 'command/batchResultReceived',
   Error = 'command/error'
 }
 
@@ -20,9 +22,15 @@ export type CommandQueriedAction = {
   payload: DatabaseSQLCommandQuery;
 }
 
+
 export type CommandResultReceivedAction = {
   type: DatabaseCommandActionTypes.ResultReceived;
   payload: DatabaseCommandResult;
+}
+
+export type CommandSingleResultReceivedAction = {
+  type: DatabaseCommandActionTypes.SingleResultReceived;
+  payload: DatabaseSingleCommandResult;
 }
 
 export type CommandBatchResultReceivedAction = {
@@ -38,5 +46,6 @@ export type ErrorAction = {
 export type DatabaseCommandActions = ExecutingAction
 | CommandQueriedAction
 | CommandResultReceivedAction
+| CommandSingleResultReceivedAction
 | CommandBatchResultReceivedAction
 | ErrorAction;

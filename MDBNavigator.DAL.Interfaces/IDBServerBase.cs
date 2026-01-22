@@ -30,11 +30,12 @@ namespace MDBNavigator.DAL.Interfaces
         string GetCreateViewScript(string schema);
         string GetDropViewScript(string schema, string name);
 
-        Task<DatabaseCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber);
+        Task<DatabaseSingleCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber);
         string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber);
         string GetCreateTableScript(string schema);
         string GetDropTableScript(string schema, string table);
 
-        Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery);
+        Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null);
+        Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters = null);
     }
 }
