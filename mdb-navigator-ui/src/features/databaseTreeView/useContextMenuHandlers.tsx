@@ -43,6 +43,7 @@ export default function useContextMenuHandlers({
     queryCommandProcedureDefinition,
     queryCommandCreateStoredProcedureScript,
     queryCommandViewDefinition,
+    queryCommandCreateNewTableScript,
     queryCommandCreateTableScript,
     queryCommandDropTableScript,
     queryCommandCreateFunctionScript,
@@ -265,12 +266,26 @@ export default function useContextMenuHandlers({
     setContextMenuTarget(EmptyPosition);
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
-      await queryCommandCreateTableScript(
+      await queryCommandCreateNewTableScript(
         nodes.serverNode.id,
         nodes.databaseNode.nodeName
       );
     }
   }
+
+   async function handleCreateTableScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes && targetNode) {
+      await queryCommandCreateTableScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || "",
+        targetNode.nodeName
+      );
+    }
+  }
+
 
   async function handleRefreshTables(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
@@ -343,6 +358,7 @@ export default function useContextMenuHandlers({
     handleRefreshProcedures,
     handleRefreshFunctions,
     handleCreateNewTable,
+    handleCreateTableScript,
     handleRefreshTables,
     handleDeleteTable,
     handleRefreshViews,

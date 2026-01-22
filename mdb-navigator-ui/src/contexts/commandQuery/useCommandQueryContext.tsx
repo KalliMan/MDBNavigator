@@ -144,8 +144,8 @@ export default function useCommandQueryContext(){
     });
   }
 
-  async function queryCommandCreateTableScript(connectionId: string, databaseName: string, schema: string = 'public') {
-    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, schema);
+  async function queryCommandCreateNewTableScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    const createTableQuery = await agent.databaseCommandApi.getCreateNewTableScript(connectionId, databaseName, schema);
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
@@ -162,15 +162,36 @@ export default function useCommandQueryContext(){
     });
   }
 
+  async function queryCommandCreateTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
+
+    const id = uuidv4();
+    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, id, databaseName, schema, table);
+
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id,
+      databaseName,
+      name: `[${schema}].[${table}]`,
+      cmdQuery: createTableQuery,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
+
   async function queryCommandDropTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
-    const createTableQuery = await agent.databaseCommandApi.getDropTableScript(connectionId, databaseName, schema, table);
+    const dropTableScript = await agent.databaseCommandApi.getDropTableScript(connectionId, databaseName, schema, table);
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
       id: uuidv4(),
       databaseName,
       name: `[${schema}].[${table}]`,
-      cmdQuery: createTableQuery,
+      cmdQuery: dropTableScript,
       executeImmediately: false
     };
 
@@ -234,6 +255,7 @@ export default function useCommandQueryContext(){
     queryCommandCreateFunctionScript,
     queryCommandViewDefinition,
     queryCommandCreateViewScript,
+    queryCommandCreateNewTableScript,
     queryCommandCreateTableScript,
     queryCommandDropTableScript,
     queryCommandDropProcedureScript,

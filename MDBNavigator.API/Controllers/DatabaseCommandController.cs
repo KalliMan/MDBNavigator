@@ -29,15 +29,26 @@ namespace MDBNavigator.API.Controllers
         }
 
 
-        [HttpGet("createTableScript/{connectionId}/{databaseName}/{schema}")]
-        public async Task<IActionResult> GetCreateTableScript(string connectionId, string databaseName, string schema)
+        [HttpGet("createNewTableScript/{connectionId}/{databaseName}/{schema}")]
+        public async Task<IActionResult> GetCreateNewTableScript(string connectionId, string databaseName, string schema)
         {
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
             }
 
-            return Ok(await _dbManager.GetCreateTableScript(sessionId, connectionId, databaseName, schema));
+            return Ok(await _dbManager.GetCreateNewTableScript(sessionId, connectionId, databaseName, schema));
+        }
+
+
+        [HttpGet("createTableScript/{connectionId}/{id}/{databaseName}/{schema}/{table}")]
+        public async Task<IActionResult> GetCreateTableScript(string connectionId, string id, string databaseName, string schema, string table)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetCreateTableScript(sessionId, connectionId, id, databaseName, schema, table));
         }
 
         [HttpGet("dropTableScript/{connectionId}/{databaseName}/{schema}/{table}")]

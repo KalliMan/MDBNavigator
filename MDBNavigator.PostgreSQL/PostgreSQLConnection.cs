@@ -4,6 +4,7 @@ using MDBNavigator.PostgreSQL.Modes;
 using Models.Command;
 using Models.Connect;
 using Models.Schema;
+using Newtonsoft.Json;
 using Npgsql;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -248,7 +249,7 @@ WHERE
             return script;
         }
 
-        public string GetCreateTableScript(string schema)
+        public string GetCreateNewTableScript(string schema)
         {
             schema = EnsureValidIdentifier(schema, nameof(schema));
 
@@ -258,6 +259,42 @@ WHERE
                 "\r\n    \"Id\" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 )," +
                 "\r\n    CONSTRAINT \"PK_[MyTable]_Id\" PRIMARY KEY (\"Id\")" +
                 "\r\n);";
+        }
+
+        public async Task<string> GetCreateTableScript(string schema, string table)
+        {
+            schema = EnsureValidIdentifier(schema, nameof(schema));
+            table = EnsureValidIdentifier(table, nameof(table));
+            var sql = string.Format(
+                @"SELECT 
+                    'CREATE TABLE ' || regclass(c.oid) || ' (' || E'\n' ||
+                    (SELECT string_agg('    ' || quote_ident(a.attname) || ' ' || format_type(a.atttypid, a.atttypmod) || 
+                        CASE WHEN a.attnotnull THEN ' NOT NULL' ELSE '' END, E',\n')
+                     FROM pg_attribute a 
+                     WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || E'\n' ||
+                    ');' || E'\n\n' ||
+    
+                    -- Indexes
+                    COALESCE((SELECT string_agg(pg_get_indexdef(i.indexrelid) || ';', E'\n')
+                     FROM pg_index i WHERE i.indrelid = c.oid), '') || E'\n\n' ||
+                    -- Foreign Keys and other constraints
+                    COALESCE((SELECT string_agg('ALTER TABLE ' || quote_ident(c.relname) || ' ADD ' || pg_get_constraintdef(con.oid) || ';', E'\n')
+                     FROM pg_constraint con WHERE con.conrelid = c.oid), '') AS full_ddl
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE c.relname = '{0}'
+                  AND n.nspname = '{1}';",
+                table, schema);
+
+            var rawResult = await ExecuteSingleQuery(sql);
+
+            if (rawResult.Result.Rows.Count > 0 && rawResult.Result.Columns.Count > 0)
+            {
+                var script = rawResult.Result.Rows[0][0].ToString();
+                return script!;
+            }
+
+            return string.Empty;
         }
 
         public string GetDropTableScript(string schema, string table)

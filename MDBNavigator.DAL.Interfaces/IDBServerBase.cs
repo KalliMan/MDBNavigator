@@ -32,7 +32,8 @@ namespace MDBNavigator.DAL.Interfaces
 
         Task<DatabaseSingleCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber);
         string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber);
-        string GetCreateTableScript(string schema);
+        string GetCreateNewTableScript(string schema);
+        Task<string> GetCreateTableScript(string schema, string table);
         string GetDropTableScript(string schema, string table);
 
         Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null);

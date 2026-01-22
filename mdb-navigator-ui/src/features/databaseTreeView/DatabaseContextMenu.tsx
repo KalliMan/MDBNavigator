@@ -20,6 +20,7 @@ interface DatabaseContextMenuProps {
     handleReconnect: (node: TreeViewNodeData | undefined) => void;
     handleNewQueryForDatabase: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleCreateNewTable: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleCreateTableScript: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleNewQueryForTables: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshTables: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleSelectTop100Records: (node: TreeViewNodeData | undefined) => Promise<void>;
@@ -89,6 +90,10 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, isLoa
           </Menus.MenuItem>
           <Menus.MenuItem disabled={isLoading} icon={<PiRows />} onClick={() => handlers.handleSelectAllRecords(currentNode)}>
             Select All Records
+          </Menus.MenuItem>
+
+          <Menus.MenuItem disabled={isLoading} icon={<PiRows />} onClick={() => handlers.handleCreateTableScript(currentNode)}>
+            Get Create Script
           </Menus.MenuItem>
           <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleDeleteTable(currentNode)}>
             Delete Table

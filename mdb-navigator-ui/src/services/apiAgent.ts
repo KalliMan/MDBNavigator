@@ -128,8 +128,10 @@ const databaseCommandApi = {
   getTopNTableRecordsScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
     requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
 
-  getCreateTableScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createTableScript/${connectionId}/${databaseName}/${schema}`),
+  getCreateNewTableScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createNewTableScript/${connectionId}/${databaseName}/${schema}`),
+  getCreateTableScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createTableScript/${connectionId}/${id}/${databaseName}/${schema}/${table}`),
   getDropTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/dropTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
 }

@@ -75,10 +75,8 @@ namespace MDBNavigator.DAL
 
         public async Task<string> GetViewDefinition(string schema, string name)
             => await _dbServer.GetViewDefinition(schema, name);
-
         public string GetCreateViewScript(string schema)
             => _dbServer.GetCreateViewScript(schema);
-
         public  string GetDropViewScript(string schema, string name)
             => _dbServer.GetDropViewScript(schema, name);
 
@@ -87,11 +85,12 @@ namespace MDBNavigator.DAL
 
         public string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber)
             => _dbServer.GetTopNTableRecordsScript(schema, table, recordsNumber);
-        public string GetCreateTableScript(string schema)
-          => _dbServer.GetCreateTableScript(schema);
-
+        public string GetCreateNewTableScript(string schema)
+          => _dbServer.GetCreateNewTableScript(schema);
+        public async Task<string> GetCreateTableScript(string schema, string table)
+          => await _dbServer.GetCreateTableScript(schema, table);
         public string GetDropTableScript(string schema, string table)
-          => _dbServer.GetDropTableScript(schema, table);
+          => _dbServer.GetDropTableScript(schema, table);        
 
         public async Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery)
             => await _dbServer.ExecuteSingleQuery(cmdQuery);
