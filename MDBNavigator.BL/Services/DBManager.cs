@@ -288,7 +288,6 @@ namespace MDBNavigator.BL.Services
             var result = new DatabaseSingleCommandResultDto()
             {
                 Id = id,
-                //CommandIndex = 0,
                 RecordsAffected = rawResult.RecordsAffected,
                 RowCount = rawResult.Result.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Result.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()
@@ -371,7 +370,7 @@ namespace MDBNavigator.BL.Services
                 };
             }
 
-            return ProcessQueryResult(sessionId, id, rawResult.Result);
+            return ProcessQueryResult(sessionId, id, id, rawResult.Result);
         }
 
         public async Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery)
@@ -395,7 +394,7 @@ namespace MDBNavigator.BL.Services
             int queryIndex = 0;
             foreach (var res in rawResult.Results)
             {
-                var single = ProcessQueryResult(sessionId, id, res);
+                var single = ProcessQueryResult(sessionId, id, Guid.NewGuid().ToString() ,res);
                 commandResults.Add(single);
                 queryIndex++;
             }
@@ -409,11 +408,11 @@ namespace MDBNavigator.BL.Services
             return result;
         }
 
-        private DatabaseSingleCommandResultDto ProcessQueryResult(string sessionId, string commandId, DataTable rawResult)
+        private DatabaseSingleCommandResultDto ProcessQueryResult(string sessionId, string commandId, string id, DataTable rawResult)
         {
             var databaseSingleCommandResultDto = new DatabaseSingleCommandResultDto()
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = id,
                 RecordsAffected = rawResult.Rows.Count,
                 RowCount = rawResult.Rows.Count,
                 Fields = Enumerable.Range(0, rawResult.Columns.Count).Select(index => new DatabaseCommandResultFieldDto()

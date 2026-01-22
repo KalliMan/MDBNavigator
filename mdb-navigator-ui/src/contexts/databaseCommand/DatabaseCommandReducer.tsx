@@ -116,11 +116,6 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
 
     case DatabaseCommandActionTypes.BatchResultReceived: {
       const batchResult = action.payload;
-      // const existingDatabaseCommand = state.commands.find(c => c.id === batchResult.commandId);
-      // if (!existingDatabaseCommand) {
-      //   return {...state};
-      // }
-
       return {
         commands: state.commands.map(c =>
           c.id === batchResult.commandId

@@ -287,68 +287,35 @@ WHERE
 
         public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters = null)
         {
-            using var grid = await _connection.QueryMultipleAsync(cmdQuery, parameters);
-            var results = new List<DataTable>();
-
-            while (!grid.IsConsumed)
+            await using var command = new NpgsqlCommand(cmdQuery, _connection);
+            if (parameters != null)
             {
-                var rows = (await grid.ReadAsync()).ToList();
-                var table = new DataTable();
-
-                if (rows.Count > 0)
+                var props = parameters.GetType().GetProperties();
+                foreach (var prop in props)
                 {
-
-                    var firstRow = (IDictionary<string, object>)rows[0];
-                    var columnNames = new Dictionary<string, int>();
-                    foreach (var kvp in firstRow)
-                    {
-                        var baseName = kvp.Key;
-                        var columnName = baseName;
-                        if (columnNames.ContainsKey(baseName))
-                        {
-                            columnNames[baseName]++;
-                            columnName = $"{baseName}_{columnNames[baseName]}";
-                        }
-                        else
-                        {
-                            columnNames[baseName] = 1;
-                        }
-                        var columnType = kvp.Value?.GetType() ?? typeof(object);
-                        table.Columns.Add(columnName, columnType);
-                    }
-
-                    foreach (var rowObj in rows)
-                    {
-                        var dict = (IDictionary<string, object>)rowObj;
-                        var values = new object[table.Columns.Count];
-                        var nameCounts = new Dictionary<string, int>();
-                        int colIdx = 0;
-                        foreach (var kvp in dict)
-                        {
-                            var baseName = kvp.Key;
-                            var columnName = baseName;
-                            if (nameCounts.ContainsKey(baseName))
-                            {
-                                nameCounts[baseName]++;
-                                columnName = $"{baseName}_{nameCounts[baseName]}";
-                            }
-                            else
-                            {
-                                nameCounts[baseName] = 1;
-                            }
-                            // Find the index of this columnName in the DataTable
-                            var idx = table.Columns.IndexOf(columnName);
-                            if (idx >= 0)
-                                values[idx] = kvp.Value ?? DBNull.Value;
-                        }
-                        table.Rows.Add(values);
-                    }
+                    var value = prop.GetValue(parameters) ?? DBNull.Value;
+                    command.Parameters.AddWithValue(prop.Name, value);
                 }
-
-                results.Add(table);
             }
 
-            return new DatabaseCommandResultRaw()
+            await using var reader = await command.ExecuteReaderAsync();
+            var results = new List<DataTable>();
+
+            while (!reader.IsClosed && reader.HasRows)
+            {
+                var table = new DataTable();
+
+                table.BeginLoadData();
+                table.Load(reader);
+                table.EndLoadData();
+
+                if (table.Columns.Count > 0)
+                {
+                    results.Add(table);
+                }
+            }
+
+            return new DatabaseCommandResultRaw
             {
                 RecordsAffected = results.Sum(t => t.Rows.Count),
                 Results = results

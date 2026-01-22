@@ -4,7 +4,7 @@ import Tabs from '../ui/tabs/Tabs';
 import { v4 as uuidv4 } from 'uuid';
 import DatabaseCommandAndResult from '../features/databaseCommand/DatabaseCommandAndResult';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
-import useCommandQueryContext from '../contexts/commandQuery/useDatabaseCommand';
+import useCommandQueryContext from '../contexts/commandQuery/useCommandQueryContext';
 
 interface TabData {
   id: string;

@@ -36,7 +36,6 @@ export function DatabaseCommandSingleResultView({isExecuting, databaseCommandRes
     let allRows = [...initialRows];
 
     const queryBatchResults = batchResults.filter(b => b.id === databaseCommandResult.id);
-    console.log('Batch results for command:', queryBatchResults);
 
     if (queryBatchResults && queryBatchResults.length > 0) {
       const sortedBatches = [...queryBatchResults].sort((a, b) => a.index - b.index);
@@ -60,7 +59,7 @@ export function DatabaseCommandSingleResultView({isExecuting, databaseCommandRes
 
   return (
     <>
-      <div className="overflow-x-auto overflow-y-auto max-h-[30vh]">
+      <div>
       { !fields || fields.length === 0 && (
         <span>{recordsAffected} records affected</span>
       )}

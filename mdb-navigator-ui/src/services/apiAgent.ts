@@ -13,8 +13,7 @@ import { DatabaseSingleCommandResult } from '../models/databaseCommand/result/da
 import { DatabaseCommandResult } from '../models/databaseCommand/result/databaseCommandResult';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL; //'https://localhost:7262/api';
-
-console.log(axios.defaults.baseURL);
+//console.log(axios.defaults.baseURL);
 
 axios.interceptors.request.use((config) => {
   if (config.headers) {

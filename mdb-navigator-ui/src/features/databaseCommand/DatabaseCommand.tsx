@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Button from "../../ui/common/Button";
 import { ButtonType } from "../../ui/common/ButtonType.enum";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
-import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommand";
+import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;

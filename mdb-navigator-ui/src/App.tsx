@@ -6,7 +6,7 @@ import NavBar from "./layout/NavBar";
 import Loader from "./ui/loader/Loader";
 import ModalWindow from "./ui/modalWindow/ModalWindow";
 import VerticalSidebar from "./ui/sidebar/VerticalSidebar";
-import useDatabaseCommandContext from "./contexts/databaseCommand/useDatabaseCommand";
+import useDatabaseCommandContext from "./contexts/databaseCommand/useDatabaseCommandContext";
 import useCommandBatchResultNotifications from "./common/sharedHooks/useCommandBatchResultNotifications";
 import { ServerType } from "./types/serverTypeOptions";
 

@@ -5,7 +5,7 @@ import { findNode } from "../../ui/treeView/treeViewUtils";
 import { getDatabaseParentNode, getNodeHierarchy, getServerNodeFromDatabaseNode, hasLoaderNode } from "./databaseTreeViewUtils";
 import { NodeType } from "./NodeType";
 import useDatabaseSchemaContext from "../../contexts/databaseSchema/useDatabaseSchema";
-import useCommandQueryContext from "../../contexts/commandQuery/useDatabaseCommand";
+import useCommandQueryContext from "../../contexts/commandQuery/useCommandQueryContext";
 import useDatabaseConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
 
 interface UseContextMenuHandlersProps {
@@ -126,7 +126,7 @@ export default function useContextMenuHandlers({
 
   async function handleSelectTop100Records(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
-    await selectTopNRecords(targetNode, 1000);
+    await selectTopNRecords(targetNode, 100);
   }
 
   async function handleSelectAllRecords(targetNode: TreeViewNodeData | undefined) {

@@ -19,7 +19,8 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
 
   return (<>
     {databaseCommandResults.map((res, index) => (
-      <div key={index} className="mb-4 overflow-x-auto overflow-y-auto bg-white dark:bg-neutral-700">
+      <div key={index}
+        className={`mb-4 overflow-x-auto overflow-y-auto bg-white dark:bg-neutral-700 ${databaseCommandResults.length > 1 ? 'max-h-[30vh]' : ''}`}>
         <DatabaseCommandSingleResultView
           isExecuting={isExecuting}
           databaseCommandResult={res}
