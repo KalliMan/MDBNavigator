@@ -41,14 +41,14 @@ namespace MDBNavigator.API.Controllers
         }
 
 
-        [HttpGet("createTableScript/{connectionId}/{id}/{databaseName}/{schema}/{table}")]
-        public async Task<IActionResult> GetCreateTableScript(string connectionId, string id, string databaseName, string schema, string table)
+        [HttpGet("createTableScript/{connectionId}/{databaseName}/{schema}/{table}")]
+        public async Task<IActionResult> GetCreateTableScript(string connectionId, string databaseName, string schema, string table)
         {
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
             }
-            return Ok(await _dbManager.GetCreateTableScript(sessionId, connectionId, id, databaseName, schema, table));
+            return Ok(await _dbManager.GetCreateTableScript(sessionId, connectionId, databaseName, schema, table));
         }
 
         [HttpGet("dropTableScript/{connectionId}/{databaseName}/{schema}/{table}")]
@@ -60,6 +60,16 @@ namespace MDBNavigator.API.Controllers
             }
 
             return Ok(await _dbManager.GetDropTableScript(sessionId, connectionId, databaseName, schema, table));
+        }
+
+        [HttpGet("insertTableScript/{connectionId}/{databaseName}/{schema}/{table}")]
+        public async Task<IActionResult> GetInsertTableScript(string connectionId, string databaseName, string schema, string table)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+            return Ok(await _dbManager.GetInsertTableScript(sessionId, connectionId, databaseName, schema, table));
         }
 
         [HttpPost()]

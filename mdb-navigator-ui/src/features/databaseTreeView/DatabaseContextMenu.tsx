@@ -6,7 +6,7 @@ import { PiPlugsConnectedFill, PiRows } from "react-icons/pi";
 import { BsFiletypeSql } from "react-icons/bs";
 import { TiDelete } from "react-icons/ti";
 import { GrNewWindow, GrRefresh, GrTableAdd } from "react-icons/gr";
-import { TbPlugConnected, TbPlugConnectedX } from "react-icons/tb";
+import { TbPlugConnected, TbPlugConnectedX, TbRowInsertBottom, TbTablePlus, TbTrash } from "react-icons/tb";
 import { RiFunctionAddFill, RiFunctionAddLine } from "react-icons/ri";
 
 interface DatabaseContextMenuProps {
@@ -22,10 +22,11 @@ interface DatabaseContextMenuProps {
     handleCreateNewTable: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleCreateTableScript: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleNewQueryForTables: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleInsertTableScript: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshTables: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleSelectTop100Records: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleSelectAllRecords: (node: TreeViewNodeData | undefined) => Promise<void>;
-    handleDeleteTable: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleDropTable: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshProcedures: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshFunctions: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleQueryCreateStoredProcedureScript: (node: TreeViewNodeData | undefined) => Promise<void>;
@@ -92,12 +93,19 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, isLoa
             Select All Records
           </Menus.MenuItem>
 
-          <Menus.MenuItem disabled={isLoading} icon={<PiRows />} onClick={() => handlers.handleCreateTableScript(currentNode)}>
-            Get Create Script
+          <Menus.MenuItemSeparator />
+          <Menus.MenuItem disabled={isLoading} icon={<TbTablePlus />} onClick={() => handlers.handleCreateTableScript(currentNode)}>
+            Create Table Script
           </Menus.MenuItem>
-          <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleDeleteTable(currentNode)}>
-            Delete Table
+          <Menus.MenuItem disabled={isLoading} icon={<TbTrash />} onClick={() => handlers.handleDropTable(currentNode)}>
+            Drop Table Script
           </Menus.MenuItem>
+
+          <Menus.MenuItemSeparator />
+          <Menus.MenuItem disabled={isLoading} icon={<TbRowInsertBottom />} onClick={() => handlers.handleInsertTableScript(currentNode)}>
+            Insert Table Rows Script
+          </Menus.MenuItem>
+
         </>
       )}
 
@@ -125,8 +133,8 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, isLoa
           <Menus.MenuItem disabled={isLoading} icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryProcedureDefinition(currentNode)}>
             Query Definition
           </Menus.MenuItem>
-          <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
-            Drop {currentNodeType === NodeType.StoredProcedure ? 'Procedure' : 'Function'}
+          <Menus.MenuItem disabled={isLoading} icon={<TbTrash />} onClick={() => handlers.handleQueryDropProcedureScript(currentNode)}>
+            Drop {currentNodeType === NodeType.StoredProcedure ? 'Procedure' : 'Function'} Script
           </Menus.MenuItem>
         </>
       )}
@@ -145,8 +153,8 @@ export default function DatabaseContextMenu({ targetPosition, currentNode, isLoa
           <Menus.MenuItem disabled={isLoading} icon={<BsFiletypeSql />} onClick={() => handlers.handleQueryViewDefinition(currentNode)}>
             Query Definition
           </Menus.MenuItem>
-          <Menus.MenuItem disabled={isLoading} icon={<TiDelete />} onClick={() => handlers.handleQueryDropViewScript(currentNode)}>
-            Drop View
+          <Menus.MenuItem disabled={isLoading} icon={<TbTrash />} onClick={() => handlers.handleQueryDropViewScript(currentNode)}>
+            Drop View Script
           </Menus.MenuItem>
         </>
       )}

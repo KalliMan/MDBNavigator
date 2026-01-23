@@ -330,6 +330,19 @@ namespace MDBNavigator.BL.Services
             return connection.GetCreateNewTableScript(schema);
         }
 
+        public async Task<string> GetCreateTableScript(string sessionId, string connectionId, string databaseName, string schema, string table)
+        {
+            _logger.LogInformation("Getting CREATE TABLE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                table);
+
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            return await connection.GetCreateTableScript(schema, table);
+        }
+
         public async Task<string> GetDropTableScript(string sessionId, string connectionId, string databaseName, string schema, string table)
         {
             _logger.LogInformation("Getting DROP TABLE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}",
@@ -342,17 +355,16 @@ namespace MDBNavigator.BL.Services
             return connection.GetDropTableScript(schema, table);
         }
 
-        public async Task<string> GetCreateTableScript(string sessionId, string connectionId, string id, string databaseName, string schema, string table)
+        public async Task<string> GetInsertTableScript(string sessionId, string connectionId, string databaseName, string schema, string table)
         {
-            _logger.LogInformation("Getting CREATE TABLE script for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}",
+            _logger.LogInformation("Getting INSERT script for table for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}",
                 sessionId,
                 connectionId,
                 databaseName,
                 schema,
                 table);
-
             await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
-            return await connection.GetCreateTableScript(schema, table);
+            return await connection.GetInsertTableScript(schema, table);
         }
 
         public async Task<DatabaseSingleCommandResultDto> ExecuteSingleQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery)

@@ -45,6 +45,7 @@ export default function useContextMenuHandlers({
     queryCommandViewDefinition,
     queryCommandCreateNewTableScript,
     queryCommandCreateTableScript,
+    queryCommandInsertTableScript,
     queryCommandDropTableScript,
     queryCommandCreateFunctionScript,
     queryCommandCreateViewScript,
@@ -286,6 +287,18 @@ export default function useContextMenuHandlers({
     }
   }
 
+  async function handleInsertTableScript(targetNode: TreeViewNodeData | undefined) {
+    setContextMenuTarget(EmptyPosition);
+    const nodes = getNodeHierarchy(targetNode);
+    if (nodes && targetNode) {
+      await queryCommandInsertTableScript(
+        nodes.serverNode.id,
+        nodes.databaseNode.nodeName,
+        targetNode?.metaData || "",
+        targetNode.nodeName
+      );
+    }
+  }
 
   async function handleRefreshTables(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
@@ -296,7 +309,7 @@ export default function useContextMenuHandlers({
     }
   }
 
-  async function handleDeleteTable(targetNode: TreeViewNodeData | undefined) {
+  async function handleDropTable(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
     if (!targetNode) {
@@ -359,8 +372,9 @@ export default function useContextMenuHandlers({
     handleRefreshFunctions,
     handleCreateNewTable,
     handleCreateTableScript,
+    handleInsertTableScript,
     handleRefreshTables,
-    handleDeleteTable,
+    handleDropTable,
     handleRefreshViews,
     handleQueryDropProcedureScript,
     handleQueryDropViewScript,

@@ -4,7 +4,6 @@ using MDBNavigator.PostgreSQL.Modes;
 using Models.Command;
 using Models.Connect;
 using Models.Schema;
-using Newtonsoft.Json;
 using Npgsql;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -12,7 +11,7 @@ using static Dapper.SqlMapper;
 
 namespace MDBNavigator.PostgreSQL
 {
-    public class PostgreSQLConnection : IDBServerBase
+    public class PostgreSQLServer : IDBServerBase
     {
         NpgsqlConnection _connection = null!;
 
@@ -265,6 +264,7 @@ WHERE
         {
             schema = EnsureValidIdentifier(schema, nameof(schema));
             table = EnsureValidIdentifier(table, nameof(table));
+
             var sql = string.Format(
                 @"SELECT 
                     'CREATE TABLE ' || regclass(c.oid) || ' (' || E'\n' ||
@@ -283,18 +283,9 @@ WHERE
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE c.relname = '{0}'
-                  AND n.nspname = '{1}';",
-                table, schema);
+                  AND n.nspname = '{1}';", table, schema);
 
-            var rawResult = await ExecuteSingleQuery(sql);
-
-            if (rawResult.Result.Rows.Count > 0 && rawResult.Result.Columns.Count > 0)
-            {
-                var script = rawResult.Result.Rows[0][0].ToString();
-                return script!;
-            }
-
-            return string.Empty;
+            return await GetTableScript(sql);
         }
 
         public string GetDropTableScript(string schema, string table)
@@ -303,6 +294,42 @@ WHERE
             table = EnsureValidIdentifier(table, nameof(table));
 
             return $"DROP TABLE {schema}.\"{table}\"";
+        }
+
+        public async Task<string> GetInsertTableScript(string schema, string table)
+        {
+            schema = EnsureValidIdentifier(schema, nameof(schema));
+            table = EnsureValidIdentifier(table, nameof(table));
+
+            var sql = string.Format(
+                @"SELECT 
+'INSERT INTO ' || regclass(c.oid) || ' (' ||
+(SELECT string_agg(quote_ident(a.attname), ', ')
+ FROM pg_attribute a 
+ WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || ')
+VALUES (' ||
+(SELECT string_agg('DEFAULT', ', ')
+ FROM pg_attribute a 
+ WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || ');' AS insert_ddl
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE c.relname = '{0}'
+                  AND n.nspname = '{1}';", table, schema);
+
+            return await GetTableScript(sql);
+        }
+
+        private async Task<string> GetTableScript(string sqlScript)
+        {
+            var rawResult = await ExecuteSingleQuery(sqlScript);
+
+            if (rawResult.Result.Rows.Count > 0 && rawResult.Result.Columns.Count > 0)
+            {
+                var script = rawResult.Result.Rows[0][0].ToString();
+                return script!;
+            }
+
+            return string.Empty;
         }
 
         public async Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null)

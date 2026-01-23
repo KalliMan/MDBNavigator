@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import MenuItem from './MenuItem';
 import useOutsideClick from '../../common/sharedHooks/useOutsideClick';
 import { CoordPosition, EmptyPosition } from '../../types/coordPosition';
+import { MenuItemSeparator } from './MenuItemSeparator';
 
 export interface Props {
   id: string;
@@ -34,5 +35,6 @@ function Menus({ children, clickedOutside, targetPosition }: React.PropsWithChil
 }
 
 Menus.MenuItem = MenuItem;
+Menus.MenuItemSeparator = MenuItemSeparator;
 
 export default Menus;

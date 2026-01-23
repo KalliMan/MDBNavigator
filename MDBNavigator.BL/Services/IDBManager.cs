@@ -28,8 +28,9 @@ namespace MDBNavigator.BL.Services
         Task<DatabaseSingleCommandResultDto> GetTopNTableRecords(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber);
         Task<string> GetTopNTableRecordsScript(string id, string sessionId, string connectionId, string databaseName, string schema, string table, int? recordsNumber);
         Task<string> GetCreateNewTableScript(string sessionId, string connectionId, string databaseName, string schema);
+        Task<string> GetCreateTableScript(string sessionId, string connectionId, string databaseName, string schema, string table);
         Task<string> GetDropTableScript(string sessionId, string connectionId, string databaseName, string schema, string table);
-        Task<string> GetCreateTableScript(string sessionId, string connectionId, string id, string databaseName, string schema, string table);
+        Task<string> GetInsertTableScript(string sessionId, string connectionId, string databaseName, string schema, string table);
 
         Task<DatabaseSingleCommandResultDto> ExecuteSingleQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery);
         Task<DatabaseCommandResultDto> ExecuteQuery(string sessionId, string connectionId, string id, string databaseName, string cmdQuery);

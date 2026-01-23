@@ -35,6 +35,7 @@ namespace MDBNavigator.DAL.Interfaces
         string GetCreateNewTableScript(string schema);
         Task<string> GetCreateTableScript(string schema, string table);
         string GetDropTableScript(string schema, string table);
+        Task<string> GetInsertTableScript(string schema, string table);
 
         Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null);
         Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters = null);

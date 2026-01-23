@@ -130,10 +130,12 @@ const databaseCommandApi = {
 
   getCreateNewTableScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/createNewTableScript/${connectionId}/${databaseName}/${schema}`),
-  getCreateTableScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createTableScript/${connectionId}/${id}/${databaseName}/${schema}/${table}`),
+  getCreateTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
   getDropTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/dropTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
+  getInsertTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/insertTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
 }
 
 const agent = {

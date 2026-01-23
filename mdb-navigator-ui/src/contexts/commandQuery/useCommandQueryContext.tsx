@@ -165,7 +165,7 @@ export default function useCommandQueryContext(){
   async function queryCommandCreateTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
 
     const id = uuidv4();
-    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, id, databaseName, schema, table);
+    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, schema, table);
 
     const query: DatabaseSQLCommandQuery = {
       connectionId,
@@ -173,6 +173,25 @@ export default function useCommandQueryContext(){
       databaseName,
       name: `[${schema}].[${table}]`,
       cmdQuery: createTableQuery,
+      executeImmediately: false
+    };
+
+    context!.dispatch({
+      type: CommandQueryActionTypes.Queried,
+      payload: query
+    });
+  }
+
+  async function queryCommandInsertTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
+    const id = uuidv4();
+    const insertTableQuery = await agent.databaseCommandApi.getInsertTableScript(connectionId, databaseName, schema, table);
+
+    const query: DatabaseSQLCommandQuery = {
+      connectionId,
+      id,
+      databaseName,
+      name: `[${schema}].[${table}]`,
+      cmdQuery: insertTableQuery,
       executeImmediately: false
     };
 
@@ -257,6 +276,7 @@ export default function useCommandQueryContext(){
     queryCommandCreateViewScript,
     queryCommandCreateNewTableScript,
     queryCommandCreateTableScript,
+    queryCommandInsertTableScript,
     queryCommandDropTableScript,
     queryCommandDropProcedureScript,
     queryCommandDropViewScript,

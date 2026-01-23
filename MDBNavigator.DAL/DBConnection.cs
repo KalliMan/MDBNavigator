@@ -39,7 +39,7 @@ namespace MDBNavigator.DAL
             switch (connectionType)
             {
                 case Enums.ServerType.PostgreSQL:
-                    _dbServer = new PostgreSQL.PostgreSQLConnection();
+                    _dbServer = new PostgreSQL.PostgreSQLServer();
                     break;
                 case Enums.ServerType.MSSQLServer:
                     throw new NotSupportedException("MS SQL Server provider is not implemented yet.");
@@ -90,7 +90,9 @@ namespace MDBNavigator.DAL
         public async Task<string> GetCreateTableScript(string schema, string table)
           => await _dbServer.GetCreateTableScript(schema, table);
         public string GetDropTableScript(string schema, string table)
-          => _dbServer.GetDropTableScript(schema, table);        
+          => _dbServer.GetDropTableScript(schema, table);
+        public async Task<string> GetInsertTableScript(string schema, string table)
+            => await _dbServer.GetInsertTableScript(schema, table);
 
         public async Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery)
             => await _dbServer.ExecuteSingleQuery(cmdQuery);
