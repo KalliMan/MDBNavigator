@@ -10,13 +10,14 @@ export default defineConfig({
     strictPort: true,
   },
   build: {
-    outDir: '../MDBNavigator.API/wwwroot',
+//    outDir: '../MDBNavigator.API/wwwroot',
+    outDir: 'dist',
   },
   server: {
     port: 3000,
     strictPort: true,
     host: true,
-    origin: 'Https://0.0.0.0:3000',
-    allowedHosts: ['mdbnavigator-ui.wonderfulglacier-2c666d8f.westus2.azurecontainerapps.io']
+//    origin: 'Https://0.0.0.0:3000',
+//    allowedHosts: ['mdbnavigator-ui.wonderfulglacier-2c666d8f.westus2.azurecontainerapps.io']
   }
 })

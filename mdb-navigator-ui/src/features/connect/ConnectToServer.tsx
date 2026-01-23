@@ -90,7 +90,7 @@ export default function ConnectToServer({ initialConnectionSettings = null, onCl
             label="Port:"
             type="number"
             placeholder="Type Port here..."
-            initialValue={connectionSettings.port.toString()}
+            initialValue={connectionSettings.port?.toString()}
             onChange={val =>
               setConnectionSettings({ ...connectionSettings, port: +val })}
           />

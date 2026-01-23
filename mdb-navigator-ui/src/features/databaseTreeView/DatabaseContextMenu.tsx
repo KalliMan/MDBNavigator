@@ -4,7 +4,6 @@ import { CoordPosition } from "../../types/coordPosition";
 import { NodeType } from "./NodeType";
 import { PiPlugsConnectedFill, PiRows } from "react-icons/pi";
 import { BsFiletypeSql } from "react-icons/bs";
-import { TiDelete } from "react-icons/ti";
 import { GrNewWindow, GrRefresh, GrTableAdd } from "react-icons/gr";
 import { TbPlugConnected, TbPlugConnectedX, TbRowInsertBottom, TbTablePlus, TbTrash } from "react-icons/tb";
 import { RiFunctionAddFill, RiFunctionAddLine } from "react-icons/ri";

@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿//using Microsoft.AspNetCore.Authorization;
+//using Microsoft.AspNetCore.Mvc;
 
-namespace MDBNavigator.API.Controllers
-{
-    [AllowAnonymous]
-    public class FallbackController : Controller
-    {
-        public IActionResult Index()
-        {
-            return PhysicalFile(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"), "text/HTML");
-        }
-    }
-}
+//namespace MDBNavigator.API.Controllers
+//{
+//    [AllowAnonymous]
+//    public class FallbackController : Controller
+//    {
+//        public IActionResult Index()
+//        {
+//            return PhysicalFile(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"), "text/html");
+////            return PhysicalFile(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"), "text/html");
+//        }
+//    }
+//}
