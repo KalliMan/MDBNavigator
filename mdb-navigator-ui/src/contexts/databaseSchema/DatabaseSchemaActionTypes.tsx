@@ -1,12 +1,14 @@
-import { DatabasesDetails } from "../../models/schema/databasesDetails";
-import { ProceduresDetails } from "../../models/schema/proceduresDetails";
-import { TablesDetails } from "../../models/schema/tablesDetails";
-import { ViewDetails } from "../../models/schema/viewsDetails";
+import { DatabasesDetails } from "../../models/schema/database/databasesDetails";
+import { ProceduresDetails } from "../../models/schema/procedure/proceduresDetails";
+import TableDefinitionDetails from "../../models/schema/table/tableDefinitionDetails";
+import { TablesDetails } from "../../models/schema/table/tablesDetails";
+import { ViewDetails } from "../../models/schema/view/viewsDetails";
 import { DatabaseSchema } from "./DatabaseSchemaReducer";
 
 export enum DatabaseSchemaErrorScope {
   Databases = "databases",
   Tables = "tables",
+  TableDefinition = "tableDefinition",
   Procedures = "procedures",
   Functions = "functions",
   Views = "views",
@@ -16,7 +18,10 @@ export enum DatabaseSchemaActionTypes {
   Loading = 'schema/loading',
   AddedSchema = 'schema/addedSchema',
   FetchedDatabases = 'schema/fetchedDatabases',
+
   FetchedTables = 'schema/fetchedTables',
+  FetchedTableDefinition = 'schema/fetchedTableDefinition',
+
   FetchedStoredProcedures = 'schema/fetchedStoredProcedures',
   FetchedFunctions = 'schema/fetchedFunctions',
   FetchedViews = 'schema/fetchedViews',
@@ -44,6 +49,11 @@ export type FetchedDatabasesAction = {
 export type FetchedTablesAction = {
   type: DatabaseSchemaActionTypes.FetchedTables;
   payload: TablesDetails;
+};
+
+export type FetchedTableDefinitionAction = {
+  type: DatabaseSchemaActionTypes.FetchedTableDefinition;
+  payload: TableDefinitionDetails;
 };
 
 export type FetchedStoredProceduresAction = {
@@ -99,6 +109,8 @@ export type ErrorDatabaseSchemaActionAction = {
     message: string;
     connectionId?: string;
     databaseName?: string;
+    tableName?: string;
+    databaseSchema?: string;
     scope?: DatabaseSchemaErrorScope;
   };
 };
@@ -106,7 +118,10 @@ export type ErrorDatabaseSchemaActionAction = {
 export type DatabaseSchemaActions = LoadingAction
   | AddedSchemaAction
   | FetchedDatabasesAction
+
   | FetchedTablesAction
+  | FetchedTableDefinitionAction
+
   | FetchedStoredProceduresAction
   | FetchedFunctionsAction
   | FetchedViewsAction

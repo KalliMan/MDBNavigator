@@ -1,4 +1,4 @@
-namespace Models.Schema
+namespace Models.Schema.Base
 {
     public class DbObjectDetailsDtoBase
     {

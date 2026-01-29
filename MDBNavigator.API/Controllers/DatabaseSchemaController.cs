@@ -35,6 +35,18 @@ namespace MDBNavigator.API.Controllers
             return Ok(await _dbManager.GetTables(sessionId, connectionId, databaseName));
         }
 
+        [HttpGet("tableDefinition/{connectionId}/{databaseName}/{schema}/{table}")]
+        public async Task<IActionResult> TableDefinition(string connectionId, string databaseName, string schema, string table)
+        {
+            if (!TryGetSessionId(out var sessionId, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            return Ok(await _dbManager.GetTableDefinition(sessionId, connectionId, databaseName, schema, table));
+        }
+
+
         [HttpGet("storedProcedures/{connectionId}/{databaseName}")]
         public async Task<IActionResult> StoredProcedures(string connectionId, string databaseName)
         {

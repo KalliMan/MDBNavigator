@@ -31,6 +31,7 @@ export function DatabaseCommandSingleResultView({isExecuting, databaseCommandRes
     }
 
     const newFields = databaseCommandResult.fields;
+    console.log('fields', newFields);
     const initialRows = databaseCommandResult.resultJson ? JSON.parse(databaseCommandResult.resultJson) : [];
 
     let allRows = [...initialRows];
@@ -65,14 +66,14 @@ export function DatabaseCommandSingleResultView({isExecuting, databaseCommandRes
       )}
       { fields && fields.length > 0 && (
         <table className="min-w-full text-left text-sm whitespace-nowrap">
-          <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t sticky top-0">
+          <thead className="tracking-wider border-b-2 dark:border-neutral-600 border-t sticky top-0">
             <tr>
-              <th className="w-[2%] bg-neutral-400" key={"rowIndex"}></th>
+              <th className="w-[2%] bg-neutral-400"></th>
               {fields?.map(field => (
                 <th
                   scope="col"
                   className="px-3 py-2 border-x dark:border-neutral-600 bg-neutral-400"
-                  key={field.index}
+                  key={field.index + field.fieldName.toString()}
                  >
                   {field.fieldName}
                 </th>
@@ -81,7 +82,7 @@ export function DatabaseCommandSingleResultView({isExecuting, databaseCommandRes
           </thead>
           <tbody>
             {rows && Array.isArray(rows) && rows.map((row, index) => (
-              <tr className="border-b dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600" key={index}>
+              <tr className="border-b dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600"key={index}>
                 <td className="px-3 py-2 border-x dark:border-neutral-600 bg-neutral-400 font-medium">{index + 1}</td>
                 {row && Array.isArray(row) && row.map((cell, cellIndex) => (
                   <td className="px-3 py-2 border-x dark:border-neutral-600" key={cellIndex}>

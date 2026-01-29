@@ -15,8 +15,12 @@ import {
   getStoredProceduresNode,
   getTablesFolderNode,
   getViewsFolderNode,
+  createTableColumnsFolderNode,
+  createTableIndexesFolderNode,
+  createTableColumnNode,
 } from "./databaseTreeViewUtils";
 import { DatabaseServerConnection } from "../../contexts/databaseServerConnect/DatabaseServerConnectReducer";
+import TableDefinition from "../../models/schema/table/tableDefinitionDetails";
 
 export default function useDatabaseTreeState(
   databaseSchemas: DatabaseSchema[] | null,
@@ -58,14 +62,25 @@ export default function useDatabaseTreeState(
       const dbNode = createDatabaseNode(db.name, databasesFolder, false);
       databasesFolder.nodes!.push(dbNode);
 
-      // Tables
+      // Tables --> TODDO Add the definition loading state
       const tablesFolder = getTablesFolderNode(dbNode);
       if (tablesFolder) {
         if (db.tablesDetails?.tables) {
           tablesFolder.nodes =
-            db.tablesDetails.tables.map((t) =>
-              createTableNode(t.databaseSchema, t.name, tablesFolder)
-            ) ?? [];
+            db.tablesDetails.tables.map((t) => {
+              const tableDefinitionDetails = db.tableDefinitionDetails?.find(td => td.databaseSchema === t.databaseSchema && td.name === t.name) || null;
+              const recreateTableNode = createTableNode(t.databaseSchema, t.name, tablesFolder, tableDefinitionDetails === null);
+
+              if (tableDefinitionDetails && !tableDefinitionDetails.tableDefinitionError) {
+                const definitionNodes = createTableDefinitionNodes(tableDefinitionDetails, recreateTableNode);
+                recreateTableNode.nodes!.push(...definitionNodes);
+              } else { if (tableDefinitionDetails && tableDefinitionDetails.tableDefinitionError) {
+                const errorNode = createErrorNode(recreateTableNode, `Error loading table definition: ${tableDefinitionDetails.tableDefinitionError}`);
+                recreateTableNode.nodes = [errorNode];
+              }}
+              return recreateTableNode;
+            }) ?? [];
+
         } else if (db.tablesError) {
           tablesFolder.nodes = [
             createErrorNode(tablesFolder, `Error loading tables: ${db.tablesError}`),
@@ -128,6 +143,18 @@ export default function useDatabaseTreeState(
 
   setRoot(serversRoot);
 }, [databaseServerConnections, databaseSchemas]);
+
+
+  function createTableDefinitionNodes(tableDefinitionDetails: TableDefinition, tableNode: TreeViewNodeData): TreeViewNodeData[] {
+    const columnsNode: TreeViewNodeData = createTableColumnsFolderNode(tableNode);
+    if (tableDefinitionDetails.columns) {
+      columnsNode.nodes = tableDefinitionDetails.columns.map((col) =>
+        createTableColumnNode(col.columnName, col.dataType, col.maxLength, col.isNullable, col, columnsNode));
+    }
+    const indexesNode: TreeViewNodeData = createTableIndexesFolderNode(tableNode);
+
+    return [columnsNode, indexesNode];
+  }
 
   return { root };
 }

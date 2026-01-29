@@ -6,6 +6,10 @@ export enum NodeType {
 
   Tables = 'Tables',
   Table = 'Table',
+  TableColumns = 'TableColumns',
+  TableColumn = 'TableColumn',
+  TableIndexes = 'TableIndexes',
+  TableIndex = 'TableIndex',
 
   Programability = 'Programability',
   StoredProcedures = 'StoredProcedures',

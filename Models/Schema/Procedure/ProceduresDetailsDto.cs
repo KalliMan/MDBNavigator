@@ -1,4 +1,6 @@
-﻿namespace Models.Schema
+﻿using Models.Schema.Base;
+
+namespace Models.Schema.Procedure
 {
     public class ProceduresDetailsDto : DbObjectDetailsDtoBase
     {

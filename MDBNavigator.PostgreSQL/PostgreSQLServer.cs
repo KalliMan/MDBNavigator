@@ -3,7 +3,10 @@ using MDBNavigator.DAL.Interfaces;
 using MDBNavigator.PostgreSQL.Modes;
 using Models.Command;
 using Models.Connect;
-using Models.Schema;
+using Models.Schema.Database;
+using Models.Schema.Procedure;
+using Models.Schema.Table;
+using Models.Schema.View;
 using Npgsql;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -68,15 +71,36 @@ namespace MDBNavigator.PostgreSQL
         public async Task<IEnumerable<DatabaseDto>> GetDatabases()
             => await _connection.QueryAsync<DatabaseDto>("SELECT oid AS InternalId, datname AS Name FROM pg_database WHERE datistemplate = false ORDER BY oid DESC;");
 
-        public async Task<IEnumerable<TableDto>> GetTables()
+        public async Task<IEnumerable<Table>> GetTables()
         {
-            var query = $"SELECT table_schema AS DatabaseSchema, table_name AS Name " +
+            var tablesQuery = $"SELECT table_schema AS DatabaseSchema, table_name AS Name " +
                 "FROM information_schema.tables  WHERE " +
                 "table_schema NOT IN ('pg_catalog', 'information_schema')" +
-                $"AND table_type='BASE TABLE'";
+                "AND table_type='BASE TABLE' " +
+                "ORDER BY table_schema";
 
-            var result = await _connection.QueryAsync<TableDto>(query);
-            return result;
+            return await _connection.QueryAsync<Table>(tablesQuery);
+        }
+
+        public async Task<TableDefinition> GetTableDefinition(string schema, string table)
+        {
+            var query =
+                "SELECT column_name AS ColumnName, data_type AS DataType, " +
+                "CASE WHEN is_nullable = 'YES' THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS IsNullable," +
+                "character_maximum_length AS MaxLength " +
+                "FROM information_schema.columns " +
+                "WHERE table_schema = @Schema AND table_name = @Table " +
+                "ORDER BY ordinal_position";
+            var columns = await _connection.QueryAsync<TableColumn>(query, new
+            {
+                Schema = schema,
+                Table = table
+            });
+
+            return new()
+            {
+                Columns = columns
+            };
         }
 
         public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures()
@@ -133,7 +157,8 @@ $$;";
             var query =
                  "SELECT routine_schema As DatabaseSchema, routine_name As Name, routine_type AS ProcedureType " +
                  "FROM information_schema.routines " +
-                 "WHERE routine_schema NOT IN ('pg_catalog', 'information_schema') AND routine_type = @Type";
+                 "WHERE routine_schema NOT IN ('pg_catalog', 'information_schema') AND routine_type = @Type " +
+                 "ORDER BY routine_schema";
 
             var result = await _connection.QueryAsync<ProcedureRaw>(query, new { Type  = type });
 
@@ -181,7 +206,8 @@ $$;";
                 "SELECT table_schema AS DatabaseSchema, table_name AS Name " +
                 "FROM information_schema.tables " +
                 "WHERE table_schema NOT IN ('pg_catalog', 'information_schema') " +
-                "AND table_type = 'VIEW'";
+                "AND table_type = 'VIEW' " +
+                "ORDER BY table_schema";
             return await _connection.QueryAsync<ViewDto>(query);
         }
 

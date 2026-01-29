@@ -28,6 +28,7 @@ export default function useContextMenuHandlers({
 
   const {
     fetchTables,
+    fetchTableDefinition,
     fetchStoredProcedures,
     fetchFunctions,
     fetchViews,
@@ -74,6 +75,11 @@ export default function useContextMenuHandlers({
           switch (targetNode.type) {
           case NodeType.Tables:
             await fetchTables(serverNode.id, databaseNode.nodeName);
+            break;
+          case NodeType.Table:
+            if(targetNode.metaData && typeof targetNode.metaData === "string") {
+              await fetchTableDefinition(serverNode.id, databaseNode.nodeName, targetNode.metaData, targetNode.nodeName);
+            }
             break;
           case NodeType.StoredProcedures:
             await fetchStoredProcedures(serverNode.id, databaseNode.nodeName);

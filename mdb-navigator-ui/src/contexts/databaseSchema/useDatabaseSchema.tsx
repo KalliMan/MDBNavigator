@@ -117,6 +117,32 @@ export default function useDatabaseSchemaContext() {
     }
   }, [dispatch]);
 
+  const fetchTableDefinition = useCallback(async (connectionId: string, databaseName: string, schema: string, table: string) => {
+    dispatch({
+      type: DatabaseSchemaActionTypes.Loading,
+    });
+    try {
+      const result = await agent.databaseSchemaApi.tableDefinition(connectionId, databaseName, schema, table);
+      dispatch({
+        type: DatabaseSchemaActionTypes.FetchedTableDefinition,
+        payload: result
+      });
+    }
+    catch (error: unknown) {
+      dispatch({
+        type: DatabaseSchemaActionTypes.Error,
+        payload: {
+          message: error instanceof Error ? error.message : "An error occurred",
+          connectionId,
+          databaseName,
+          tableName: table,
+          databaseSchema: schema,
+          scope: DatabaseSchemaErrorScope.TableDefinition,
+        },
+      });
+    }
+  }, [dispatch]);
+
   const fetchStoredProcedures = useCallback(async (connectionId: string, databaseName: string) => {
     dispatch({
       type: DatabaseSchemaActionTypes.Loading,
@@ -226,7 +252,10 @@ export default function useDatabaseSchemaContext() {
     databaseSchemas,
     // error,
     fetchDatabases,
+
     fetchTables,
+    fetchTableDefinition,
+
     fetchStoredProcedures,
     fetchFunctions,
     fetchViews,

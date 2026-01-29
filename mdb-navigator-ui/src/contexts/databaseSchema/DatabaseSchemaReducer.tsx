@@ -1,4 +1,4 @@
-import { DatabasesDetails } from "../../models/schema/databasesDetails";
+import { DatabasesDetails } from "../../models/schema/database/databasesDetails";
 import { DatabaseSchemaActions, DatabaseSchemaActionTypes, DatabaseSchemaErrorScope } from "./DatabaseSchemaActionTypes";
 
 export type DatabaseSchema = {
@@ -86,6 +86,29 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         ...state,
         isLoading: false,
         databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? updatedSchemaTables : s)
+      };
+    }
+
+    case DatabaseSchemaActionTypes.FetchedTableDefinition: {
+      const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+      if (!schema) {
+        return { ...state, isLoading: false };
+      }
+
+      const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
+      if (!database) {
+        return { ...state, isLoading: false };
+      }
+
+      database.tableDefinitionDetails = database.tableDefinitionDetails
+          ? database.tableDefinitionDetails.filter(t => !(t.databaseSchema === action.payload.databaseSchema && t.name === action.payload.name))
+          : [];
+
+      database.tableDefinitionDetails.push(action.payload);
+      return {
+        ...state,
+        isLoading: false,
+        databaseSchemas: state.databaseSchemas!.map(s => s.connectionId === action.payload.connectionId ? { ...schema, error: null } : s)
       };
     }
 
@@ -211,6 +234,35 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         case DatabaseSchemaErrorScope.Tables:
           database.tablesDetails = null;
           database.tablesError = message;
+          break;
+        case DatabaseSchemaErrorScope.TableDefinition: {
+
+          const schema = state.databaseSchemas?.find(s => s.connectionId === action.payload.connectionId);
+          if (!schema) {
+            return { ...state, isLoading: false };
+          }
+
+          const database = schema.databasesDetails?.databases.find(db => db.name === action.payload.databaseName);
+          if (!database) {
+            return { ...state, isLoading: false };
+          }
+
+          if (database.tableDefinitionDetails) {
+            database.tableDefinitionDetails = database.tableDefinitionDetails.filter(t => t.databaseSchema === action.payload.databaseSchema && t.name === action.payload.tableName);
+          }
+
+          database.tableDefinitionDetails?.push({
+            connectionId: action.payload.connectionId || "",
+            databaseName: action.payload.databaseName || "",
+            databaseSchema: action.payload.databaseSchema || "",
+            name: action.payload.tableName || "",
+            columns: [],
+            indexes: [],
+            tableDefinitionError: message
+          });
+
+        }
+
           break;
         case DatabaseSchemaErrorScope.Procedures:
           database.storedProceduresDetails = null;

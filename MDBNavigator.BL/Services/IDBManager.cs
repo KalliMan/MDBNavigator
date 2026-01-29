@@ -1,7 +1,10 @@
 ﻿using MDBNavigator.BL.DTOs;
 using Models.Command;
 using Models.Connect;
-using Models.Schema;
+using Models.Schema.Database;
+using Models.Schema.Procedure;
+using Models.Schema.Table;
+using Models.Schema.View;
 namespace MDBNavigator.BL.Services
 {
     public interface IDBManager
@@ -12,6 +15,7 @@ namespace MDBNavigator.BL.Services
 
         Task<DatabasesDetailsDto> GetDatabases(string sessionId, string connectionId);
         Task<TablesDetailsDto> GetTables(string sessionId, string connectionId, string databaseName);
+        Task<TableDefinitionDto> GetTableDefinition(string sessionId, string connectionId, string databaseName, string schema, string table);
 
         Task<ProceduresDetailsDto> GetStoredProcedures(string sessionId, string connectionId, string databaseName);
         Task<ProceduresDetailsDto> GetFunctions(string sessionId, string connectionId, string databaseName);

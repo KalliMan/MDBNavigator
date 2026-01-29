@@ -4,6 +4,7 @@ export interface TreeViewNodeData {
   id: string;
   nodeName: string;
   nodeText?: string;
+  nodeTextElement?: JSX.Element;
   isExpanded?: boolean;
 
   isSelected?: boolean;

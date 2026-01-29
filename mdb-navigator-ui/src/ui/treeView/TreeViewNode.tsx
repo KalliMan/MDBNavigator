@@ -48,6 +48,7 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
 
   const hasChildNodes = node.nodes && node.nodes?.length > 0;
   const iconExpanded = node.IconExpanded ?? node.Icon;
+  const icon = node.isExpanded ? iconExpanded : node.Icon;
 
   return (
     <li>
@@ -62,10 +63,12 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
         )}
         <div className="flex select-none w-fit pl-2 pr-3">
           <div className="mt-1">
-            {iconExpanded ?? (<span>{iconExpanded}</span>)}
+            {icon ?? (<span>{icon}</span>)}
           </div>
 
-          <span className="ml-1" onClick={handleOnClick}>{node.nodeText || node.nodeName}</span>
+          <span className="ml-1" style={{ whiteSpace: 'nowrap' }} onClick={handleOnClick}>
+            {node.nodeTextElement ?? node.nodeText ?? node.nodeName}
+          </span>
         </div>
       </div>
 

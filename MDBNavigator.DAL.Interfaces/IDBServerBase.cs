@@ -1,6 +1,9 @@
 ﻿using Models.Command;
 using Models.Connect;
-using Models.Schema;
+using Models.Schema.Database;
+using Models.Schema.Procedure;
+using Models.Schema.Table;
+using Models.Schema.View;
 
 namespace MDBNavigator.DAL.Interfaces
 {
@@ -12,7 +15,9 @@ namespace MDBNavigator.DAL.Interfaces
         Task Disconnect();
 
         Task<IEnumerable<DatabaseDto>> GetDatabases();
-        Task<IEnumerable<TableDto>> GetTables();
+        
+        Task<IEnumerable<Table>> GetTables();
+        Task<TableDefinition> GetTableDefinition(string schema, string table);
 
         Task<IEnumerable<ProcedureDto>> GetStoredProcedures();
          string GetCreateStoredProcedureScript(string schema);

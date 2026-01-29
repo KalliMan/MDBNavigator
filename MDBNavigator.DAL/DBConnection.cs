@@ -2,7 +2,10 @@
 using MDBNavigator.DAL.Interfaces;
 using Models.Command;
 using Models.Connect;
-using Models.Schema;
+using Models.Schema.Database;
+using Models.Schema.Procedure;
+using Models.Schema.Table;
+using Models.Schema.View;
 
 namespace MDBNavigator.DAL
 {
@@ -52,8 +55,12 @@ namespace MDBNavigator.DAL
 
         public async Task<IEnumerable<DatabaseDto>> GetDatabases()
             => await _dbServer.GetDatabases();
-        public async Task<IEnumerable<TableDto>> GetTables()
+        public async Task<IEnumerable<Table>> GetTables()
             => await _dbServer.GetTables();
+
+        public async Task<TableDefinition> GetTableDefinition(string schema, string table)
+            => await _dbServer.GetTableDefinition(schema, table);
+
         public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures()
             => await _dbServer.GetStoredProcedures();
         public string GetCreateStoredProcedureScript(string schema)

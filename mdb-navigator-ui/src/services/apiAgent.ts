@@ -1,18 +1,20 @@
 import axios, { AxiosError, AxiosResponse } from 'axios'
 import LocalSessionStorage from '../utils/localSessionStorage';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
-import { TablesDetails } from '../models/schema/tablesDetails';
-import { DatabasesDetails } from '../models/schema/databasesDetails';
+import { TablesDetails } from '../models/schema/table/tablesDetails';
+import { DatabasesDetails } from '../models/schema/database/databasesDetails';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
 import { toast } from 'react-toastify';
 import { sleep } from '../common/helpers/commonHelpers';
-import { ProceduresDetails } from '../models/schema/proceduresDetails';
+import { ProceduresDetails } from '../models/schema/procedure/proceduresDetails';
 import { ConnectedResult } from '../models/connect/connectedResult';
-import { ViewDetails } from '../models/schema/viewsDetails';
+import { ViewDetails } from '../models/schema/view/viewsDetails';
 import { DatabaseSingleCommandResult } from '../models/databaseCommand/result/databaseSingleCommandResult';
 import { DatabaseCommandResult } from '../models/databaseCommand/result/databaseCommandResult';
+import { TableDefinitionDetails } from '../models/schema/table/tableDefinitionDetails';
 
-axios.defaults.baseURL = import.meta.env.VITE_API_URL; //'https://localhost:7262/api';
+axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+//'https://localhost:7262/api';
 //console.log(axios.defaults.baseURL);
 
 axios.interceptors.request.use((config) => {
@@ -91,8 +93,12 @@ const databaseConnectionApi = {
 const databaseSchemaApi = {
   fetchDatabases: (connectionId: string): Promise<DatabasesDetails> =>
     requests.get<DatabasesDetails>(`/databaseSchema/databases/${connectionId}`),
+
   fetchTables: (connectionId: string, databaseName: string): Promise<TablesDetails> =>
     requests.get<TablesDetails>(`/databaseSchema/tables/${connectionId}/${databaseName}`),
+  tableDefinition: (connectionId: string, databaseName: string, schema: string, table: string): Promise<TableDefinitionDetails> =>
+    requests.get<TableDefinitionDetails>(`/databaseSchema/tableDefinition/${connectionId}/${databaseName}/${schema}/${table}`),
+
   fetchStoredProcedures: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
     requests.get<ProceduresDetails>(`/databaseSchema/storedProcedures/${connectionId}/${databaseName}`),
   fetchFunctions: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>

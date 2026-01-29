@@ -8,6 +8,7 @@ import { FaTable } from "react-icons/fa6";
 import { PiBracketsCurly, PiSelectionForegroundBold } from "react-icons/pi";
 import { LuSquareFunction } from "react-icons/lu";
 import { findFirstParentOfType, findNodeOfType } from "../../ui/treeView/treeViewUtils";
+import { TbColumns1 } from "react-icons/tb";
 
 export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
@@ -107,16 +108,76 @@ function createTableFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeData 
   return result;
 }
 
-export function createTableNode(databaseSchema: string, name: string, parentNode: TreeViewNodeData): TreeViewNodeData {
-  return {
-    id: uuidv4(),
+export function createTableNode(databaseSchema: string, name: string, parentNode: TreeViewNodeData, createDefinitionLoaderNode: boolean): TreeViewNodeData {
+  const result: TreeViewNodeData = {
+    id: `${parentNode.id}::table::${databaseSchema}::${name}`,
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
-    isExpanded: true,
+    isExpanded: false,
     Icon: <FaTable />,
     nodes: [],
     type: NodeType.Table,
     metaData: databaseSchema,
+    parentNode
+  };
+
+  if (createDefinitionLoaderNode) {
+    result.nodes!.push(createLoaderNode(result));
+  }
+
+  return result;
+}
+
+export function createTableColumnsFolderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
+  return {
+    id: `${parentNode.id}::columns`,
+    nodeName: 'Columns',
+    isExpanded: false,
+    Icon: <FcFolder />,
+    IconExpanded: <FcOpenedFolder />,
+    nodes: [],
+    type: NodeType.TableColumns,
+    parentNode
+  };
+}
+
+export function createTableColumnNode(columnName: string, dataType: string, maxLength: number | undefined, isNullable: boolean, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
+  const typeText = `${dataType}` + (maxLength ? `(${maxLength})` : '');
+  const nullText = isNullable ? ' (NULL)' : ' (NOT NULL)';
+  const nodeText = `${columnName}: ${typeText}${nullText}`;
+
+  const nodeTextElement = (
+    <>
+      <strong>{columnName}</strong>
+      {": "}
+      <span style={{ color: "blue" }}>{typeText}</span>
+      <span>{nullText}</span>
+    </>
+  );
+
+  return {
+    id: `${parentNode.id}::column::${columnName}`,
+    nodeName: columnName,
+    nodeText: nodeText,
+    nodeTextElement,
+    isExpanded: false,
+    Icon: <TbColumns1 />,
+    nodes: [],
+    type: NodeType.TableColumn,
+    metaData: JSON.stringify(parentMetaData),
+    parentNode
+  };
+}
+
+export function createTableIndexesFolderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
+  return {
+    id: `${parentNode.id}::indexes`,
+    nodeName: 'Indexes',
+    isExpanded: false,
+    Icon: <FcFolder />,
+    IconExpanded: <FcOpenedFolder />,
+    nodes: [],
+    type: NodeType.TableIndexes,
     parentNode
   };
 }

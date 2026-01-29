@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="Schema\Table\TableDefinition.cs" />
+  </ItemGroup>
+
 </Project>

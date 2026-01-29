@@ -9,10 +9,12 @@ using MDBNavigator.DAL.Enums;
 using Microsoft.Extensions.Logging;
 using Models.Command;
 using Models.Connect;
-using Models.Schema;
+using Models.Schema.Database;
+using Models.Schema.Procedure;
+using Models.Schema.Table;
+using Models.Schema.View;
 using Newtonsoft.Json;
 using System.Data;
-using System.IO.Pipelines;
 
 namespace MDBNavigator.BL.Services
 {
@@ -138,6 +140,30 @@ namespace MDBNavigator.BL.Services
                 DataSource = connection.DataSource,
                 DatabaseName = databaseName,
                 Tables = tables
+            };
+        }
+
+        public async Task<TableDefinitionDto> GetTableDefinition(string sessionId, string connectionId, string databaseName, string schema, string table)
+        {
+            _logger.LogInformation("Getting table definition for session {SessionId}, connection {ConnectionId}, database {DatabaseName}, schema {Schema}, table {Table}",
+                sessionId,
+                connectionId,
+                databaseName,
+                schema,
+                table);
+
+            await using var connection = await CreateConnection(sessionId, connectionId, databaseName);
+            var tableDefinition = await connection.GetTableDefinition(schema, table);
+
+            return new()
+            {
+               ConnectionId = connectionId,
+               DatabaseName = databaseName,
+               DatabaseSchema = schema,
+               Name = table,
+
+               Columns = tableDefinition.Columns,
+               Indexes = tableDefinition.Indexes
             };
         }
 
