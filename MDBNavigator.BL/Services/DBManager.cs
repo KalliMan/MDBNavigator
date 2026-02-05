@@ -163,7 +163,8 @@ namespace MDBNavigator.BL.Services
                Name = table,
 
                Columns = tableDefinition.Columns,
-               Indexes = tableDefinition.Indexes
+               Indexes = tableDefinition.Indexes,
+               Constraints = tableDefinition.Constraints
             };
         }
 

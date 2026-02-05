@@ -9,5 +9,6 @@
 
         public required IEnumerable<TableColumn> Columns { get; set; }
         public IEnumerable<TableIndex>? Indexes{ get; set; }
+        public IEnumerable<TableConstraint>? Constraints { get; set; }
     }
 }

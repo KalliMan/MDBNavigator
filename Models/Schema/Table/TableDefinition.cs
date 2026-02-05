@@ -6,6 +6,7 @@ namespace Models.Schema.Table
     {
         public required IEnumerable<TableColumn> Columns { get; set; }
         public IEnumerable<TableIndex>? Indexes { get; set; }
+        public IEnumerable<TableConstraint>? Constraints { get; set; }
     }
 
     public class TableColumn
@@ -19,7 +20,13 @@ namespace Models.Schema.Table
     public class TableIndex
     {
         public required string IndexName { get; set; }
-        public required IEnumerable<string> ColumnNames { get; set; }
+
         public required bool IsUnique { get; set; }
+    }
+
+    public class TableConstraint
+    {
+        public required string ConstraintName { get; set; }
+        public required string ConstraintType { get; set; }
     }
 }

@@ -18,6 +18,9 @@ import {
   createTableColumnsFolderNode,
   createTableIndexesFolderNode,
   createTableColumnNode,
+  createTableIndexNode,
+  createTableConstraintsFolderNode,
+  createTableConstraintNode,
 } from "./databaseTreeViewUtils";
 import { DatabaseServerConnection } from "../../contexts/databaseServerConnect/DatabaseServerConnectReducer";
 import TableDefinition from "../../models/schema/table/tableDefinitionDetails";
@@ -151,9 +154,22 @@ export default function useDatabaseTreeState(
       columnsNode.nodes = tableDefinitionDetails.columns.map((col) =>
         createTableColumnNode(col.columnName, col.dataType, col.maxLength, col.isNullable, col, columnsNode));
     }
-    const indexesNode: TreeViewNodeData = createTableIndexesFolderNode(tableNode);
 
-    return [columnsNode, indexesNode];
+    const indexesNode: TreeViewNodeData = createTableIndexesFolderNode(tableNode);
+    if (tableDefinitionDetails.indexes) {
+      indexesNode.nodes = tableDefinitionDetails.indexes.map((idx) =>
+        createTableIndexNode(idx.indexName, idx.isUnique, idx, indexesNode));
+    };
+
+    const constraintsNode: TreeViewNodeData = createTableConstraintsFolderNode(tableNode);
+    if (tableDefinitionDetails.constraints) {
+      constraintsNode.nodes = tableDefinitionDetails.constraints.map(constraint =>
+        createTableConstraintNode(constraint.constraintName, constraint.constraintType, constraint, constraintsNode));
+    }
+
+
+
+    return [columnsNode, indexesNode, constraintsNode];
   }
 
   return { root };

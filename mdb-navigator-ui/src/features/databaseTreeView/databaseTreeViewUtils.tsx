@@ -182,6 +182,66 @@ export function createTableIndexesFolderNode(parentNode: TreeViewNodeData): Tree
   };
 }
 
+export function createTableIndexNode(indexName: string, isUnique: boolean, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
+  const nodeTextElement = (
+    <>
+      <strong>{indexName}</strong>
+
+      <span>{isUnique ? ": (Unique)" : ""}</span>
+    </>
+  );
+
+  return {
+    id: `${parentNode.id}::index::${indexName}`,
+    nodeName: indexName,
+    nodeText: undefined,
+    nodeTextElement,
+    isExpanded: false,
+    Icon: <TbColumns1 />,
+    nodes: [],
+    type: NodeType.TableIndex,
+    metaData: JSON.stringify(parentMetaData),
+    parentNode
+  };
+}
+
+
+export function createTableConstraintsFolderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
+  return {
+    id: `${parentNode.id}::constraints`,
+    nodeName: 'Constraints',
+    isExpanded: false,
+    Icon: <FcFolder />,
+    IconExpanded: <FcOpenedFolder />,
+    nodes: [],
+    type: NodeType.TableConstraints,
+    parentNode
+  };
+}
+
+export function createTableConstraintNode(constraintName: string, constraintType: string, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
+    const nodeTextElement = (
+    <>
+      <strong>{constraintName}</strong>
+      {": "}
+      <span>{constraintType}</span>
+    </>
+  );
+
+  return {
+    id: `${parentNode.id}::constraint::${constraintName}`,
+    nodeName: constraintName,
+    nodeText: undefined,
+    nodeTextElement,
+    isExpanded: false,
+    Icon: <TbColumns1 />,
+    nodes: [],
+    type: NodeType.TableConstraint,
+    metaData: JSON.stringify(parentMetaData),
+    parentNode
+  };
+}
+
 export function createProgrammabilityFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   const result: TreeViewNodeData = {
     id: `${parentNode.id}::programmability`,

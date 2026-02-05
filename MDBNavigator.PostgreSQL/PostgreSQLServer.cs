@@ -73,11 +73,17 @@ namespace MDBNavigator.PostgreSQL
 
         public async Task<IEnumerable<Table>> GetTables()
         {
-            var tablesQuery = $"SELECT table_schema AS DatabaseSchema, table_name AS Name " +
-                "FROM information_schema.tables  WHERE " +
-                "table_schema NOT IN ('pg_catalog', 'information_schema')" +
-                "AND table_type='BASE TABLE' " +
-                "ORDER BY table_schema";
+            var tablesQuery = @"
+SELECT
+	TABLE_SCHEMA AS DATABASESCHEMA,
+	TABLE_NAME AS NAME
+FROM
+	INFORMATION_SCHEMA.TABLES
+WHERE
+	TABLE_SCHEMA NOT IN ('pg_catalog', 'information_schema')
+	AND TABLE_TYPE = 'BASE TABLE'
+ORDER BY
+	TABLE_SCHEMA";
 
             return await _connection.QueryAsync<Table>(tablesQuery);
         }
@@ -85,21 +91,73 @@ namespace MDBNavigator.PostgreSQL
         public async Task<TableDefinition> GetTableDefinition(string schema, string table)
         {
             var query =
-                "SELECT column_name AS ColumnName, data_type AS DataType, " +
-                "CASE WHEN is_nullable = 'YES' THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS IsNullable," +
-                "character_maximum_length AS MaxLength " +
-                "FROM information_schema.columns " +
-                "WHERE table_schema = @Schema AND table_name = @Table " +
-                "ORDER BY ordinal_position";
-            var columns = await _connection.QueryAsync<TableColumn>(query, new
+                @"
+SELECT
+	COLUMN_NAME AS ColumnName,
+	DATA_TYPE AS DataType,
+	CASE
+		WHEN IS_NULLABLE = 'YES' THEN CAST(1 AS BIT)
+		ELSE CAST(0 AS BIT)
+	END AS ISNULLABLE,
+	CHARACTER_MAXIMUM_LENGTH AS MAXLENGTH
+FROM
+	INFORMATION_SCHEMA.COLUMNS
+WHERE
+	TABLE_SCHEMA = @SCHEMA
+	AND TABLE_NAME = @TABLE
+ORDER BY
+	ORDINAL_POSITION;
+
+
+SELECT
+    I.RELNAME AS IndexName,
+    CASE 
+        WHEN IDX.INDISUNIQUE THEN 1
+        ELSE 0
+    END AS IsUnique
+FROM
+    PG_INDEX IDX
+    JOIN PG_CLASS I ON I.OID = IDX.INDEXRELID
+    JOIN PG_CLASS T ON T.OID = IDX.INDRELID
+    JOIN PG_NAMESPACE N ON N.OID = T.RELNAMESPACE
+    LEFT JOIN PG_CONSTRAINT C ON C.CONINDID = I.OID
+WHERE
+    N.NSPNAME = @SCHEMA
+    AND T.RELNAME = @TABLE
+    AND C.OID IS NULL;
+
+SELECT
+    con.conname AS ConstraintName,
+    CASE con.contype
+        WHEN 'p' THEN 'PRIMARY KEY'
+        WHEN 'f' THEN 'FOREIGN KEY'
+        WHEN 'u' THEN 'UNIQUE'
+        WHEN 'c' THEN 'CHECK'
+        WHEN 'x' THEN 'EXCLUSION'
+        WHEN 't' THEN 'TRIGGER'
+    END AS ConstraintType
+FROM pg_catalog.pg_constraint con
+JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid
+JOIN pg_catalog.pg_namespace nsp ON nsp.oid = con.connamespace
+WHERE nsp.nspname = @SCHEMA
+  AND rel.relname = @TABLE;
+";
+
+            var tableDefinitionRaw = await _connection.QueryMultipleAsync(query, new
             {
                 Schema = schema,
                 Table = table
             });
 
+            var columns = await tableDefinitionRaw.ReadAsync<TableColumn>();
+            var indexes = await tableDefinitionRaw.ReadAsync<TableIndex>();
+            var constraints = await tableDefinitionRaw.ReadAsync<TableConstraint>();
+
             return new()
             {
-                Columns = columns
+                Columns = columns,
+                Indexes = indexes,
+                Constraints = constraints
             };
         }
 

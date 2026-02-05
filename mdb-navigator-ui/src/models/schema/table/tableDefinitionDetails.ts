@@ -8,6 +8,7 @@ export interface TableDefinitionDetails {
 
   columns: TableColumn[];
   indexes: TableIndex[];
+  constraints: TableContraint[];
 }
 
 export interface TableColumn {
@@ -18,9 +19,13 @@ export interface TableColumn {
 }
 
 export interface TableIndex {
-  name: string;
-  columnNames: string[];
+  indexName: string;
   isUnique: boolean;
+}
+
+export interface TableContraint {
+  constraintName: string;
+  constraintType: string;
 }
 
 export default TableDefinitionDetails;
