@@ -18,7 +18,7 @@ export default function ConnectToServer({ initialConnectionSettings = null, onCl
     serverType: ServerType.PostgreSQL,
     serverName: 'localhost',
     port: 5432,
-    userName: 'admin',
+    userName: 'postgres',
     password: 'secret',
   };
 

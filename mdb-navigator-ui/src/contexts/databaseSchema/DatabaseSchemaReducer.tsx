@@ -258,7 +258,8 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
             name: action.payload.tableName || "",
             columns: [],
             indexes: [],
-            tableDefinitionError: message
+            tableDefinitionError: message,
+            constraints: [],
           });
 
         }
