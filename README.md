@@ -40,10 +40,15 @@ Connect to Local: http://localhost:3000/. You should see the initial login scree
   
 # Dockerization
 
-## Docker. 2 Images have to be created for UI and BE. Dockerize settings:
+## Docker. 2 Images have to be created for UI and BE. 
+    docker compose build
+    
+Dockerize settings:
+
     mdb-navigator-ui\Dockerfile
     MDBNavigator.API\Dockerfile
     docker-compose.yml
+    
   
   ### (optional) Create cert for yml:<br>
       dotnet dev-certs https -ep "C:\Users\myuser\.aspnet\https\mdbnavigator.pfx" -p 123
