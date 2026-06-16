@@ -62,18 +62,6 @@ Dockerize settings:
   ### (optional) Push to Docker repository<br>
       docker-compose push<br>
 
-<br>
-<br>
-
-# In progress - for the next time ;) :
-
-## Upload containers as stack to Azure
-    az containerapp compose create -g ResourceGroup --environment ContainerappEnv  --compose-file-path docker-compose.yml
-    
-## Manualy Deploy. Important - use the **FallbackController**. <br>
-  ### Create the build. Both must be into the same folder.
-    dotnet publish -c Release -o ./bin/Publish<br>
-    npm run build
     Compress-Archive -Path * -DestinationPath MdbNavigatorDeploy.zip -Force
     az webapp deploy --resource-group rg-manual-mdb-navigator --name manual-mdb-navigator --src-path .\MdbNavigatorDeploy.zip
     
