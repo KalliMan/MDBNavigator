@@ -11,7 +11,13 @@ namespace MDBNavigator.DAL
 {
     public sealed class DBConnection: IAsyncDisposable
     {
+        private readonly IDBServerFactory _dbServerFactory;
         IDBServerBase _dbServer= null!;
+
+        private DBConnection(IDBServerFactory dbServerFactory)
+        {
+            _dbServerFactory = dbServerFactory;
+        }
 
         public async ValueTask DisposeAsync()
         {
@@ -19,9 +25,9 @@ namespace MDBNavigator.DAL
             _dbServer = null!;
         }
 
-        public static async Task<DBConnection> CreateConnection(ConnectionSettings details, string? databaseName = null)
+        public static async Task<DBConnection> CreateConnection(IDBServerFactory dbServerFactory, ConnectionSettings details, string? databaseName = null)
         {
-            var instance = new DBConnection();
+            var instance = new DBConnection(dbServerFactory);
             await instance.Connect(details, databaseName);
 
             return instance;
@@ -34,21 +40,7 @@ namespace MDBNavigator.DAL
 
         private async Task Connect(ConnectionSettings details, string? databaseName = null)
         {
-            if (!DBConnectionType.ConnectionTypes.TryGetValue(details.ServerType, out var connectionType))
-            {
-                throw new NotSupportedException($"Unsupported server type '{details.ServerType}'.");
-            }
-
-            switch (connectionType)
-            {
-                case Enums.ServerType.PostgreSQL:
-                    _dbServer = new PostgreSQL.PostgreSQLServer();
-                    break;
-                case Enums.ServerType.MSSQLServer:
-                    throw new NotSupportedException("MS SQL Server provider is not implemented yet.");
-                default:
-                    throw new NotSupportedException($"Server type '{connectionType}' is not supported.");
-            }
+            _dbServer = _dbServerFactory.Create(details);
 
             await _dbServer.Connect(details, databaseName);
         }

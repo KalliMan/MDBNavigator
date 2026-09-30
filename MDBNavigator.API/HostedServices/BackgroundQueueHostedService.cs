@@ -5,13 +5,11 @@ namespace MDBNavigator.API.HostedServices
     public class BackgroundQueueHostedService : BackgroundService
     {
         private readonly IBackgroundTaskQueue _taskQueue;
-        private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly ILogger<BackgroundQueueHostedService> _logger;
 
-        public BackgroundQueueHostedService(IBackgroundTaskQueue taskQueue, IServiceScopeFactory serviceScopeFactory, ILogger<BackgroundQueueHostedService> logger)
+        public BackgroundQueueHostedService(IBackgroundTaskQueue taskQueue, ILogger<BackgroundQueueHostedService> logger)
         {
             _taskQueue = taskQueue ?? throw new ArgumentNullException(nameof(taskQueue));
-            _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -27,7 +25,7 @@ namespace MDBNavigator.API.HostedServices
                 try
                 {
                     // Run task
-                    await task(_serviceScopeFactory, stoppingToken);
+                    await task(stoppingToken);
                 }
                 catch (Exception ex)
                 {

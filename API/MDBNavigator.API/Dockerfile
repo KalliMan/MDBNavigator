@@ -31,28 +31,28 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["MDBNavigator.API/MDBNavigator.API.csproj", "MDBNavigator.API/"]
-COPY ["MDBNavigator.BL/MDBNavigator.BL.csproj", "MDBNavigator.BL/"]
-COPY ["MDBNavigator.DAL/MDBNavigator.DAL.csproj", "MDBNavigator.DAL/"]
-COPY ["MDBNavigator.DAL.Interfaces/MDBNavigator.DAL.Interfaces.csproj", "MDBNavigator.DAL.Interfaces/"]
-COPY ["Models/Models.csproj", "Models/"]
-COPY ["MDBNavigator.PostgreSQL/MDBNavigator.PostgreSQL.csproj", "MDBNavigator.PostgreSQL/"]
+COPY ["API/MDBNavigator.API/MDBNavigator.API.csproj", "API/MDBNavigator.API/"]
+COPY ["Core/MDBNavigator.BL/MDBNavigator.BL.csproj", "Core/MDBNavigator.BL/"]
+COPY ["Infrastructure/MDBNavigator.DAL/MDBNavigator.DAL.csproj", "Infrastructure/MDBNavigator.DAL/"]
+COPY ["Core/MDBNavigator.DAL.Interfaces/MDBNavigator.DAL.Interfaces.csproj", "Core/MDBNavigator.DAL.Interfaces/"]
+COPY ["Core/Models/Models.csproj", "Core/Models/"]
+COPY ["Infrastructure/MDBNavigator.PostgreSQL/MDBNavigator.PostgreSQL.csproj", "Infrastructure/MDBNavigator.PostgreSQL/"]
 
 
-RUN dotnet restore "MDBNavigator.API/MDBNavigator.API.csproj"
+RUN dotnet restore "API/MDBNavigator.API/MDBNavigator.API.csproj"
 
 COPY . .
 
 # copy the built UI into the API wwwroot before publishing
-RUN rm -rf MDBNavigator.API/wwwroot/* || true
-RUN mkdir -p MDBNavigator.API/wwwroot
+RUN rm -rf API/MDBNavigator.API/wwwroot/* || true
+RUN mkdir -p API/MDBNavigator.API/wwwroot
 
 # **Important: use absolute path from the ui-build stage**
-COPY --from=ui-build /src/mdb-navigator-ui/dist/ MDBNavigator.API/wwwroot/
+COPY --from=ui-build /src/mdb-navigator-ui/dist/ API/MDBNavigator.API/wwwroot/
 # (optional) list what's in wwwroot for debugging
-RUN ls -la MDBNavigator.API/wwwroot || true
+RUN ls -la API/MDBNavigator.API/wwwroot || true
 
-WORKDIR "/src/MDBNavigator.API"
+WORKDIR "/src/API/MDBNavigator.API"
 RUN dotnet build "MDBNavigator.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

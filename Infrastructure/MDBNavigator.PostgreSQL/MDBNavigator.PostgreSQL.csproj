@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MDBNavigator.DAL.Interfaces\MDBNavigator.DAL.Interfaces.csproj" />
+    <ProjectReference Include="..\..\Domain\MDBNavigator.DAL.Interfaces\MDBNavigator.DAL.Interfaces.csproj" />
   </ItemGroup>
 
 </Project>

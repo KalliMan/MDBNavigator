@@ -46,7 +46,7 @@ Connect to Local: http://localhost:3000/. You should see the initial login scree
 Dockerize settings:
 
     mdb-navigator-ui\Dockerfile
-    MDBNavigator.API\Dockerfile
+    Presentation\MDBNavigator.API\Dockerfile
     docker-compose.yml
     
   

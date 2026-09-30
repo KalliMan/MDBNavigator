@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MDBNavigator.DAL.Interfaces\MDBNavigator.DAL.Interfaces.csproj" />
+    <ProjectReference Include="..\..\Domain\MDBNavigator.DAL.Interfaces\MDBNavigator.DAL.Interfaces.csproj" />
     <ProjectReference Include="..\MDBNavigator.PostgreSQL\MDBNavigator.PostgreSQL.csproj" />
-    <ProjectReference Include="..\Models\Models.csproj" />
+    <ProjectReference Include="..\..\Domain\Models\Models.csproj" />
   </ItemGroup>
 
   <ItemGroup>

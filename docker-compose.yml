@@ -7,7 +7,7 @@ services:
     image: kalliman/mdbnavigator-api
     build:
       context: .
-      dockerfile: MDBNavigator.API/Dockerfile
+      dockerfile: Presentation/MDBNavigator.API/Dockerfile
     ports:
         - "3001:8080"
     extra_hosts:

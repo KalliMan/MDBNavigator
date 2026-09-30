@@ -5,6 +5,8 @@ using MDBNavigator.BL.BatchCommandResultHub;
 using MDBNavigator.BL.BackgroundTaskQueue;
 using MDBNavigator.API.HostedServices;
 using MDBNavigator.API.SignalRHub;
+using MDBNavigator.DAL;
+using MDBNavigator.DAL.Interfaces;
 
 namespace MDBNavigator.API.Extensions
 {
@@ -54,6 +56,11 @@ namespace MDBNavigator.API.Extensions
 
             services.AddAutoMapper(typeof(MappingProfiles));
 
+            services.AddScoped<IDBServerFactory, DBServerFactory>();
+            services.AddScoped<IConnectionSessionService, ConnectionSessionService>();
+            services.AddScoped<IQueryResultProcessor, QueryResultProcessor>();
+            services.AddScoped<IDatabaseMetadataService, DatabaseMetadataService>();
+            services.AddScoped<ICommandExecutionService, CommandExecutionService>();
             services.AddScoped<IDBManager, DBManager>();
             services.AddSingleton<IConnectionSettingsMemoryCache, ConnectionSettingsMemoryCache>();
             services.AddScoped<IBatchCommandResultHubProxy, BatchCommandResultHubProxy>();
