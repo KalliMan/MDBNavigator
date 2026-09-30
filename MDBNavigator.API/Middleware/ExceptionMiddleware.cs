@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 using MDBNavigator.API.Core;
-using MDBNavigator.BL.Exceptions;
+using MDBNavigator.Domain.Exceptions;
 using System.Net;
 using System.Text.Json;
 

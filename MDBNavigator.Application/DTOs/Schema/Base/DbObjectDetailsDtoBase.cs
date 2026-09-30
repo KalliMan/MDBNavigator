@@ -1,0 +1,9 @@
+namespace MDBNavigator.Application.DTOs.Schema.Base
+{
+    public class DbObjectDetailsDtoBase
+    {
+        public required string ConnectionId { get; set; }
+        public required string DataSource { get; set; }
+        public required string DatabaseName { get; set; }
+    }
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Exclude nested provider projects from this project's compile glob -->
+    <Compile Remove="MDBNavigator.Infrastructure.PostgreSQL\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
+  </ItemGroup>
+</Project>

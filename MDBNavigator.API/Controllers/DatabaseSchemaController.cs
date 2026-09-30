@@ -1,4 +1,10 @@
-﻿using MDBNavigator.BL.Services;
+using MDBNavigator.Application.Features.Schema.Queries.GetDatabases;
+using MDBNavigator.Application.Features.Schema.Queries.GetFunctions;
+using MDBNavigator.Application.Features.Schema.Queries.GetStoredProcedures;
+using MDBNavigator.Application.Features.Schema.Queries.GetTableDefinition;
+using MDBNavigator.Application.Features.Schema.Queries.GetTables;
+using MDBNavigator.Application.Features.Schema.Queries.GetViews;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MDBNavigator.API.Controllers
@@ -7,11 +13,9 @@ namespace MDBNavigator.API.Controllers
     [ApiController]
     public class DatabaseSchemaController : BaseApiController
     {
-        IDBManager _dbManager;
-        public DatabaseSchemaController(IDBManager dbManager)
-        {
-            _dbManager = dbManager;
-        }
+        private readonly IMediator _mediator;
+
+        public DatabaseSchemaController(IMediator mediator) => _mediator = mediator;
 
         [HttpGet("databases/{connectionId}")]
         public async Task<IActionResult> Databases(string connectionId)
@@ -20,8 +24,7 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-
-            return Ok(await _dbManager.GetDatabases(sessionId, connectionId));
+            return Ok(await _mediator.Send(new GetDatabasesQuery(sessionId, connectionId)));
         }
 
         [HttpGet("tables/{connectionId}/{databaseName}")]
@@ -31,8 +34,7 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-
-            return Ok(await _dbManager.GetTables(sessionId, connectionId, databaseName));
+            return Ok(await _mediator.Send(new GetTablesQuery(sessionId, connectionId, databaseName)));
         }
 
         [HttpGet("tableDefinition/{connectionId}/{databaseName}/{schema}/{table}")]
@@ -42,10 +44,8 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-
-            return Ok(await _dbManager.GetTableDefinition(sessionId, connectionId, databaseName, schema, table));
+            return Ok(await _mediator.Send(new GetTableDefinitionQuery(sessionId, connectionId, databaseName, schema, table)));
         }
-
 
         [HttpGet("storedProcedures/{connectionId}/{databaseName}")]
         public async Task<IActionResult> StoredProcedures(string connectionId, string databaseName)
@@ -54,8 +54,7 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-
-            return Ok(await _dbManager.GetStoredProcedures(sessionId, connectionId, databaseName));
+            return Ok(await _mediator.Send(new GetStoredProceduresQuery(sessionId, connectionId, databaseName)));
         }
 
         [HttpGet("functions/{connectionId}/{databaseName}")]
@@ -65,8 +64,7 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-
-            return Ok(await _dbManager.GetFunctions(sessionId, connectionId, databaseName));
+            return Ok(await _mediator.Send(new GetFunctionsQuery(sessionId, connectionId, databaseName)));
         }
 
         [HttpGet("views/{connectionId}/{databaseName}")]
@@ -76,8 +74,9 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-
-            return Ok(await _dbManager.GetViews(sessionId, connectionId, databaseName));
+            return Ok(await _mediator.Send(new GetViewsQuery(sessionId, connectionId, databaseName)));
         }
     }
 }
+
+

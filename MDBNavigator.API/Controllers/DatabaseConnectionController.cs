@@ -1,70 +1,62 @@
-﻿using AutoMapper;
-using FluentValidation;
 using MDBNavigator.API.DTOs;
-using MDBNavigator.API.Validators;
-using MDBNavigator.BL.Services;
+using MDBNavigator.Application.Features.Connection.Commands.Connect;
+using MDBNavigator.Application.Features.Connection.Commands.Disconnect;
+using MDBNavigator.Application.Features.Connection.Commands.Reconnect;
+using MDBNavigator.Domain.ValueObjects;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Models.Connect;
 
 namespace MDBNavigator.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DatabaseConnectionController: BaseApiController
+    public class DatabaseConnectionController : BaseApiController
     {
-        IMapper _mapper;
-        IDBManager _dbManager;
-        public DatabaseConnectionController(IMapper mapper, IDBManager dbManager)
-        {
-            _mapper = mapper;
-            _dbManager = dbManager;
-        }
+        private readonly IMediator _mediator;
 
-        // POST api/<DatabaseController>
+        public DatabaseConnectionController(IMediator mediator) => _mediator = mediator;
+
         [HttpPost("connect")]
         public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value)
         {
-            ConnectionSettingsQueryValidator validator = new();
-            await validator.ValidateAndThrowAsync(value);
-
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
             }
-
-            var connectionSettings = _mapper.Map<ConnectionSettings>(value);
-            var result = await _dbManager.Connect(sessionId, connectionSettings);
-            return Ok(result);
+            var settings = MapToSettings(value);
+            return Ok(await _mediator.Send(new ConnectCommand(sessionId, settings)));
         }
 
-        // POST api/<DatabaseController>
         [HttpPost("reconnect/{connectionId}")]
         public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value)
         {
-            ConnectionSettingsQueryValidator validator = new();
-            await validator.ValidateAndThrowAsync(value);
-
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
             }
-
-            var connectionSettings = _mapper.Map<ConnectionSettings>(value);
-            var result = await _dbManager.Reconnect(sessionId, connectionId, connectionSettings);
-            return Ok(result);
+            var settings = MapToSettings(value);
+            return Ok(await _mediator.Send(new ReconnectCommand(sessionId, connectionId, settings)));
         }
 
         [HttpPost("disconnect/{connectionId}")]
-        public IActionResult Disconnect([FromRoute] string connectionId)
+        public async Task<IActionResult> Disconnect([FromRoute] string connectionId)
         {
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
             }
-
-            _dbManager.Disconnect(sessionId, connectionId);
+            await _mediator.Send(new DisconnectCommand(sessionId, connectionId));
             return Ok();
         }
 
+        private static ConnectionSettings MapToSettings(ConnectionSettingsQuery q) => new()
+        {
+            ServerType = q.ServerType,
+            ServerName = q.ServerName,
+            Port = q.Port,
+            UserName = q.UserName,
+            Password = q.Password
+        };
     }
 }
+

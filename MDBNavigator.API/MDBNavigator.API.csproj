@@ -10,13 +10,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="13.0.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MDBNavigator.BL\MDBNavigator.BL.csproj" />
+    <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
+    <ProjectReference Include="..\MDBNavigator.Infrastructure\MDBNavigator.Infrastructure.csproj" />
+    <ProjectReference Include="..\MDBNavigator.Infrastructure\MDBNavigator.Infrastructure.PostgreSQL\MDBNavigator.Infrastructure.PostgreSQL.csproj" />
   </ItemGroup>
 
 </Project>
