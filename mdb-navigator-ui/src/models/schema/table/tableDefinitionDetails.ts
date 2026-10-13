@@ -21,6 +21,7 @@ export interface TableColumn {
 export interface TableIndex {
   indexName: string;
   isUnique: boolean;
+  indexType: number; // 0=Regular 1=Unique 2=PrimaryKey 3=UniqueConstraint
 }
 
 export interface TableContraint {

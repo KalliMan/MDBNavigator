@@ -158,7 +158,7 @@ export default function useDatabaseTreeState(
     const indexesNode: TreeViewNodeData = createTableIndexesFolderNode(tableNode);
     if (tableDefinitionDetails.indexes) {
       indexesNode.nodes = tableDefinitionDetails.indexes.map((idx) =>
-        createTableIndexNode(idx.indexName, idx.isUnique, idx, indexesNode));
+        createTableIndexNode(idx.indexName, idx.isUnique, idx.indexType, idx, indexesNode));
     };
 
     const constraintsNode: TreeViewNodeData = createTableConstraintsFolderNode(tableNode);

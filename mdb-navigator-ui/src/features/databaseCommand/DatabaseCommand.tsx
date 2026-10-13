@@ -42,9 +42,10 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
   }
 
   const handleEditorMount: OnMount = (editor, monaco) => {
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () =>
-      handleExecute()
-    );
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      commandQuery.current.cmdQuery = editor.getValue();
+      executeDatabaseSQLCommand(commandQuery.current);
+    });
   };
 
   return (

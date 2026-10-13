@@ -68,17 +68,28 @@ FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = @SCHEMA AND TABLE_NAME = @TABLE ORDER BY ORDINAL_POSITION;
 
 SELECT I.RELNAME AS IndexName,
-       CASE WHEN IDX.INDISUNIQUE THEN 1 ELSE 0 END AS IsUnique
+       IDX.INDISUNIQUE AS IsUnique,
+       CASE WHEN C.CONTYPE = 'p' THEN 2
+            WHEN C.CONTYPE = 'u' THEN 3
+            WHEN IDX.INDISUNIQUE THEN 1
+            ELSE 0
+       END AS IndexType
 FROM PG_INDEX IDX
 JOIN PG_CLASS I ON I.OID = IDX.INDEXRELID
 JOIN PG_CLASS T ON T.OID = IDX.INDRELID
 JOIN PG_NAMESPACE N ON N.OID = T.RELNAMESPACE
-LEFT JOIN PG_CONSTRAINT C ON C.CONINDID = I.OID
-WHERE N.NSPNAME = @SCHEMA AND T.RELNAME = @TABLE AND C.OID IS NULL;
+LEFT JOIN LATERAL (
+    SELECT CONTYPE FROM PG_CONSTRAINT
+    WHERE CONINDID = I.OID
+    ORDER BY CASE WHEN CONTYPE = 'p' THEN 0 WHEN CONTYPE = 'u' THEN 1 ELSE 2 END
+    LIMIT 1
+) C ON TRUE
+WHERE N.NSPNAME = @SCHEMA AND T.RELNAME = @TABLE;
 
 SELECT con.conname AS ConstraintName,
        CASE con.contype WHEN 'p' THEN 'PRIMARY KEY' WHEN 'f' THEN 'FOREIGN KEY'
-                        WHEN 'u' THEN 'UNIQUE' WHEN 'c' THEN 'CHECK' ELSE 'OTHER' END AS ConstraintType
+                        WHEN 'u' THEN 'UNIQUE' WHEN 'c' THEN 'CHECK'
+                        WHEN 'n' THEN 'NOT NULL' ELSE 'OTHER' END AS ConstraintType
 FROM pg_catalog.pg_constraint con
 JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid
 JOIN pg_catalog.pg_namespace nsp ON nsp.oid = con.connamespace
@@ -248,14 +259,26 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
 
             await using var reader = await command.ExecuteReaderAsync();
             var results = new List<DataTable>();
-            while (!reader.IsClosed && reader.HasRows)
+            do
             {
+                if (reader.FieldCount == 0)
+                    continue;
+
                 var table = new DataTable();
                 table.BeginLoadData();
-                table.Load(reader);
+                for (int i = 0; i < reader.FieldCount; i++)
+                    table.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
+                while (await reader.ReadAsync())
+                {
+                    var row = table.NewRow();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                        row[i] = reader.IsDBNull(i) ? DBNull.Value : reader.GetValue(i);
+                    table.Rows.Add(row);
+                }
                 table.EndLoadData();
                 if (table.Columns.Count > 0) results.Add(table);
             }
+            while (await reader.NextResultAsync());
 
             return new DatabaseCommandResultRaw
             {

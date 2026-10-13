@@ -142,7 +142,7 @@ export function createTableColumnsFolderNode(parentNode: TreeViewNodeData): Tree
 }
 
 export function createTableColumnNode(columnName: string, dataType: string, maxLength: number | undefined, isNullable: boolean, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
-  const typeText = `${dataType}` + (maxLength ? `(${maxLength})` : '');
+  const typeText = `${dataType.toUpperCase()}` + (maxLength ? `(${maxLength})` : '');
   const nullText = isNullable ? ' (NULL)' : ' (NOT NULL)';
   const nodeText = `${columnName}: ${typeText}${nullText}`;
 
@@ -151,7 +151,7 @@ export function createTableColumnNode(columnName: string, dataType: string, maxL
       <strong>{columnName}</strong>
       {": "}
       <span style={{ color: "blue" }}>{typeText}</span>
-      <span>{nullText}</span>
+      <span style={{ color: isNullable ? '#9ca3af' : '#64748b' }}>{nullText}</span>
     </>
   );
 
@@ -182,12 +182,16 @@ export function createTableIndexesFolderNode(parentNode: TreeViewNodeData): Tree
   };
 }
 
-export function createTableIndexNode(indexName: string, isUnique: boolean, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
+export function createTableIndexNode(indexName: string, isUnique: boolean, indexType: number, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
+  const tags: string[] = [];
+  if (indexType === 2) tags.push('PK');
+  else if (indexType === 3) tags.push('UK');
+  if (isUnique) tags.push('Unique');
+  const badge = tags.join(', ');
   const nodeTextElement = (
     <>
       <strong>{indexName}</strong>
-
-      <span>{isUnique ? ": (Unique)" : ""}</span>
+      {badge && <span style={{ color: "blue" }}>{` (${badge})`}</span>}
     </>
   );
 
@@ -220,11 +224,19 @@ export function createTableConstraintsFolderNode(parentNode: TreeViewNodeData): 
 }
 
 export function createTableConstraintNode(constraintName: string, constraintType: string, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
-    const nodeTextElement = (
+  const typeColor =
+    constraintType === 'PRIMARY KEY' ? '#b45309' :  // amber-700
+    constraintType === 'FOREIGN KEY' ? '#1d4ed8' :  // blue-700
+    constraintType === 'UNIQUE'      ? '#7c3aed' :  // violet-700
+    constraintType === 'CHECK'       ? '#0369a1' :  // sky-700
+    constraintType === 'NOT NULL'    ? '#64748b' :  // slate-500
+    '#9ca3af';                                      // gray-400 for OTHER
+
+  const nodeTextElement = (
     <>
       <strong>{constraintName}</strong>
       {": "}
-      <span>{constraintType}</span>
+      <span style={{ color: typeColor }}>{constraintType}</span>
     </>
   );
 

@@ -15,10 +15,13 @@ namespace MDBNavigator.Domain.Schema.Table
         public bool IsNullable { get; set; }
     }
 
+    public enum IndexType { Regular = 0, Unique = 1, PrimaryKey = 2, UniqueConstraint = 3 }
+
     public class TableIndex
     {
         public required string IndexName { get; set; }
         public required bool IsUnique { get; set; }
+        public IndexType IndexType { get; set; }
     }
 
     public class TableConstraint

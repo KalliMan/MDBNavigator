@@ -73,7 +73,7 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
       </div>
 
       <div
-        className={`${
+        className={`overflow-hidden ${
           node.isExpanded ? "opacity-100 " : "opacity-0 max-h-0 h-0 pointer-events-none"
         } transition-all ease-in-out delay-150 duration-150`}
       >
