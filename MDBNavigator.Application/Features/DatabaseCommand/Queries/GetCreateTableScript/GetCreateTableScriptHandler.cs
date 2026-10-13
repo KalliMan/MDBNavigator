@@ -15,7 +15,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateTab
 
         public async Task<string> Handle(GetCreateTableScriptQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             return await provider.GetCreateTableScript(request.Schema, request.Table);
         }
     }

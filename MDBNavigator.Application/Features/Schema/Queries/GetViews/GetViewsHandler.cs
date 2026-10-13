@@ -20,7 +20,7 @@ namespace MDBNavigator.Application.Features.Schema.Queries.GetViews
 
         public async Task<ViewDetailsDto> Handle(GetViewsQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             var views = await provider.GetViews();
             return new ViewDetailsDto
             {
@@ -32,3 +32,4 @@ namespace MDBNavigator.Application.Features.Schema.Queries.GetViews
         }
     }
 }
+

@@ -15,8 +15,9 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetDropViewS
 
         public async Task<string> Handle(GetDropViewScriptQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             return provider.GetDropViewScript(request.Schema, request.Name);
         }
     }
 }
+

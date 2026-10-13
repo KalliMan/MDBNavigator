@@ -1,6 +1,5 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs;
-using MDBNavigator.Application.Features.Connection.Commands.Connect;
 using MDBNavigator.Domain.Exceptions;
 using MediatR;
 
@@ -21,8 +20,10 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Reconnect
         {
             try
             {
-                var inner = new ConnectCommandHandler(_providerFactory, _connectionCache);
-                return await inner.ConnectInternal(request.SessionId, request.ConnectionId, request.ConnectionSettings);
+                return await DbConnectionHelper.ConnectAsync(
+                    _connectionCache, _providerFactory,
+                    request.SessionId, request.ConnectionId,
+                    request.ConnectionSettings);
             }
             catch (ConnectionFailedException)
             {
@@ -35,3 +36,4 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Reconnect
         }
     }
 }
+

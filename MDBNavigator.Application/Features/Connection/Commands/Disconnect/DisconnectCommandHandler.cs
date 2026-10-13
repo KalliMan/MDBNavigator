@@ -1,5 +1,4 @@
 using MDBNavigator.Application.Contracts;
-using MDBNavigator.Application.Features.Connection.Commands.Connect;
 using MediatR;
 
 namespace MDBNavigator.Application.Features.Connection.Commands.Disconnect
@@ -15,7 +14,7 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Disconnect
 
         public Task<Unit> Handle(DisconnectCommand request, CancellationToken cancellationToken)
         {
-            var cacheKey = ConnectCommandHandler.GetCacheKey(request.SessionId, request.ConnectionId);
+            var cacheKey = DbConnectionHelper.GetCacheKey(request.SessionId, request.ConnectionId);
             _connectionCache.Remove(cacheKey);
             return Task.FromResult(Unit.Value);
         }

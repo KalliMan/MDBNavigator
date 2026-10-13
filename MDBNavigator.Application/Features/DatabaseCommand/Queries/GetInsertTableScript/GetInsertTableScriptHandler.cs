@@ -15,8 +15,9 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetInsertTab
 
         public async Task<string> Handle(GetInsertTableScriptQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             return await provider.GetInsertTableScript(request.Schema, request.Table);
         }
     }
 }
+

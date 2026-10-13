@@ -15,8 +15,9 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetDropTable
 
         public async Task<string> Handle(GetDropTableScriptQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             return provider.GetDropTableScript(request.Schema, request.Table);
         }
     }
 }
+

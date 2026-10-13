@@ -15,8 +15,9 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateNew
 
         public async Task<string> Handle(GetCreateNewTableScriptQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             return provider.GetCreateNewTableScript(request.Schema);
         }
     }
 }
+

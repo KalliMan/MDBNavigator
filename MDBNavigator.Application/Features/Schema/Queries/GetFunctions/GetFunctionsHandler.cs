@@ -20,7 +20,7 @@ namespace MDBNavigator.Application.Features.Schema.Queries.GetFunctions
 
         public async Task<ProceduresDetailsDto> Handle(GetFunctionsQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             var functions = await provider.GetFunctions();
             return new ProceduresDetailsDto
             {

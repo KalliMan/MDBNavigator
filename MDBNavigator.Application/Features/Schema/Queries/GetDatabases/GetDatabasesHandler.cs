@@ -20,7 +20,7 @@ namespace MDBNavigator.Application.Features.Schema.Queries.GetDatabases
 
         public async Task<DatabasesDetailsDto> Handle(GetDatabasesQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId);
             var databases = await provider.GetDatabases();
             return new DatabasesDetailsDto
             {
@@ -31,3 +31,4 @@ namespace MDBNavigator.Application.Features.Schema.Queries.GetDatabases
         }
     }
 }
+

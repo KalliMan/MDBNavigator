@@ -26,7 +26,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
 
         public async Task<DatabaseCommandResultDto> Handle(ExecuteQueryQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await HandlerHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
             var rawResult = await provider.ExecuteQuery(request.CmdQuery);
 
             var results = rawResult.Results.Select(table => BuildSingleResult(request.SessionId, request.Id, table)).ToList();
