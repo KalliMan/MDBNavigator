@@ -108,8 +108,8 @@ const databaseSchemaApi = {
 };
 
 const databaseCommandApi = {
-  execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseCommandResult> =>
-    requests.post<DatabaseCommandResult>('/databaseCommand', cmdQuery),
+  execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<{ id: string }> =>
+    requests.post<{ id: string }>('/databaseCommand', cmdQuery),
   executeSingle: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseSingleCommandResult> =>
     requests.post<DatabaseSingleCommandResult>('/databaseCommand/executeSingle', cmdQuery),
 

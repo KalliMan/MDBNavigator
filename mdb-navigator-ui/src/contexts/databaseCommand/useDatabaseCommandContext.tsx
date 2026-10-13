@@ -35,19 +35,15 @@ export default function useDatabaseCommandContext(){
     }
   }
 
-    async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
+  async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
     context!.dispatch({
       type: DatabaseCommandActionTypes.Executing,
       payload: cmdQuery.id
     });
 
     try {
-      const result = await agent.databaseCommandApi.execute(cmdQuery);
-
-      context!.dispatch({
-        type: DatabaseCommandActionTypes.ResultReceived,
-        payload: result
-      });
+      await agent.databaseCommandApi.execute(cmdQuery);
+      // data arrives via SignalR StreamResultStarted / BatchResultReceived
     } catch (error) {
       context!.dispatch({
         type: DatabaseCommandActionTypes.Error,
@@ -78,10 +74,17 @@ export default function useDatabaseCommandContext(){
   }
 
   function onBatchCommandResult(result: DatabaseCommandBatchResult): void {
-    context!.dispatch({
-      type: DatabaseCommandActionTypes.BatchResultReceived,
-      payload: result
-    });
+    if (result.isFirstBatch) {
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.StreamResultStarted,
+        payload: result
+      });
+    } else {
+      context!.dispatch({
+        type: DatabaseCommandActionTypes.BatchResultReceived,
+        payload: result
+      });
+    }
   }
 
   return {

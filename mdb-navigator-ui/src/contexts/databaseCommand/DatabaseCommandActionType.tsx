@@ -8,6 +8,7 @@ export enum DatabaseCommandActionTypes {
   Queried = 'command/queried',
   ResultReceived = 'command/resultReceived',
   SingleResultReceived = 'command/singleResultReceived',
+  StreamResultStarted = 'command/streamResultStarted',
   BatchResultReceived = 'command/batchResultReceived',
   Error = 'command/error'
 }
@@ -38,6 +39,11 @@ export type CommandBatchResultReceivedAction = {
   payload: DatabaseCommandBatchResult;
 }
 
+export type CommandStreamResultStartedAction = {
+  type: DatabaseCommandActionTypes.StreamResultStarted;
+  payload: DatabaseCommandBatchResult;
+}
+
 export type ErrorAction = {
   type: DatabaseCommandActionTypes.Error;
   payload: string;
@@ -47,5 +53,6 @@ export type DatabaseCommandActions = ExecutingAction
 | CommandQueriedAction
 | CommandResultReceivedAction
 | CommandSingleResultReceivedAction
+| CommandStreamResultStartedAction
 | CommandBatchResultReceivedAction
 | ErrorAction;

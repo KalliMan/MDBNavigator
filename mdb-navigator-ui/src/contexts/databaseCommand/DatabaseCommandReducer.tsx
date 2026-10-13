@@ -2,6 +2,7 @@ import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/data
 import { DatabaseCommandActions, DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
+import { DatabaseSingleCommandResult } from "../../models/databaseCommand/result/databaseSingleCommandResult";
 
 export type DatabaseCommand = {
   id: string;
@@ -111,6 +112,31 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
             ? { ...c, isExecuting: false, result: existingDatabaseCommand.result, error: null }
             : c
         )
+      };
+    }
+
+    case DatabaseCommandActionTypes.StreamResultStarted: {
+      const batch = action.payload;
+      const singleResult: DatabaseSingleCommandResult = {
+        id: batch.id,
+        recordsAffected: 0,
+        rowCount: batch.fields?.length ?? 0,
+        fields: batch.fields ?? [],
+        resultJson: batch.resultJson
+      };
+      return {
+        commands: state.commands.map(c => {
+          if (c.id !== batch.commandId) return c;
+          const existing = c.result;
+          return {
+            ...c,
+            isExecuting: false,
+            error: null,
+            result: existing
+              ? { ...existing, results: [...existing.results, singleResult] }
+              : { id: batch.commandId, results: [singleResult] }
+          };
+        })
       };
     }
 

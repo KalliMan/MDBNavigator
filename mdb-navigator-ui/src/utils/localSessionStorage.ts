@@ -1,14 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
 
+let _cachedApplicationId: string | null = null;
+
 export default abstract class LocalSessionStorage {
 
-  public static getApplicationId(): string | null {
-    if (!sessionStorage.getItem('id')) {
-      sessionStorage.setItem('id', uuidv4());
+  public static getApplicationId(): string {
+    if (!_cachedApplicationId) {
+      _cachedApplicationId = sessionStorage.getItem('id');
+      if (!_cachedApplicationId) {
+        _cachedApplicationId = uuidv4();
+        sessionStorage.setItem('id', _cachedApplicationId);
+      }
     }
-
-    return sessionStorage.getItem('id');
+    return _cachedApplicationId;
   }
 
   public static storeConnectionSettings(connectionSettings: ConnectionSettings | undefined): void {

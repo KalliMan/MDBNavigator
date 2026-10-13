@@ -37,6 +37,6 @@ namespace MDBNavigator.Application.Contracts
         Task<string> GetInsertTableScript(string schema, string table);
 
         Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null);
-        Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters = null);
+        IAsyncEnumerable<QueryBatch> StreamQuery(string cmdQuery, int batchSize, object? parameters = null, CancellationToken ct = default);
     }
 }

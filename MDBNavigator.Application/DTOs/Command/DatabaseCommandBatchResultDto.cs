@@ -4,5 +4,9 @@ namespace MDBNavigator.Application.DTOs.Command
     {
         public required string CommandId { get; init; }
         public int Index { get; init; }
+        public int ResultSetIndex { get; init; }
+        public bool IsFirstBatch { get; init; }
+        public bool IsLastBatch { get; init; }
+        public IEnumerable<DatabaseCommandResultFieldDto>? Fields { get; init; }
     }
 }

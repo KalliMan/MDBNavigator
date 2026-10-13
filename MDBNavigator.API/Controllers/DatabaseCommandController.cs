@@ -83,7 +83,8 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-            return Ok(await _mediator.Send(new ExecuteQueryQuery(sessionId, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery)));
+            var acknowledged = await _mediator.Send(new ExecuteQueryQuery(sessionId, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery));
+            return Accepted(acknowledged);
         }
 
         [HttpPost("executeSingle")]

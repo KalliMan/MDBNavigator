@@ -9,6 +9,7 @@ using MDBNavigator.Domain.ValueObjects;
 using MDBNavigator.Infrastructure.PostgreSQL.Models;
 using Npgsql;
 using System.Data;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace MDBNavigator.Infrastructure.PostgreSQL
@@ -248,7 +249,7 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
             return new DatabaseSingleCommandResultRaw { RecordsAffected = reader.RecordsAffected, Result = dt };
         }
 
-        public async Task<DatabaseCommandResultRaw> ExecuteQuery(string cmdQuery, object? parameters = null)
+        public async IAsyncEnumerable<QueryBatch> StreamQuery(string cmdQuery, int batchSize, object? parameters = null, [EnumeratorCancellation] CancellationToken ct = default)
         {
             await using var command = new NpgsqlCommand(cmdQuery, _connection);
             if (parameters != null)
@@ -256,35 +257,65 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
                 foreach (var prop in parameters.GetType().GetProperties())
                     command.Parameters.AddWithValue(prop.Name, prop.GetValue(parameters) ?? DBNull.Value);
             }
+            await using var reader = await command.ExecuteReaderAsync(ct);
 
-            await using var reader = await command.ExecuteReaderAsync();
-            var results = new List<DataTable>();
+            var resultSetIndex = 0;
             do
             {
                 if (reader.FieldCount == 0)
-                    continue;
-
-                var table = new DataTable();
-                table.BeginLoadData();
-                for (int i = 0; i < reader.FieldCount; i++)
-                    table.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
-                while (await reader.ReadAsync())
                 {
-                    var row = table.NewRow();
-                    for (int i = 0; i < reader.FieldCount; i++)
-                        row[i] = reader.IsDBNull(i) ? DBNull.Value : reader.GetValue(i);
-                    table.Rows.Add(row);
+                    resultSetIndex++;
+                    continue;
                 }
-                table.EndLoadData();
-                if (table.Columns.Count > 0) results.Add(table);
-            }
-            while (await reader.NextResultAsync());
 
-            return new DatabaseCommandResultRaw
-            {
-                RecordsAffected = results.Sum(t => t.Rows.Count),
-                Results = results
-            };
+                var columns = Enumerable.Range(0, reader.FieldCount)
+                    .Select(i => new ColumnInfo(
+                        reader.GetName(i),
+                        reader.GetFieldType(i).Name,
+                        reader.GetFieldType(i).FullName ?? reader.GetFieldType(i).Name))
+                    .ToArray();
+
+                var batchRows = new List<object?[]>(batchSize);
+                var batchIndex = 0;
+                var isFirstBatch = true;
+
+                while (await reader.ReadAsync(ct))
+                {
+                    var row = new object?[reader.FieldCount];
+                    for (int i = 0; i < reader.FieldCount; i++)
+                        row[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                    batchRows.Add(row);
+
+                    if (batchRows.Count == batchSize)
+                    {
+                        yield return new QueryBatch
+                        {
+                            ResultSetIndex = resultSetIndex,
+                            IsFirstBatch = isFirstBatch,
+                            IsLastBatch = false,
+                            BatchIndex = batchIndex,
+                            Columns = isFirstBatch ? columns : null,
+                            Rows = batchRows.ToArray()
+                        };
+                        isFirstBatch = false;
+                        batchIndex++;
+                        batchRows.Clear();
+                    }
+                }
+
+                yield return new QueryBatch
+                {
+                    ResultSetIndex = resultSetIndex,
+                    IsFirstBatch = isFirstBatch,
+                    IsLastBatch = true,
+                    BatchIndex = batchIndex,
+                    Columns = isFirstBatch ? columns : null,
+                    Rows = batchRows.ToArray()
+                };
+
+                resultSetIndex++;
+            }
+            while (await reader.NextResultAsync(ct));
         }
 
         private async Task<IEnumerable<ProcedureDto>> GetProceduresInternal(string type)

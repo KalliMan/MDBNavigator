@@ -9,83 +9,55 @@ using Newtonsoft.Json;
 namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
 {
     public record ExecuteQueryQuery(string SessionId, string ConnectionId, string Id, string DatabaseName, string CmdQuery)
-        : IQuery<DatabaseCommandResultDto>;
+        : IQuery<CommandAcknowledgedDto>;
 
-    public class ExecuteQueryHandler : IRequestHandler<ExecuteQueryQuery, DatabaseCommandResultDto>
+    public class ExecuteQueryHandler : IRequestHandler<ExecuteQueryQuery, CommandAcknowledgedDto>
     {
-        private readonly IConnectionCache _cache;
-        private readonly IDatabaseProviderFactory _factory;
         private readonly IBackgroundTaskQueue _taskQueue;
 
-        public ExecuteQueryHandler(IConnectionCache cache, IDatabaseProviderFactory factory, IBackgroundTaskQueue taskQueue)
+        public ExecuteQueryHandler(IBackgroundTaskQueue taskQueue)
         {
-            _cache = cache;
-            _factory = factory;
             _taskQueue = taskQueue;
         }
 
-        public async Task<DatabaseCommandResultDto> Handle(ExecuteQueryQuery request, CancellationToken cancellationToken)
+        public Task<CommandAcknowledgedDto> Handle(ExecuteQueryQuery request, CancellationToken cancellationToken)
         {
-            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
-            var rawResult = await provider.ExecuteQuery(request.CmdQuery);
-
-            var results = rawResult.Results.Select(table => BuildSingleResult(request.SessionId, request.Id, table)).ToList();
-
-            return new DatabaseCommandResultDto { Id = request.Id, Results = results };
-        }
-
-        private DatabaseSingleCommandResultDto BuildSingleResult(string sessionId, string commandId, System.Data.DataTable table)
-        {
-            var resultId = Guid.NewGuid().ToString();
-            var dto = new DatabaseSingleCommandResultDto
-            {
-                Id = resultId,
-                RecordsAffected = table.Rows.Count,
-                RowCount = table.Rows.Count,
-                Fields = Enumerable.Range(0, table.Columns.Count).Select(i => new DatabaseCommandResultFieldDto
-                {
-                    Index = i,
-                    FieldName = table.Columns[i].ColumnName,
-                    FieldType = table.Columns[i].DataType.Name,
-                    FieldDataTypeName = table.Columns[i].DataType.FullName ?? table.Columns[i].DataType.ToString()
-                }).ToList(),
-                ResultJson = JsonConvert.SerializeObject(Enumerable.Range(0, Math.Min(table.Rows.Count, Constants.MAX_ROW_BATCH)).Select(i => table.Rows[i].ItemArray))
-            };
-
-            if (table.Rows.Count > Constants.MAX_ROW_BATCH)
-            {
-                EnqueueRemainingBatches(sessionId, commandId, resultId, table);
-            }
-
-            return dto;
-        }
-
-        private void EnqueueRemainingBatches(string sessionId, string commandId, string resultId, System.Data.DataTable table)
-        {
-            _taskQueue.EnqueueTask(async (scopeFactory, cancellationToken) =>
+            _taskQueue.EnqueueTask(async (scopeFactory, ct) =>
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
+                var cache = scope.ServiceProvider.GetRequiredService<IConnectionCache>();
+                var factory = scope.ServiceProvider.GetRequiredService<IDatabaseProviderFactory>();
                 var notifier = scope.ServiceProvider.GetRequiredService<IBatchNotifier>();
 
-                var skip = Constants.MAX_ROW_BATCH;
-                var batchIndex = 0;
-                while (skip < table.Rows.Count)
+                await using var provider = await DbConnectionHelper.CreateProviderAsync(cache, factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+
+                await foreach (var batch in provider.StreamQuery(request.CmdQuery, Constants.MAX_ROW_BATCH, ct: ct))
                 {
-                    var json = JsonConvert.SerializeObject(
-                        Enumerable.Range(skip, Math.Min(Constants.MAX_ROW_BATCH, table.Rows.Count - skip)).Select(i => table.Rows[i].ItemArray));
-
-                    await notifier.SendBatchCommandResult(new DatabaseCommandBatchResultDto
+                    var dto = new DatabaseCommandBatchResultDto
                     {
-                        Id = resultId,
-                        CommandId = commandId,
-                        Index = batchIndex,
-                        ResultJson = json
-                    }, sessionId);
+                        Id = $"{request.Id}_{batch.ResultSetIndex}",
+                        CommandId = request.Id,
+                        Index = batch.BatchIndex,
+                        ResultSetIndex = batch.ResultSetIndex,
+                        IsFirstBatch = batch.IsFirstBatch,
+                        IsLastBatch = batch.IsLastBatch,
+                        Fields = batch.IsFirstBatch
+                            ? batch.Columns?.Select((c, i) => new DatabaseCommandResultFieldDto
+                            {
+                                Index = i,
+                                FieldName = c.Name,
+                                FieldType = c.TypeName,
+                                FieldDataTypeName = c.FullTypeName
+                            })
+                            : null,
+                        ResultJson = JsonConvert.SerializeObject(batch.Rows)
+                    };
 
-                    skip += Constants.MAX_ROW_BATCH;
-                    batchIndex++;
+                    await notifier.SendBatchCommandResult(dto, request.SessionId);
                 }
             });
+
+            return Task.FromResult(new CommandAcknowledgedDto { Id = request.Id });
         }
     }
 }
