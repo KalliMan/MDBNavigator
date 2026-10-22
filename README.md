@@ -64,4 +64,9 @@ Dockerize settings:
 
     Compress-Archive -Path * -DestinationPath MdbNavigatorDeploy.zip -Force
     az webapp deploy --resource-group rg-manual-mdb-navigator --name manual-mdb-navigator --src-path .\MdbNavigatorDeploy.zip
-    
+
+# Contributing
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md). Contributors need to sign the [Contributor License Agreement](CLA.md) before a pull request can be merged.
+
+# License
+Licensed under the [Apache License 2.0](LICENSE). Copyright 2025-2026 Kalin Penchev.
