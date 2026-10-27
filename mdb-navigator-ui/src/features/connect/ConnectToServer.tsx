@@ -16,10 +16,11 @@ interface Props {
 export default function ConnectToServer({ initialConnectionSettings = null, onCloseModal, onOk }: Props) {
   const defaultConnectionSettings: ConnectionSettings = {
     serverType: ServerType.PostgreSQL,
-    serverName: 'localhost',
-    port: 5432,
-    userName: 'postgres',
-    password: 'secret',
+    // Dev-only defaults from .env.development.local; production builds always start empty.
+    serverName: import.meta.env.DEV ? import.meta.env.VITE_DEV_DB_SERVER ?? '' : '',
+    port: import.meta.env.DEV && import.meta.env.VITE_DEV_DB_PORT ? Number(import.meta.env.VITE_DEV_DB_PORT) : 5432,
+    userName: import.meta.env.DEV ? import.meta.env.VITE_DEV_DB_USER ?? '' : '',
+    password: import.meta.env.DEV ? import.meta.env.VITE_DEV_DB_PASSWORD ?? '' : '',
   };
 
   function isConnectedResult(source: ConnectionSettings | ConnectedResult): source is ConnectedResult {
