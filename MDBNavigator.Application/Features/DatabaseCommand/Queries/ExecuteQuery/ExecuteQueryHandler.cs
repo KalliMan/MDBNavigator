@@ -57,6 +57,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                         request.CmdQuery,
                         options.BatchSize,
                         commandTimeoutSeconds: options.CommandTimeoutSeconds,
+                        maxRows: options.MaxRowsPerExecution > 0 ? options.MaxRowsPerExecution : null,
                         stats: stats,
                         ct: linkedCts.Token);
 
@@ -89,6 +90,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                     RowCount = stats.RowCount,
                     RecordsAffected = stats.RecordsAffected,
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
+                    Truncated = stats.Truncated,
                     Error = error
                 }, request.SessionId);
             });

@@ -236,9 +236,13 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
             int batchSize,
             object? parameters = null,
             int? commandTimeoutSeconds = null,
+            int? maxRows = null,
             QueryStreamStats? stats = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
+            long totalRows = 0;
+            var limitReached = false;
+
             await using var command = new NpgsqlCommand(cmdQuery, _connection);
             if (commandTimeoutSeconds.HasValue)
             {
@@ -277,7 +281,14 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
                     for (int i = 0; i < reader.FieldCount; i++)
                         row[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
                     batchRows.Add(row);
+                    totalRows++;
                     if (stats != null) stats.RowCount++;
+
+                    if (maxRows.HasValue && totalRows >= maxRows.Value)
+                    {
+                        limitReached = true;
+                        break;
+                    }
 
                     if (batchRows.Count == batchSize)
                     {
@@ -305,6 +316,13 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
                     Columns = isFirstBatch ? columns : null,
                     Rows = batchRows.ToArray()
                 };
+
+                if (limitReached)
+                {
+                    if (stats != null) stats.Truncated = true;
+                    await StopReaderAsync(command, reader);
+                    yield break;
+                }
 
                 resultSetIndex++;
             }
@@ -340,6 +358,23 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
             // The script is the first column of the first row.
             var script = await _connection.ExecuteScalarAsync<string?>(sql);
             return script ?? string.Empty;
+        }
+
+        // Disposing a reader reads all remaining rows, so the command is cancelled server-side first.
+        // The resulting "query canceled" error is expected and swallowed.
+        private static async Task StopReaderAsync(NpgsqlCommand command, NpgsqlDataReader reader)
+        {
+            try
+            {
+                command.Cancel();
+                await reader.DisposeAsync();
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.QueryCanceled)
+            {
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         private static string EnsureValidIdentifier(string identifier, string paramName)

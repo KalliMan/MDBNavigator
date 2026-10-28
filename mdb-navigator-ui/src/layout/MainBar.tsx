@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import DatabaseCommandAndResult from '../features/databaseCommand/DatabaseCommandAndResult';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
 import useCommandQueryContext from '../contexts/commandQuery/useCommandQueryContext';
+import useDatabaseCommandContext from '../contexts/databaseCommand/useDatabaseCommandContext';
 
 interface TabData {
   id: string;
@@ -15,6 +16,7 @@ interface TabData {
 
 function Mainbar() {
   const { databaseCommandQueries } = useCommandQueryContext();
+  const { removeDatabaseSQLCommand } = useDatabaseCommandContext();
 
   const [tabsData, setTabsData] = useState<TabData[]>([]);
   const activeId = useRef<string | null>(null);
@@ -25,6 +27,9 @@ function Mainbar() {
     if (index === -1) {
       return;
     }
+
+    // Free the tab's results (and cancel its query if it is still running).
+    removeDatabaseSQLCommand(tabsData[index].databaseCommandQuery.id);
 
     const newTabsData = [...tabsData];
     newTabsData.splice(index, 1);

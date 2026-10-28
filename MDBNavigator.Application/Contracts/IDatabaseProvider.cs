@@ -36,12 +36,14 @@ namespace MDBNavigator.Application.Contracts
         Task<string> GetInsertTableScript(string schema, string table);
 
         // commandTimeoutSeconds: null keeps the provider default, 0 means no timeout.
-        // stats is filled while the stream is consumed (row count, records affected).
+        // maxRows: stop (and cancel the command) once this many rows were read across all result sets.
+        // stats is filled while the stream is consumed (row count, records affected, truncated).
         IAsyncEnumerable<QueryBatch> StreamQuery(
             string cmdQuery,
             int batchSize,
             object? parameters = null,
             int? commandTimeoutSeconds = null,
+            int? maxRows = null,
             QueryStreamStats? stats = null,
             CancellationToken ct = default);
     }

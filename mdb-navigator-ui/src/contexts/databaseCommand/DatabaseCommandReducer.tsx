@@ -1,15 +1,15 @@
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabaseCommandActions, DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
-import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
-import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
-import { DatabaseSingleCommandResult } from "../../models/databaseCommand/result/databaseSingleCommandResult";
 import { CommandExecutionStatus } from "../../models/databaseCommand/result/commandFinishedResult";
+import { ResultSet } from "../../models/databaseCommand/result/resultSet";
 import { HubStatus } from "../../services/commandResultHub";
+import type { BatchBuffer, ParsedBatch } from "./batchBuffer";
 
 export type DatabaseCommandStats = {
   rowCount: number;
   recordsAffected: number;
   elapsedMs: number;
+  truncated: boolean;
 }
 
 export type DatabaseCommand = {
@@ -22,8 +22,7 @@ export type DatabaseCommand = {
   stats: DatabaseCommandStats | null;
 
   query: DatabaseSQLCommandQuery | null;
-  result: DatabaseCommandResult | null;
-  batchResults: DatabaseCommandBatchResult[];
+  resultSets: ResultSet[];
 }
 
 export type DatabaseCommandState = {
@@ -39,6 +38,7 @@ export const initialDatabaseCommandState: DatabaseCommandState = {
 export type DatabaseCommandContextType = {
   state: DatabaseCommandState,
   dispatch: React.Dispatch<DatabaseCommandActions>,
+  batchBuffer: BatchBuffer,
 }
 
 const CONNECTION_LOST_MESSAGE = 'Connection to server lost during execution';
@@ -52,13 +52,46 @@ function createCommand(id: string): DatabaseCommand {
     status: null,
     stats: null,
     query: null,
-    result: null,
-    batchResults: []
+    resultSets: []
   };
 }
 
 function isCurrentExecution(command: DatabaseCommand, executionId: string) {
   return command.executionId !== null && command.executionId === executionId;
+}
+
+// Appends the rows of several batches with a single copy per result set.
+function appendBatches(resultSets: ResultSet[], batches: ParsedBatch[]): ResultSet[] {
+  const next = [...resultSets];
+  const pendingRows = new Map<number, unknown[][][]>();
+
+  for (const batch of batches) {
+    let index = next.findIndex(rs => rs.resultSetIndex === batch.resultSetIndex);
+    if (index === -1) {
+      next.push({
+        id: batch.id,
+        resultSetIndex: batch.resultSetIndex,
+        fields: batch.fields ?? [],
+        rows: [],
+        isComplete: false
+      });
+      index = next.length - 1;
+    }
+
+    const chunks = pendingRows.get(index) ?? [];
+    chunks.push(batch.rows);
+    pendingRows.set(index, chunks);
+
+    if (batch.isLastBatch) {
+      next[index] = { ...next[index], isComplete: true };
+    }
+  }
+
+  pendingRows.forEach((chunks, index) => {
+    next[index] = { ...next[index], rows: next[index].rows.concat(...chunks) };
+  });
+
+  return next;
 }
 
 export function databaseCommandReducer(state: DatabaseCommandState, action: DatabaseCommandActions): DatabaseCommandState {
@@ -70,8 +103,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         executionId,
         status: null,
         stats: null,
-        result: null,
-        batchResults: [],
+        resultSets: [],
         error: null
       };
       const existingCommand = state.commands.find(c => c.id === commandId);
@@ -100,7 +132,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
           ...state,
           commands: state.commands.map(c =>
             c.id === query.id
-              ? { ...c, query, result: null, batchResults: [], error: null }
+              ? { ...c, query, resultSets: [], error: null }
               : c
           )
         };
@@ -112,40 +144,15 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
       }
     }
 
-    case DatabaseCommandActionTypes.StreamResultStarted: {
-      const batch = action.payload;
-      const singleResult: DatabaseSingleCommandResult = {
-        id: batch.id,
-        recordsAffected: 0,
-        rowCount: 0,
-        fields: batch.fields ?? [],
-        resultJson: batch.resultJson
-      };
+    case DatabaseCommandActionTypes.RowsAppended: {
+      const batches = action.payload;
       return {
         ...state,
         commands: state.commands.map(c => {
-          if (c.id !== batch.commandId || !isCurrentExecution(c, batch.executionId)) return c;
-          const existing = c.result;
+          const own = batches.filter(b => b.commandId === c.id && isCurrentExecution(c, b.executionId));
           // isExecuting stays true until CommandFinished arrives.
-          return {
-            ...c,
-            result: existing
-              ? { ...existing, results: [...existing.results, singleResult] }
-              : { id: batch.commandId, results: [singleResult] }
-          };
+          return own.length > 0 ? { ...c, resultSets: appendBatches(c.resultSets, own) } : c;
         })
-      };
-    }
-
-    case DatabaseCommandActionTypes.BatchResultReceived: {
-      const batchResult = action.payload;
-      return {
-        ...state,
-        commands: state.commands.map(c =>
-          c.id === batchResult.commandId && isCurrentExecution(c, batchResult.executionId)
-            ? { ...c, batchResults: [...c.batchResults, batchResult] }
-            : c
-        )
       };
     }
 
@@ -163,11 +170,20 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
                 stats: {
                   rowCount: finished.rowCount,
                   recordsAffected: finished.recordsAffected,
-                  elapsedMs: finished.elapsedMs
+                  elapsedMs: finished.elapsedMs,
+                  truncated: finished.truncated
                 }
               }
             : c
         )
+      };
+    }
+
+    case DatabaseCommandActionTypes.CommandRemoved: {
+      const commandId = action.payload;
+      return {
+        ...state,
+        commands: state.commands.filter(c => c.id !== commandId)
       };
     }
 

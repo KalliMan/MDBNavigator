@@ -9,7 +9,6 @@ import { sleep } from '../common/helpers/commonHelpers';
 import { ProceduresDetails } from '../models/schema/procedure/proceduresDetails';
 import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/view/viewsDetails';
-import { DatabaseSingleCommandResult } from '../models/databaseCommand/result/databaseSingleCommandResult';
 import { TableDefinitionDetails } from '../models/schema/table/tableDefinitionDetails';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
@@ -113,7 +112,7 @@ const databaseCommandApi = {
     requests.post<void>(`/databaseCommand/cancel/${commandId}`, {}),
 
   getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<DatabaseSingleCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
+    requests.get<string>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
   getCreateStoredProcedureScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/createStoredProcedureScript/${connectionId}/${databaseName}/${schema}`),
   getCreateFunctionScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>

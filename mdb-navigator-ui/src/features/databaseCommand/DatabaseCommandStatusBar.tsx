@@ -113,7 +113,13 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
               <div className="w-4 h-4 bg-green-400 rounded-full"></div>
               <span className="font-medium">Query executed successfully</span>
             </div>
-            {rows && <span className="text-blue-100">{rows}</span>}
+            {stats?.truncated ? (
+              <span className="text-yellow-200" title="The server stops streaming at its row limit (QueryExecution:MaxRowsPerExecution)">
+                Showing first {stats.rowCount} rows (row limit reached)
+              </span>
+            ) : (
+              rows && <span className="text-blue-100">{rows}</span>
+            )}
             <span className="text-blue-100">
               Execution time: {finishedTime}
             </span>

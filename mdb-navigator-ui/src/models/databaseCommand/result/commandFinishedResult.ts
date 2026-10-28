@@ -8,5 +8,7 @@ export interface CommandFinishedResult {
   rowCount: number;
   recordsAffected: number;
   elapsedMs: number;
+  // True when the server stopped at its row limit.
+  truncated: boolean;
   error?: string | null;
 }

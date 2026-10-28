@@ -15,6 +15,7 @@ namespace MDBNavigator.Application.DTOs.Command
         public long RowCount { get; init; }
         public int RecordsAffected { get; init; }
         public long ElapsedMs { get; init; }
+        public bool Truncated { get; init; }
         public string? Error { get; init; }
     }
 }

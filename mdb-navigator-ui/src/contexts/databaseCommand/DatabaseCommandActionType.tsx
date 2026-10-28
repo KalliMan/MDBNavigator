@@ -1,14 +1,14 @@
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
-import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus } from "../../services/commandResultHub";
+import type { ParsedBatch } from "./batchBuffer";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
   Queried = 'command/queried',
-  StreamResultStarted = 'command/streamResultStarted',
-  BatchResultReceived = 'command/batchResultReceived',
+  RowsAppended = 'command/rowsAppended',
   CommandFinished = 'command/finished',
+  CommandRemoved = 'command/removed',
   HubStatusChanged = 'command/hubStatusChanged',
   Error = 'command/error'
 }
@@ -23,20 +23,20 @@ export type CommandQueriedAction = {
   payload: DatabaseSQLCommandQuery;
 }
 
-
-export type CommandBatchResultReceivedAction = {
-  type: DatabaseCommandActionTypes.BatchResultReceived;
-  payload: DatabaseCommandBatchResult;
-}
-
-export type CommandStreamResultStartedAction = {
-  type: DatabaseCommandActionTypes.StreamResultStarted;
-  payload: DatabaseCommandBatchResult;
+// A group of already parsed batches (possibly of several commands), see batchBuffer.
+export type RowsAppendedAction = {
+  type: DatabaseCommandActionTypes.RowsAppended;
+  payload: ParsedBatch[];
 }
 
 export type CommandFinishedAction = {
   type: DatabaseCommandActionTypes.CommandFinished;
   payload: CommandFinishedResult;
+}
+
+export type CommandRemovedAction = {
+  type: DatabaseCommandActionTypes.CommandRemoved;
+  payload: string;
 }
 
 export type HubStatusChangedAction = {
@@ -51,8 +51,8 @@ export type ErrorAction = {
 
 export type DatabaseCommandActions = ExecutingAction
 | CommandQueriedAction
-| CommandStreamResultStartedAction
-| CommandBatchResultReceivedAction
+| RowsAppendedAction
 | CommandFinishedAction
+| CommandRemovedAction
 | HubStatusChangedAction
 | ErrorAction;

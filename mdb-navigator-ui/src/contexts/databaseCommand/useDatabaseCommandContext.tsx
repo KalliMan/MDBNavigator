@@ -53,21 +53,25 @@ export default function useDatabaseCommandContext(){
     }
   }
 
-  function onBatchCommandResult(result: DatabaseCommandBatchResult): void {
-    if (result.isFirstBatch) {
-      context!.dispatch({
-        type: DatabaseCommandActionTypes.StreamResultStarted,
-        payload: result
-      });
-    } else {
-      context!.dispatch({
-        type: DatabaseCommandActionTypes.BatchResultReceived,
-        payload: result
-      });
+  // Drops the command and its rows (e.g. when its tab is closed); a running query is cancelled first.
+  function removeDatabaseSQLCommand(commandId: string) {
+    const command = context!.state.commands.find(c => c.id === commandId);
+    if (command?.isExecuting) {
+      cancelDatabaseSQLCommand(commandId);
     }
+    context!.dispatch({
+      type: DatabaseCommandActionTypes.CommandRemoved,
+      payload: commandId
+    });
+  }
+
+  function onBatchCommandResult(result: DatabaseCommandBatchResult): void {
+    context!.batchBuffer.push(result);
   }
 
   function onCommandFinished(result: CommandFinishedResult): void {
+    // Rows still waiting in the buffer must be applied before the run is marked finished.
+    context!.batchBuffer.flush();
     context!.dispatch({
       type: DatabaseCommandActionTypes.CommandFinished,
       payload: result
@@ -86,6 +90,7 @@ export default function useDatabaseCommandContext(){
     hubStatus: context.state.hubStatus,
     executeDatabaseSQLCommand,
     cancelDatabaseSQLCommand,
+    removeDatabaseSQLCommand,
     onBatchCommandResult,
     onCommandFinished,
     onHubStatusChanged,

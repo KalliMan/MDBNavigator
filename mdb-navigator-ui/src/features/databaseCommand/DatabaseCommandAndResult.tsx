@@ -23,7 +23,8 @@ const { isExecuting, error, status, stats, hubStatus } = useDatabaseCommandSelec
           <DatabaseCommand databaseCommandQuery={databaseCommandQuery} />
         </div>
       </HorisontalSidebar>
-      <div className="flex-1 overflow-auto">
+      {/* min-h-0: the result grid scrolls itself instead of growing the page */}
+      <div className="flex-1 min-h-0 overflow-hidden">
         <DatabaseCommandResultView databaseCommandQueryId={databaseCommandQuery.id}/>
       </div>
       <DatabaseCommandStatusBar 
