@@ -5,6 +5,14 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: [
+      // monaco-sql-languages imports the full 'monaco-editor', which also registers Monaco's basic
+      // languages (including a competing basic 'pgsql') and bundles TS/CSS/HTML/JSON workers we don't use.
+      // Point the bare import at the editor core; deep imports (monaco-editor/esm/...) are unaffected.
+      { find: /^monaco-editor$/, replacement: 'monaco-editor/esm/vs/editor/edcore.main.js' },
+    ],
+  },
   preview:{
     port: 3000,
     strictPort: true,

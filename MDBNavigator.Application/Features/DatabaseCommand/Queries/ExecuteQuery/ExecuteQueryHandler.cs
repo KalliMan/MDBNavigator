@@ -75,7 +75,8 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                 {
                     logger.LogError(ex, "Query execution {CommandId} failed", request.Id);
                     status = CommandExecutionStatus.Failed;
-                    error = ex.Message;
+                    // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).
+                    error = scope.ServiceProvider.GetService<IDatabaseErrorDescriber>()?.Describe(ex) ?? ex.Message;
                 }
                 finally
                 {

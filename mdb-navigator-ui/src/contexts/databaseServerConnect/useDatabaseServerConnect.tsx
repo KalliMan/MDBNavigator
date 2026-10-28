@@ -3,8 +3,18 @@ import { DatabaseServerConnectContextType } from "./DatabaseServerConnectReducer
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 import { DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
 import agent from "../../services/apiAgent";
+import { AxiosError } from "axios";
 
 export const DatabaseServerConnectContext = createContext<DatabaseServerConnectContextType | null>(null);
+
+// Prefer the server's explanation (e.g. "Connection failed: password authentication failed ...")
+// over axios' generic "Request failed with status code 400".
+function getErrorMessage(error: unknown): string {
+  if (error instanceof AxiosError) {
+    return error.response?.data?.message ?? error.message;
+  }
+  return error instanceof Error ? error.message : 'Unknown error occurred';
+}
 
 export default function useDatabaseServerConnectContext() {
   const context = useContext(DatabaseServerConnectContext);
@@ -32,7 +42,7 @@ export default function useDatabaseServerConnectContext() {
         });
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error);
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Error,
         payload: errorMessage
@@ -47,7 +57,7 @@ export default function useDatabaseServerConnectContext() {
         payload: connectionId
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error);
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Error,
         payload: errorMessage
@@ -75,7 +85,7 @@ export default function useDatabaseServerConnectContext() {
         });
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error);
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Error,
         payload: errorMessage
@@ -103,7 +113,7 @@ export default function useDatabaseServerConnectContext() {
         payload: connectionId
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error);
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Error,
         payload: errorMessage

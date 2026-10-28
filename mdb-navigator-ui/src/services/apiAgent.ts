@@ -61,7 +61,7 @@ axios.interceptors.response.use(
         toast.error("Forbidden!");
         break;
       case 404:
-        toast.error("Not Found!");
+        toast.error(data?.message ?? "Not Found!");
         break;
       case 500:
         toast.error(data.message);

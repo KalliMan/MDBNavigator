@@ -22,7 +22,7 @@ namespace MDBNavigator.Application.Contracts
         string GetCreateFunctionProcedureScript(string schema);
 
         Task<string> GetProcedureDefinition(string schema, string name);
-        string GetDropProcedureScript(string schema, string name);
+        Task<string> GetDropProcedureScript(string schema, string name);
 
         Task<IEnumerable<ViewDto>> GetViews();
         Task<string> GetViewDefinition(string schema, string name);

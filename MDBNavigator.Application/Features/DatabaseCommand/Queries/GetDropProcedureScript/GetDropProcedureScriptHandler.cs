@@ -16,7 +16,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetDropProce
         public async Task<string> Handle(GetDropProcedureScriptQuery request, CancellationToken cancellationToken)
         {
             await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
-            return provider.GetDropProcedureScript(request.Schema, request.Name);
+            return await provider.GetDropProcedureScript(request.Schema, request.Name);
         }
     }
 }

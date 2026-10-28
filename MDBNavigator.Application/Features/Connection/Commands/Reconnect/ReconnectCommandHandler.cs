@@ -31,7 +31,7 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Reconnect
             }
             catch (Exception ex)
             {
-                throw new ConnectionFailedException("Reconnection failed!", ex);
+                throw new ConnectionFailedException($"Reconnection failed: {DbConnectionHelper.DescribeConnectionError(ex)}", ex);
             }
         }
     }

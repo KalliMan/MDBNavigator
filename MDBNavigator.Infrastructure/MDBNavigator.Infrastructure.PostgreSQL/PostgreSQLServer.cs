@@ -5,12 +5,11 @@ using MDBNavigator.Domain.Schema.Database;
 using MDBNavigator.Domain.Schema.Procedure;
 using MDBNavigator.Domain.Schema.Table;
 using MDBNavigator.Domain.Schema.View;
+using MDBNavigator.Domain.Exceptions;
 using MDBNavigator.Domain.ValueObjects;
 using MDBNavigator.Infrastructure.PostgreSQL.Models;
 using Npgsql;
-using System.Data;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 
 namespace MDBNavigator.Infrastructure.PostgreSQL
 {
@@ -18,8 +17,12 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
     {
         NpgsqlConnection _connection = null!;
 
-        // Allow common PostgreSQL identifier characters while rejecting dangerous ones
-        private static readonly Regex ValidIdentifierRegex = new Regex(@"^[A-Za-z0-9_\[\]\.\- ]+$", RegexOptions.Compiled);
+        // Functions ('f') and procedures ('p'); aggregates/window functions have no editable definition.
+        private const string RoutineKinds = "('f', 'p')";
+
+        // Always schema-qualified, unlike regclass output (which drops schemas on the search_path).
+        // Expects pg_class c and pg_namespace n in the query.
+        private const string QualifiedRelationSql = "quote_ident(n.nspname) || '.' || quote_ident(c.relname)";
 
         public string DataSource => _connection.DataSource;
 
@@ -32,17 +35,33 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
                 Host = settings.ServerName,
                 Username = settings.UserName,
                 Password = settings.Password,
+                // Npgsql hides the server's error DETAIL by default (it may contain row values). In a database
+                // tool the user is the database user, and the detail is what explains the error
+                // (e.g. which objects block a DROP), so it is shown.
+                IncludeErrorDetail = true,
             };
 
             if (settings.Port > 0) builder.Port = settings.Port;
             if (!string.IsNullOrEmpty(databaseName)) builder.Database = databaseName;
 
             _connection = new NpgsqlConnection(builder.ConnectionString);
-            await _connection.OpenAsync();
+            try
+            {
+                await _connection.OpenAsync();
+            }
+            catch
+            {
+                await DisconnectAsync();
+                throw;
+            }
         }
 
         private async Task DisconnectAsync()
         {
+            if (_connection is null)
+            {
+                return;
+            }
             await _connection.DisposeAsync();
             _connection = null!;
         }
@@ -117,7 +136,7 @@ BEGIN
     p_status := 'SUCCESS';
 END;
 $$;";
-            return string.Format(template, schema);
+            return string.Format(template, QuoteIdentifier(schema, nameof(schema)));
         }
 
         public async Task<IEnumerable<ProcedureDto>> GetFunctions() => await GetProceduresInternal("FUNCTION");
@@ -132,21 +151,45 @@ BEGIN
     RETURN v_status;
 END;
 $$;";
-            return string.Format(template, schema);
+            return string.Format(template, QuoteIdentifier(schema, nameof(schema)));
         }
 
+        // Overloads share a name, so the definitions of all of them are returned (one statement each).
         public async Task<string> GetProcedureDefinition(string schema, string name)
-            => await _connection.QueryFirstAsync<string>(
-                "SELECT pg_get_functiondef((SELECT pg_proc.oid FROM pg_proc " +
-                "JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid " +
-                "WHERE proname = @Name AND nspname = @Schema));",
-                new { Name = name, Schema = schema });
-
-        public string GetDropProcedureScript(string schema, string name)
         {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            name = EnsureValidIdentifier(name, nameof(name));
-            return $"DROP PROCEDURE {schema}.{name};";
+            var definitions = (await _connection.QueryAsync<string>(
+                $@"SELECT pg_get_functiondef(p.oid)
+                   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                   WHERE n.nspname = @Schema AND p.proname = @Name AND p.prokind IN {RoutineKinds}
+                   ORDER BY p.oid",
+                new { Schema = schema, Name = name })).ToList();
+
+            if (definitions.Count == 0)
+            {
+                throw new ObjectNotFoundException($"Routine {schema}.{name} was not found.");
+            }
+
+            return string.Join("\n\n", definitions.Select(d => d.TrimEnd() + ";"));
+        }
+
+        // One DROP per overload, with the right keyword and the argument types that identify it.
+        public async Task<string> GetDropProcedureScript(string schema, string name)
+        {
+            var qualifiedName = QualifiedName(schema, name);
+            var routines = (await _connection.QueryAsync<(string Kind, string Arguments)>(
+                $@"SELECT p.prokind::text AS Kind, pg_get_function_identity_arguments(p.oid) AS Arguments
+                   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                   WHERE n.nspname = @Schema AND p.proname = @Name AND p.prokind IN {RoutineKinds}
+                   ORDER BY p.oid",
+                new { Schema = schema, Name = name })).ToList();
+
+            if (routines.Count == 0)
+            {
+                throw new ObjectNotFoundException($"Routine {schema}.{name} was not found.");
+            }
+
+            return string.Join("\n", routines.Select(r =>
+                $"DROP {(r.Kind == "p" ? "PROCEDURE" : "FUNCTION")} {qualifiedName}({r.Arguments});"));
         }
 
         public async Task<IEnumerable<ViewDto>> GetViews()
@@ -156,79 +199,68 @@ $$;";
                 "WHERE table_schema NOT IN ('pg_catalog', 'information_schema') AND table_type = 'VIEW' " +
                 "ORDER BY table_schema");
 
+        // pg_get_viewdef also works for views the user doesn't own (information_schema.views hides those).
         public async Task<string> GetViewDefinition(string schema, string name)
-            => await _connection.QueryFirstAsync<string>(
-                "SELECT 'CREATE OR REPLACE VIEW ' || table_name || ' AS ' || view_definition " +
-                "FROM information_schema.views WHERE table_name = @ViewName AND table_schema = @Schema;",
-                new { Schema = schema, ViewName = name });
+        {
+            var definition = await _connection.QueryFirstOrDefaultAsync<string?>(
+                $@"SELECT 'CREATE OR REPLACE VIEW ' || {QualifiedRelationSql} || ' AS' || E'\n' || pg_get_viewdef(c.oid, true)
+                  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                  WHERE c.relkind = 'v' AND n.nspname = @Schema AND c.relname = @Name",
+                new { Schema = schema, Name = name });
+
+            return definition ?? throw new ObjectNotFoundException($"View {schema}.{name} was not found.");
+        }
 
         public string GetCreateViewScript(string schema)
             => string.Format(@"CREATE OR REPLACE VIEW {0}.MyView AS
 SELECT -- columns
 FROM   -- tables
-WHERE  -- conditions", schema);
+WHERE  -- conditions", QuoteIdentifier(schema, nameof(schema)));
 
         public string GetDropViewScript(string schema, string name)
-        {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            name = EnsureValidIdentifier(name, nameof(name));
-            return $"DROP VIEW {schema}.{name};";
-        }
+            => $"DROP VIEW {QualifiedName(schema, name)};";
 
         public string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber)
         {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            table = EnsureValidIdentifier(table, nameof(table));
-            var script = $"SELECT * FROM {schema}.\"{table}\" ";
+            var script = $"SELECT * FROM {QualifiedName(schema, table)}";
             if (recordsNumber.HasValue && recordsNumber.Value > -1)
             {
-                script += $"LIMIT {recordsNumber}";
+                script += $" LIMIT {recordsNumber}";
             }
             return script;
         }
 
         public string GetCreateNewTableScript(string schema)
-        {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            return $"CREATE TABLE {schema}.\"MyTable\"\r\n(\r\n    \"Id\" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),\r\n    CONSTRAINT \"PK_[MyTable]_Id\" PRIMARY KEY (\"Id\")\r\n);";
-        }
+            => $"CREATE TABLE {QuoteIdentifier(schema, nameof(schema))}.\"MyTable\"\r\n(\r\n    \"Id\" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),\r\n    CONSTRAINT \"PK_MyTable_Id\" PRIMARY KEY (\"Id\")\r\n);";
 
         public async Task<string> GetCreateTableScript(string schema, string table)
         {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            table = EnsureValidIdentifier(table, nameof(table));
-            var sql = string.Format(@"SELECT 
-    'CREATE TABLE ' || regclass(c.oid) || ' (' || E'\n' ||
+            const string sql = $@"SELECT
+    'CREATE TABLE ' || {QualifiedRelationSql} || ' (' || E'\n' ||
     (SELECT string_agg('    ' || quote_ident(a.attname) || ' ' || format_type(a.atttypid, a.atttypmod) ||
         CASE WHEN a.attnotnull THEN ' NOT NULL' ELSE '' END, E',\n')
      FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || E'\n' || ');' || E'\n\n' ||
     COALESCE((SELECT string_agg(pg_get_indexdef(i.indexrelid) || ';', E'\n') FROM pg_index i WHERE i.indrelid = c.oid), '') || E'\n\n' ||
-    COALESCE((SELECT string_agg('ALTER TABLE ' || quote_ident(c.relname) || ' ADD ' || pg_get_constraintdef(con.oid) || ';', E'\n')
+    COALESCE((SELECT string_agg('ALTER TABLE ' || {QualifiedRelationSql} || ' ADD ' || pg_get_constraintdef(con.oid) || ';', E'\n')
               FROM pg_constraint con WHERE con.conrelid = c.oid), '') AS full_ddl
 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
-            return await GetTableScript(sql);
+WHERE c.relname = @Table AND n.nspname = @Schema;";
+            return await GetTableScript(sql, schema, table);
         }
 
         public string GetDropTableScript(string schema, string table)
-        {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            table = EnsureValidIdentifier(table, nameof(table));
-            return $"DROP TABLE {schema}.\"{table}\"";
-        }
+            => $"DROP TABLE {QualifiedName(schema, table)};";
 
         public async Task<string> GetInsertTableScript(string schema, string table)
         {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            table = EnsureValidIdentifier(table, nameof(table));
-            var sql = string.Format(@"SELECT 
-'INSERT INTO ' || regclass(c.oid) || ' (' ||
+            const string sql = $@"SELECT
+'INSERT INTO ' || {QualifiedRelationSql} || ' (' ||
 (SELECT string_agg(quote_ident(a.attname), ', ') FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || ')
 VALUES (' ||
 (SELECT string_agg('DEFAULT', ', ') FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || ');' AS insert_ddl
 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
-            return await GetTableScript(sql);
+WHERE c.relname = @Table AND n.nspname = @Schema;";
+            return await GetTableScript(sql, schema, table);
         }
 
         public async IAsyncEnumerable<QueryBatch> StreamQuery(
@@ -333,11 +365,12 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
 
         private async Task<IEnumerable<ProcedureDto>> GetProceduresInternal(string type)
         {
+            // DISTINCT: overloads are listed once; their definitions/drop scripts cover all overloads.
             var raw = await _connection.QueryAsync<ProcedureRaw>(
-                "SELECT routine_schema As DatabaseSchema, routine_name As Name, routine_type AS ProcedureType " +
+                "SELECT DISTINCT routine_schema As DatabaseSchema, routine_name As Name, routine_type AS ProcedureType " +
                 "FROM information_schema.routines " +
                 "WHERE routine_schema NOT IN ('pg_catalog', 'information_schema') AND routine_type = @Type " +
-                "ORDER BY routine_schema",
+                "ORDER BY routine_schema, routine_name",
                 new { Type = type });
 
             return raw.Select(p => new ProcedureDto
@@ -353,11 +386,11 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
             });
         }
 
-        private async Task<string> GetTableScript(string sql)
+        private async Task<string> GetTableScript(string sql, string schema, string table)
         {
-            // The script is the first column of the first row.
-            var script = await _connection.ExecuteScalarAsync<string?>(sql);
-            return script ?? string.Empty;
+            // The script is the first column of the first row; no row means the table doesn't exist.
+            var script = await _connection.ExecuteScalarAsync<string?>(sql, new { Schema = schema, Table = table });
+            return script ?? throw new ObjectNotFoundException($"Table {schema}.{table} was not found.");
         }
 
         // Disposing a reader reads all remaining rows, so the command is cancelled server-side first.
@@ -377,13 +410,19 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
             }
         }
 
-        private static string EnsureValidIdentifier(string identifier, string paramName)
+        // PostgreSQL identifier quoting: wrap in double quotes and double any embedded quote.
+        // Accepts every valid name (mixed case, spaces, non-ASCII...), keeps its exact case and
+        // makes SQL injection through object names impossible.
+        private static string QuoteIdentifier(string identifier, string paramName)
         {
-            if (string.IsNullOrWhiteSpace(identifier) || !ValidIdentifierRegex.IsMatch(identifier))
+            if (string.IsNullOrWhiteSpace(identifier) || identifier.Contains('\0'))
             {
                 throw new ArgumentException($"Invalid identifier value for '{paramName}'.", paramName);
             }
-            return identifier;
+            return "\"" + identifier.Replace("\"", "\"\"") + "\"";
         }
+
+        private static string QualifiedName(string schema, string name)
+            => $"{QuoteIdentifier(schema, nameof(schema))}.{QuoteIdentifier(name, nameof(name))}";
     }
 }

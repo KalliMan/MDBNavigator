@@ -1,6 +1,8 @@
 ﻿using FluentValidation;
 using MDBNavigator.API.Core;
+using MDBNavigator.Application.Contracts;
 using MDBNavigator.Domain.Exceptions;
+using System.Data.Common;
 using System.Net;
 using System.Text.Json;
 
@@ -29,26 +31,25 @@ namespace MDBNavigator.API.Middleware
             }
             catch (Exception ex)
             {
+                var (statusCode, message) = MapException(ex, context.RequestServices.GetService<IDatabaseErrorDescriber>());
 
-                context.Response.ContentType = "application/json";
-
-                int statusCode;
-                string message;
-
-                switch (ex)
+                if (statusCode >= 500)
                 {
-                    case NotConnectedException:
-                    case NotSupportedException:
-                    case ValidationException:                        
-                        statusCode = (int)HttpStatusCode.BadRequest;
-                        message = ex.Message;
-                        break;
-                    default:
-                        statusCode = (int)HttpStatusCode.InternalServerError;
-                        message = ex.Message;
-                        break;
+                    _logger.LogError(ex, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+                }
+                else
+                {
+                    _logger.LogWarning("Request {Method} {Path} failed with {StatusCode}: {Message}",
+                        context.Request.Method, context.Request.Path, statusCode, ex.Message);
                 }
 
+                // Part of the response is already sent: it can't be replaced by an error body.
+                if (context.Response.HasStarted)
+                {
+                    throw;
+                }
+
+                context.Response.ContentType = "application/json";
                 context.Response.StatusCode = statusCode;
 
                 var response = _env.IsDevelopment()
@@ -64,5 +65,20 @@ namespace MDBNavigator.API.Middleware
                 await context.Response.WriteAsync(json);
             }
         }
+
+        // Errors caused by the request or the database (bad input, failed connection, SQL error) are 4xx
+        // with their message; anything else is a bug: 500, with details only in Development.
+        private (int StatusCode, string Message) MapException(Exception ex, IDatabaseErrorDescriber? errorDescriber) => ex switch
+        {
+            ObjectNotFoundException => ((int)HttpStatusCode.NotFound, ex.Message),
+            DbException => ((int)HttpStatusCode.BadRequest, errorDescriber?.Describe(ex) ?? ex.Message),
+            ValidationException
+                or NotConnectedException
+                or ConnectionFailedException
+                or NotSupportedException
+                or ArgumentException => ((int)HttpStatusCode.BadRequest, ex.Message),
+            _ => ((int)HttpStatusCode.InternalServerError,
+                _env.IsDevelopment() ? ex.Message : "An unexpected error occurred.")
+        };
     }
 }

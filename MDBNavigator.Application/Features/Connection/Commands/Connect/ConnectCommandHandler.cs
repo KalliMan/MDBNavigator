@@ -27,7 +27,7 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Connect
             }
             catch (Exception ex)
             {
-                throw new ConnectionFailedException("Connection failed!", ex);
+                throw new ConnectionFailedException($"Connection failed: {DbConnectionHelper.DescribeConnectionError(ex)}", ex);
             }
         }
     }

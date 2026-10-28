@@ -1,5 +1,5 @@
 import Editor, { OnMount } from "@monaco-editor/react";
-import "monaco-sql-languages/esm/languages/pgsql/pgsql.contribution";
+import "./monacoSetup";
 import { LanguageIdEnum } from "monaco-sql-languages";
 
 import { useEffect, useRef, useState } from "react";

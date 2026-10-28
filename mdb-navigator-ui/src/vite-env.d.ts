@@ -12,3 +12,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Monaco's core entry (editor + features, no basic languages) ships without typings; it exports the same API.
+declare module 'monaco-editor/esm/vs/editor/edcore.main' {
+  export * from 'monaco-editor';
+}

@@ -8,6 +8,7 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
         public static IServiceCollection AddPostgreSQLProvider(this IServiceCollection services)
         {
             services.AddScoped<IDbServerFactory, PostgreSQLProviderFactory>();
+            services.AddSingleton<IDatabaseErrorDescriber, PostgresErrorDescriber>();
             return services;
         }
     }

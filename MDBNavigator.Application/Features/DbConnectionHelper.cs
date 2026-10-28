@@ -11,6 +11,13 @@ namespace MDBNavigator.Application.Features
         internal static string GetCacheKey(string sessionId, string connectionId)
             => $"{sessionId}_{connectionId}";
 
+        // The provider's message says why (e.g. "password authentication failed for user ..."). Network errors
+        // are wrapped ("Failed to connect to host:port") with the actual cause ("connection refused") inside.
+        internal static string DescribeConnectionError(Exception ex)
+            => ex.InnerException is { Message.Length: > 0 } inner && !ex.Message.Contains(inner.Message)
+                ? $"{ex.Message} ({inner.Message})"
+                : ex.Message;
+
         internal static async Task<ConnectedResultDto> ConnectAsync(
             IConnectionCache cache,
             IDatabaseProviderFactory factory,

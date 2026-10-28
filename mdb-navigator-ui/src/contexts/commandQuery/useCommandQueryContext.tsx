@@ -78,7 +78,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id,
       databaseName,
-      name: `[${schema}].[ProcedureName]`,
+      name: `${schema}.ProcedureName`,
       cmdQuery: createProcedureScript,
       executeImmediately: false
     };
@@ -96,7 +96,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `[${schema}].[FunctionName]`,
+      name: `${schema}.FunctionName`,
       cmdQuery: createFunctionScript,
       executeImmediately: false
     };
@@ -133,7 +133,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `[${schema}].[ViewName]`,
+      name: `${schema}.ViewName`,
       cmdQuery: createViewScript,
       executeImmediately: false
     };
@@ -151,7 +151,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `[${schema}].[TableName]`,
+      name: `${schema}.TableName`,
       cmdQuery: createTableQuery,
       executeImmediately: false
     };
@@ -171,7 +171,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id,
       databaseName,
-      name: `[${schema}].[${table}]`,
+      name: `${schema}.${table}`,
       cmdQuery: createTableQuery,
       executeImmediately: false
     };
@@ -190,7 +190,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id,
       databaseName,
-      name: `[${schema}].[${table}]`,
+      name: `${schema}.${table}`,
       cmdQuery: insertTableQuery,
       executeImmediately: false
     };
@@ -209,7 +209,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `[${schema}].[${table}]`,
+      name: `${schema}.${table}`,
       cmdQuery: dropTableScript,
       executeImmediately: false
     };
@@ -227,7 +227,7 @@ export default function useCommandQueryContext(){
       connectionId,
       id: uuidv4(),
       databaseName,
-      name: `[${schema}].[${name}]`,
+      name: `${schema}.${name}`,
       cmdQuery: dropProcedureScript,
       executeImmediately: false
     };
