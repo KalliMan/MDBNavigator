@@ -256,16 +256,9 @@ export default function useCommandQueryContext(){
     });
   }
 
-  function clearDatabaseCommandQuery() {
-    context!.dispatch({
-      type: CommandQueryActionTypes.Cleared
-    });
-  }
+  const { databaseCommandQueries } = context.state;
 
-  const {isExecuting, executingCommandId, databaseCommandQueries } = context.state;
-
-  return { isExecuting,
-    executingCommandId,
+  return {
     databaseCommandQueries,
     queryCommandGetTopNTableRecords: catchErrors(queryCommandGetTopNTableRecords),
     queryForDatabase: catchErrors(queryForDatabase),
@@ -280,7 +273,6 @@ export default function useCommandQueryContext(){
     queryCommandDropTableScript: catchErrors(queryCommandDropTableScript),
     queryCommandDropProcedureScript: catchErrors(queryCommandDropProcedureScript),
     queryCommandDropViewScript: catchErrors(queryCommandDropViewScript),
-    clearDatabaseCommandQuery
   };
 }
 

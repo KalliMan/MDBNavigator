@@ -28,12 +28,7 @@ namespace MDBNavigator.Application.Features
             await using var provider = await factory.CreateAsync(settings);
             cache.Set(GetCacheKey(sessionId, connectionId), settings);
 
-            var serverType = settings.ServerType switch
-            {
-                "PostgreSQL" => ServerType.PostgreSQL,
-                "MS SQL Server" => ServerType.MSSQLServer,
-                _ => ServerType.None
-            };
+            ServerTypes.TryParse(settings.ServerType, out var serverType);
 
             return new ConnectedResultDto
             {

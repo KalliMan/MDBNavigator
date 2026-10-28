@@ -217,7 +217,6 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
     }
 
     default:
-      console.log("Unsupported Action type");
       return state;
   }
 }

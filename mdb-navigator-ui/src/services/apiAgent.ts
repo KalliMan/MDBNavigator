@@ -5,15 +5,14 @@ import { TablesDetails } from '../models/schema/table/tablesDetails';
 import { DatabasesDetails } from '../models/schema/database/databasesDetails';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
 import { toast } from 'react-toastify';
-import { sleep } from '../common/helpers/commonHelpers';
 import { ProceduresDetails } from '../models/schema/procedure/proceduresDetails';
 import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/view/viewsDetails';
 import { TableDefinitionDetails } from '../models/schema/table/tableDefinitionDetails';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
-//'https://localhost:7262/api';
-//console.log(axios.defaults.baseURL);
+// Regular API calls are short (queries stream via SignalR after a 202), so a hanging request is an error.
+axios.defaults.timeout = 60_000;
 
 axios.interceptors.request.use((config) => {
   if (config.headers) {
@@ -24,47 +23,50 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-axios.interceptors.response.use(
-  async (response) => {
-    if (import.meta.env.DEV) {
-      await sleep(500);
+// The API answers with { message } (ExceptionMiddleware); ASP.NET itself may answer with ProblemDetails
+// ({ title, detail, errors }) or plain text. Returns a readable message for any of these.
+function getErrorMessage(data: unknown, status: number): string {
+  if (typeof data === 'string' && data.trim()) {
+    return data;
+  }
+  if (data && typeof data === 'object') {
+    const body = data as { message?: string; detail?: string; title?: string; errors?: Record<string, string[] | string> };
+    if (body.errors) {
+      const messages = Object.values(body.errors).flat().filter(Boolean);
+      if (messages.length > 0) {
+        return messages.join('\n');
+      }
     }
+    if (body.message) return body.message;
+    if (body.detail) return body.detail;
+    if (body.title) return body.title;
+  }
+  return `Request failed (${status})`;
+}
 
-    return response;
-  },
+axios.interceptors.response.use(
+  (response) => response,
   (error: AxiosError) => {
-    if (error.code === "ERR_NETWORK" && !error.response) {
+    if (error.code === AxiosError.ECONNABORTED || error.code === AxiosError.ETIMEDOUT) {
+      toast.error("The server did not respond in time.");
+      return Promise.reject(error);
+    }
+    if (!error.response) {
       toast.error("Network error - cannot connect to the server!");
       return Promise.reject(error);
     }
-    const { data, status } = error.response as AxiosResponse;
+
+    const { data, status } = error.response;
     switch (status) {
-
-      case 400:
-        if (data.errors) {
-          const modalStateErrors = [];
-          for (const key in data.errors) {
-            if (data.errors[key]) {
-              modalStateErrors.push(data.errors[key]);
-            }
-          }
-
-          toast.error(modalStateErrors.flat());
-        } else {
-          toast.error(data.message);
-        }
-        break;
       case 401:
         toast.error("Unauthorised!");
         break;
       case 403:
         toast.error("Forbidden!");
         break;
-      case 404:
-        toast.error(data?.message ?? "Not Found!");
-        break;
-      case 500:
-        toast.error(data.message);
+      default:
+        // 400, 404, 409, 5xx ...: the server's explanation, or a status-based fallback.
+        toast.error(getErrorMessage(data, status));
         break;
     }
 

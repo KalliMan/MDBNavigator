@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Set on <body> while a splitter is dragged (ui/sidebar/dragSelection.ts). */
+body.is-resizing-col,
+body.is-resizing-col * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+body.is-resizing-row,
+body.is-resizing-row * {
+  cursor: row-resize !important;
+  user-select: none !important;
+}
+
 @layer components {
 
   /* Rounded scrollbar thumb without arrow buttons (Chromium/Safari). */

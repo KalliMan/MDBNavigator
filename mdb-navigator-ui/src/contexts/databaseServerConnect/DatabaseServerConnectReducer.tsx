@@ -122,7 +122,6 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         error: action.payload
       };
       default:
-        console.log("Unsupported Action type");
         return state;
   }
 }

@@ -1,19 +1,12 @@
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { CommandQueryActions, CommandQueryActionTypes } from "./CommandQueryActionType";
 
+// Queries opened from the tree (scripts, definitions); each new entry opens a tab (see MainBar).
 export type CommandQueryState = {
-  isExecuting: boolean;
-  executingCommandId: string | null;
-  error: string | null;
-
   databaseCommandQueries: DatabaseSQLCommandQuery[];
 }
 
 export const initialCommandQueryState: CommandQueryState = {
-  isExecuting: false,
-  executingCommandId: null,
-  error: null,
-
   databaseCommandQueries: [],
 };
 
@@ -24,26 +17,12 @@ export type CommandQueryContextType = {
 
 export function commandQueryReducer(state: CommandQueryState, action: CommandQueryActions): CommandQueryState {
   switch(action.type) {
-
     case CommandQueryActionTypes.Queried:
       return {
         ...state,
         databaseCommandQueries: [...state.databaseCommandQueries, action.payload],
       };
-    case CommandQueryActionTypes.Cleared:
-      return {
-        ...state,
-        databaseCommandQueries: [],
-      };
-    case CommandQueryActionTypes.Error:
-      return {
-        ...state,
-        isExecuting: false,
-        executingCommandId: null,
-        error: action.payload
-      };
     default:
-      console.log("Unsupported Action type");
       return state;
   }
 }

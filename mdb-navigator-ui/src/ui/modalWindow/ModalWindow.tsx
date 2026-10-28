@@ -33,7 +33,7 @@ export default function ModalWindow({ children, name, title, canClose = true, on
   }
 
   return createPortal (
-    <div className="fixed top-0 left-0 w-[100%] h-screen backdrop-blur-sm z-50 transition-all duration-200]">
+    <div className="fixed top-0 left-0 w-[100%] h-screen backdrop-blur-sm z-50 transition-all duration-200">
       <div ref={ref} className="fixed top-[30%] left-[40%] bg-stone-100 rounded-lg shadow-lg transition-all duration-200">
         <div className="flex mb-5 pl-5 bg-stone-300 rounded-lg">
           <div className="mt-1 text-stone-800 text-lg">

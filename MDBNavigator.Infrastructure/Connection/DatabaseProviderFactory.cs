@@ -1,4 +1,5 @@
 using MDBNavigator.Application.Contracts;
+using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.ValueObjects;
 
 namespace MDBNavigator.Infrastructure.Connection
@@ -12,7 +13,7 @@ namespace MDBNavigator.Infrastructure.Connection
 
         public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null)
         {
-            if (!DBConnectionType.ConnectionTypes.TryGetValue(settings.ServerType, out var serverType))
+            if (!ServerTypes.TryParse(settings.ServerType, out var serverType))
             {
                 throw new NotSupportedException($"Unsupported server type '{settings.ServerType}'.");
             }
