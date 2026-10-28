@@ -8,6 +8,7 @@ import { ButtonType } from "../../ui/common/ButtonType.enum";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
 import useDatabaseCommandSelector from "../../contexts/databaseCommand/useDatabaseCommandSelector";
+import useDatabaseServerConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
@@ -17,9 +18,17 @@ interface Props {
 export default function DatabaseCommand({ databaseCommandQuery }: Props) {
   const { executeDatabaseSQLCommand, cancelDatabaseSQLCommand } = useDatabaseCommandContext();
   const { isExecuting, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
+  const { databaseServerConnections } = useDatabaseServerConnectContext();
+  // A tab of a disconnected server stays open (its SQL is kept) but can't run.
+  const isServerConnected = databaseServerConnections.some(
+    c => c.connectedResult?.connectionId === databaseCommandQuery.connectionId
+  );
   // While the hub is (re)connecting, results could not be delivered; when disconnected, Execute reconnects first.
   const isHubBusy = hubStatus === 'connecting' || hubStatus === 'reconnecting';
-  const canExecute = !isExecuting && !isHubBusy;
+  const canExecute = !isExecuting && !isHubBusy && isServerConnected;
+  const executeDisabledReason = !isServerConnected
+    ? 'Disconnected — connect to the server again to run this query'
+    : isHubBusy ? 'Connecting to the server...' : undefined;
   // The Ctrl+Enter command is bound once on mount, so it reads the current value through a ref.
   const canExecuteRef = useRef(canExecute);
   useEffect(() => {
@@ -91,10 +100,13 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
             Cancel
           </Button>
         ) : (
-          <span title={isHubBusy ? 'Connecting to the server...' : undefined}>
+          <span title={executeDisabledReason} className="flex items-center gap-2">
             <Button type={ButtonType.primary} onClick={handleExecute} disabled={!canExecute}>
               Execute (Ctrl+Enter)
             </Button>
+            {!isServerConnected && (
+              <span className="text-xs text-red-600">Disconnected — connect to the server again to run this query</span>
+            )}
           </span>
         )}
       </div>

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Tab from './Tab';
 import { HiXMark } from 'react-icons/hi2';
 
 interface Props {
+  // Controlled: the parent owns which tab is active.
   activeId: string | null;
   onClose?: (id: string) => void;
   onSetActiveTab?: (id: string) => void;
@@ -12,40 +13,19 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
 
   const childrenProps = Array.isArray(children) ? children : [children];
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [activeTab, setActiveTab] = useState(() => {
-    if (!children) {
-      return '';
-    }
-    if (!childrenProps?.length) {
-      return;
-    }
-
-    if (activeId) {
-      return activeId;
-    }
-
-    return childrenProps[0].props.id;
-  });
 
   useEffect(() => {
-    if (activeId) {
-      setActiveTab(activeId);
-    }
-  }, [activeId]);
-
-  useEffect(() => {
-    if (!activeTab || !scrollContainerRef.current) return;
+    if (!activeId || !scrollContainerRef.current) return;
 
     const activeElement = scrollContainerRef.current.querySelector(
-      `[data-tab-id="${activeTab}"]`
+      `[data-tab-id="${activeId}"]`
     ) as HTMLElement | null;
 
     activeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  }, [activeTab]);
+  }, [activeId]);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, newActiveTab: string) => {
     e.preventDefault();
-    setActiveTab(newActiveTab);
     onSetActiveTab?.(newActiveTab);
   };
 
@@ -65,8 +45,9 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
   };
 
   return (
-    <div className="h-screen">
-      <div className="flex h-[5%] w-full border-b border-gray-300 items-center">
+    // Fills exactly the parent's height (no h-screen: that overflowed the app frame and caused a second scrollbar).
+    <div className="h-full flex flex-col">
+      <div className="flex flex-none h-12 w-full border-b border-gray-300 items-center">
         <button
           type="button"
           className="px-2 text-gray-500 hover:text-gray-800 disabled:opacity-40"
@@ -81,7 +62,7 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
           {childrenProps.map(child => (
             <div
               className={`${
-                activeTab === child.props.id
+                activeId === child.props.id
                   ? 'flex border-b-2 border-purple-500 py-1'
                   : 'py-1'
               } flex text-gray-700 font-medium w-fit pr-1 pl-2 flex-none`}
@@ -111,17 +92,13 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
           &#8250;
         </button>
       </div>
-      <div className="py-2 h-[95%]">
-        {childrenProps.map((child) => {
-          if (child.props.id === activeTab) {
-            return (
-              <div className="h-full" key={child.props.id}>
-                {child.props.children}
-              </div>
-            );
-          }
-          return null;
-        })}
+      <div className="flex-1 min-h-0 pt-2">
+        {/* All tabs stay mounted (inactive ones hidden), so editor text, results and scroll survive tab switches. */}
+        {childrenProps.map((child) => (
+          <div className={child.props.id === activeId ? 'h-full' : 'hidden'} key={child.props.id}>
+            {child.props.children}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -27,9 +27,10 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="rounded-scrollbar h-full overflow-y-auto p-2 space-y-3 bg-neutral-100 dark:bg-neutral-800">
+      {/* Each stacked grid gets its own frame so its edges and scrollbars are clearly bounded. */}
       {resultSets.map(resultSet => (
-        <div key={resultSet.id} className="h-[30vh] mb-4">
+        <div key={resultSet.id} className="h-[30vh] border border-neutral-400 dark:border-neutral-600 overflow-hidden">
           <DatabaseCommandSingleResultView resultSet={resultSet} />
         </div>
       ))}

@@ -2,6 +2,33 @@
 
 @layer components {
 
+  /* Rounded scrollbar thumb without arrow buttons (Chromium/Safari). */
+  .rounded-scrollbar::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  .rounded-scrollbar::-webkit-scrollbar-track,
+  .rounded-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  .rounded-scrollbar::-webkit-scrollbar-thumb {
+    background-color: theme(colors.neutral.400);
+    border-radius: 9999px;
+    /* transparent border + content-box clip = thumb inset from the edges */
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .rounded-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: theme(colors.neutral.500);
+  }
+  /* Firefox can't round the thumb; use its thin standard scrollbar instead. */
+  @supports not selector(::-webkit-scrollbar) {
+    .rounded-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: theme(colors.neutral.400) transparent;
+    }
+  }
+
   .loader {
     width: 45px;
     aspect-ratio: 0.75;

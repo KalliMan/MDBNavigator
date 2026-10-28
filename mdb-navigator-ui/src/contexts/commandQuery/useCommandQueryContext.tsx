@@ -267,19 +267,31 @@ export default function useCommandQueryContext(){
   return { isExecuting,
     executingCommandId,
     databaseCommandQueries,
-    queryCommandGetTopNTableRecords,
-    queryForDatabase,
-    queryCommandProcedureDefinition,
-    queryCommandCreateStoredProcedureScript,
-    queryCommandCreateFunctionScript,
-    queryCommandViewDefinition,
-    queryCommandCreateViewScript,
-    queryCommandCreateNewTableScript,
-    queryCommandCreateTableScript,
-    queryCommandInsertTableScript,
-    queryCommandDropTableScript,
-    queryCommandDropProcedureScript,
-    queryCommandDropViewScript,
+    queryCommandGetTopNTableRecords: catchErrors(queryCommandGetTopNTableRecords),
+    queryForDatabase: catchErrors(queryForDatabase),
+    queryCommandProcedureDefinition: catchErrors(queryCommandProcedureDefinition),
+    queryCommandCreateStoredProcedureScript: catchErrors(queryCommandCreateStoredProcedureScript),
+    queryCommandCreateFunctionScript: catchErrors(queryCommandCreateFunctionScript),
+    queryCommandViewDefinition: catchErrors(queryCommandViewDefinition),
+    queryCommandCreateViewScript: catchErrors(queryCommandCreateViewScript),
+    queryCommandCreateNewTableScript: catchErrors(queryCommandCreateNewTableScript),
+    queryCommandCreateTableScript: catchErrors(queryCommandCreateTableScript),
+    queryCommandInsertTableScript: catchErrors(queryCommandInsertTableScript),
+    queryCommandDropTableScript: catchErrors(queryCommandDropTableScript),
+    queryCommandDropProcedureScript: catchErrors(queryCommandDropProcedureScript),
+    queryCommandDropViewScript: catchErrors(queryCommandDropViewScript),
     clearDatabaseCommandQuery
+  };
+}
+
+// Failed requests are already shown as a toast by the api agent; this only keeps
+// a failed script request from becoming an unhandled promise rejection.
+function catchErrors<TArgs extends unknown[]>(fn: (...args: TArgs) => Promise<void>) {
+  return async (...args: TArgs): Promise<void> => {
+    try {
+      await fn(...args);
+    } catch (error) {
+      console.error(error);
+    }
   };
 }

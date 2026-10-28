@@ -89,6 +89,12 @@ export default function useDatabaseServerConnectContext() {
     });
   }
 
+  function cancelConnectDialog() {
+    context!.dispatch({
+      type: DatabaseServerConnectActionTypes.ConnectDialogCancelled,
+    });
+  }
+
   async function disconnect(connectionId: string) {
     try {
       await agent.databaseConnectionApi.disconnect(connectionId);
@@ -116,6 +122,7 @@ export default function useDatabaseServerConnectContext() {
     reconnectDatabaseServerId,
     connect,
     connectNewDatabase,
+    cancelConnectDialog,
     disconnect,
     promptReconnectWithSettings,
     reconnect,

@@ -8,8 +8,13 @@ export enum DatabaseServerConnectActionTypes {
   PromptReconnectWithSettings = 'database/promptReconnectWithSettings',
   Reconnected = 'database/reconnected',
   Disconnected = 'database/disconnected',
+  ConnectDialogCancelled = 'database/connectDialogCancelled',
   Error = 'database/error'
 }
+
+export type DatabaseConnectDialogCancelledAction = {
+  type: DatabaseServerConnectActionTypes.ConnectDialogCancelled;
+};
 
 export type DatabaseConnectingAction = {
   type: DatabaseServerConnectActionTypes.Connecting;
@@ -51,4 +56,5 @@ export type DatabaseConnectActions = DatabaseConnectingAction
 | DatabaseConnectNewDatabaseServerAction
 | DatabaseErrorAction
 | DatabasePromptReconnectWithSettingsAction
-| DatabaseReconnectedAction;
+| DatabaseReconnectedAction
+| DatabaseConnectDialogCancelledAction;

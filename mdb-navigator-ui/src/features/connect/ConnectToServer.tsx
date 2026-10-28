@@ -9,11 +9,16 @@ import { ConnectedResult } from '../../models/connect/connectedResult';
 
 interface Props {
   initialConnectionSettings?: ConnectionSettings | ConnectedResult | null;
-  onCloseModal?: () => void;
+  // Error of the last connect attempt, shown in the dialog.
+  error?: string | null;
+  isConnecting?: boolean;
+  // Shows a Cancel button when set.
+  onCancel?: () => void;
   onOk?: (connectionSettings: ConnectionSettings) => void;
 }
 
-export default function ConnectToServer({ initialConnectionSettings = null, onCloseModal, onOk }: Props) {
+// The dialog's visibility is controlled by the parent: it stays open while connecting and after a failed attempt.
+export default function ConnectToServer({ initialConnectionSettings = null, error = null, isConnecting = false, onCancel, onOk }: Props) {
   const defaultConnectionSettings: ConnectionSettings = {
     serverType: ServerType.PostgreSQL,
     // Dev-only defaults from .env.development.local; production builds always start empty.
@@ -54,12 +59,11 @@ export default function ConnectToServer({ initialConnectionSettings = null, onCl
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!dataOk) {
+    if (!dataOk || isConnecting) {
       return;
     }
 
     onOk?.(connectionSettings);
-    onCloseModal?.();
   }
 
   return (
@@ -119,11 +123,21 @@ export default function ConnectToServer({ initialConnectionSettings = null, onCl
           />
         </div>
 
+        {error && (
+          <div className="mb-4 max-w-sm text-sm text-red-600 break-words" role="alert">
+            {error}
+          </div>
+        )}
+
         <div className="space-x-1">
-          <Button disabled={!dataOk} type={ButtonType.primary}>
-            Connect
+          <Button disabled={!dataOk || isConnecting} type={ButtonType.primary}>
+            {isConnecting ? 'Connecting…' : 'Connect'}
           </Button>
-          {/* <Button type={ButtonType.secondary} onClick={onCloseModal}>Cancel</Button> */}
+          {onCancel && (
+            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={e => { e.preventDefault(); onCancel(); }}>
+              Cancel
+            </Button>
+          )}
         </div>
       </div>
     </form>

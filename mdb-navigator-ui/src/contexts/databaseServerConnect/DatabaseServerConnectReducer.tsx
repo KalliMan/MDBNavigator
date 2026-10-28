@@ -38,11 +38,10 @@ export type DatabaseServerConnectContextType = {
 export function databaseConnectReducer(state: DatabaseConnectState, action: DatabaseConnectActions): DatabaseConnectState {
   switch(action.type) {
     case DatabaseServerConnectActionTypes.Connecting:
+      // The dialog flags stay set: the dialog remains open while connecting and shows the error if it fails.
       return {
         ...state,
-        connectNewDatabaseServer: false,
-        reconnectDatabaseServer: false,
-        reconnectDatabaseServerId: null,
+        error: null,
         isConnecting: true
       };
     case DatabaseServerConnectActionTypes.Connected:
@@ -85,6 +84,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
     case DatabaseServerConnectActionTypes.ConnectNewDatabaseServer:
       return {
         ...state,
+        error: null,
         connectNewDatabaseServer: true,
         reconnectDatabaseServer: false,
         reconnectDatabaseServerId: null,
@@ -101,17 +101,24 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
     case DatabaseServerConnectActionTypes.PromptReconnectWithSettings:
       return {
         ...state,
+        error: null,
         connectNewDatabaseServer: false,
         reconnectDatabaseServer: true,
         reconnectDatabaseServerId: action.payload,
       };
-    case DatabaseServerConnectActionTypes.Error:
+    case DatabaseServerConnectActionTypes.ConnectDialogCancelled:
       return {
         ...state,
-        isConnecting: false,
+        error: null,
         connectNewDatabaseServer: false,
         reconnectDatabaseServer: false,
         reconnectDatabaseServerId: null,
+      };
+    case DatabaseServerConnectActionTypes.Error:
+      // An open connect/reconnect dialog stays open and shows the error.
+      return {
+        ...state,
+        isConnecting: false,
         error: action.payload
       };
       default:

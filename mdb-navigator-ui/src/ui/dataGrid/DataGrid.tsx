@@ -83,10 +83,10 @@ export default function DataGrid({ columns, rows }: Props) {
 
   return (
     // isolate: the sticky header/row-number z-indexes stay inside the grid and never cover menus or popups
-    <div ref={scrollRef} className="isolate h-full overflow-auto text-sm bg-white dark:bg-neutral-700">
+    <div ref={scrollRef} className="isolate rounded-scrollbar h-full overflow-auto text-sm bg-white dark:bg-neutral-700">
       <div className="min-w-full" style={{ width: totalWidth }}>
         <div
-          className="grid sticky top-0 z-10 bg-neutral-400 border-b-2 border-t dark:border-neutral-600 font-semibold tracking-wider"
+          className="grid sticky top-0 z-10 bg-neutral-400 border-b-2 dark:border-neutral-600 font-semibold tracking-wider"
           style={{ gridTemplateColumns }}
         >
           <div className="sticky left-0 bg-neutral-400 border-x dark:border-neutral-600"></div>

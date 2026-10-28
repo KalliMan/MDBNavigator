@@ -10,9 +10,11 @@ interface Props {
   name: string;
   title: string;
   canClose?: boolean;
+  // When set, closing (X / outside click) is reported to the parent, which decides whether to unmount the modal.
+  onClose?: () => void;
 }
  /* eslint-disable @typescript-eslint/no-explicit-any */
-export default function ModalWindow({ children, name, title, canClose = true }: React.PropsWithChildren<Props>) {
+export default function ModalWindow({ children, name, title, canClose = true, onClose }: React.PropsWithChildren<Props>) {
   const [openName, setOpenName] = useState(name);
   const ref = useOutsideClick(canClose ? () => close(null) : () => {});
 
@@ -23,7 +25,11 @@ export default function ModalWindow({ children, name, title, canClose = true }: 
   function close(e: SyntheticEvent | null) {
     if (!canClose) return;
     e?.preventDefault();
-    setOpenName('');
+    if (onClose) {
+      onClose();
+    } else {
+      setOpenName('');
+    }
   }
 
   return createPortal (

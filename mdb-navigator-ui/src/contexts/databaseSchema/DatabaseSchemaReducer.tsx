@@ -36,10 +36,20 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
       };
 
     case DatabaseSchemaActionTypes.AddedSchema:
+      // Idempotent: a connection never gets a second schema entry.
+      if (state.databaseSchemas?.some(s => s.connectionId === action.payload.connectionId)) {
+        return state;
+      }
       return {
         ...state,
         isLoading: false,
         databaseSchemas: state.databaseSchemas ? [...state.databaseSchemas, action.payload] : [action.payload]
+      };
+
+    case DatabaseSchemaActionTypes.RemovedSchema:
+      return {
+        ...state,
+        databaseSchemas: state.databaseSchemas?.filter(s => s.connectionId !== action.payload) ?? null
       };
 
     case DatabaseSchemaActionTypes.FetchedDatabases: {
@@ -247,11 +257,12 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
             return { ...state, isLoading: false };
           }
 
-          if (database.tableDefinitionDetails) {
-            database.tableDefinitionDetails = database.tableDefinitionDetails.filter(t => t.databaseSchema === action.payload.databaseSchema && t.name === action.payload.tableName);
-          }
+          // Replace only the failed table's entry; definitions of other tables stay.
+          database.tableDefinitionDetails = (database.tableDefinitionDetails ?? []).filter(
+            t => !(t.databaseSchema === action.payload.databaseSchema && t.name === action.payload.tableName)
+          );
 
-          database.tableDefinitionDetails?.push({
+          database.tableDefinitionDetails.push({
             connectionId: action.payload.connectionId || "",
             databaseName: action.payload.databaseName || "",
             databaseSchema: action.payload.databaseSchema || "",

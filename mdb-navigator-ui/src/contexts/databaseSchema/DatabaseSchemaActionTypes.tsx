@@ -17,6 +17,7 @@ export enum DatabaseSchemaErrorScope {
 export enum DatabaseSchemaActionTypes {
   Loading = 'schema/loading',
   AddedSchema = 'schema/addedSchema',
+  RemovedSchema = 'schema/removedSchema',
   FetchedDatabases = 'schema/fetchedDatabases',
 
   FetchedTables = 'schema/fetchedTables',
@@ -39,6 +40,12 @@ export type LoadingAction = {
 export type AddedSchemaAction = {
   type: DatabaseSchemaActionTypes.AddedSchema;
   payload: DatabaseSchema;
+};
+
+// payload: connectionId
+export type RemovedSchemaAction = {
+  type: DatabaseSchemaActionTypes.RemovedSchema;
+  payload: string;
 };
 
 export type FetchedDatabasesAction = {
@@ -117,6 +124,7 @@ export type ErrorDatabaseSchemaActionAction = {
 
 export type DatabaseSchemaActions = LoadingAction
   | AddedSchemaAction
+  | RemovedSchemaAction
   | FetchedDatabasesAction
 
   | FetchedTablesAction

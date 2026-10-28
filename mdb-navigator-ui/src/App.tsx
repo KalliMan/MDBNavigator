@@ -14,17 +14,21 @@ function App() {
 
   const {
     isConnecting,
+    error,
     connectNewDatabaseServer,
     databaseServerConnections,
     reconnectDatabaseServer,
     reconnectDatabaseServerId,
     connect,
-    reconnect
+    reconnect,
+    cancelConnectDialog
   } = useDatabaseServerConnectContext();
   const { onBatchCommandResult, onCommandFinished, onHubStatusChanged } = useDatabaseCommandContext();
 
   useCommandBatchResultNotifications({ onBatchCommandResult, onCommandFinished, onHubStatusChanged });
-  const showConnectModal =  connectNewDatabaseServer || (!databaseServerConnections!.length && !isConnecting);
+  const hasConnections = databaseServerConnections.length > 0;
+  // Without any connection the connect dialog is mandatory; otherwise it can be cancelled.
+  const showConnectModal = connectNewDatabaseServer || !hasConnections;
   const showReconnectModal = reconnectDatabaseServer && reconnectDatabaseServerId;
   const reconnectedSettings = showReconnectModal
     ? databaseServerConnections.find(conn => conn.connectedResult?.connectionId === reconnectDatabaseServerId)?.connectedResult
@@ -33,21 +37,30 @@ function App() {
   return (
     <div>
       <ToastContainer position='bottom-right' hideProgressBar theme='colored' />
-      {isConnecting && <Loader />}
+      {/* An open dialog shows its own "Connecting…" state */}
+      {isConnecting && !showConnectModal && !showReconnectModal && <Loader />}
       {showConnectModal &&
-        <ModalWindow name="Connect To DB Server" title="Connect To DB Server" canClose={false}>
+        <ModalWindow name="Connect To DB Server" title="Connect To DB Server"
+          canClose={hasConnections && !isConnecting} onClose={cancelConnectDialog}>
           <ConnectToServer
+            error={error}
+            isConnecting={isConnecting}
+            onCancel={hasConnections ? cancelConnectDialog : undefined}
             onOk={(connectionSettings) => connect(connectionSettings)}
           />
         </ModalWindow>
       }
 
       {showReconnectModal && reconnectedSettings?.connectionId &&
-        <ModalWindow name="Reconnect To DB Server" title="Reconnect To DB Server" canClose={false}>
+        <ModalWindow name="Reconnect To DB Server" title="Reconnect To DB Server"
+          canClose={!isConnecting} onClose={cancelConnectDialog}>
           <ConnectToServer
             initialConnectionSettings = {
               ServerType.PostgreSQL === reconnectedSettings?.serverType ? reconnectedSettings : null
             }
+            error={error}
+            isConnecting={isConnecting}
+            onCancel={cancelConnectDialog}
             onOk={(connectionSettings) => reconnect(reconnectedSettings.connectionId, connectionSettings!)}
           />
         </ModalWindow>
@@ -57,7 +70,7 @@ function App() {
         <VerticalSidebar>
           <NavBar />
         </VerticalSidebar>
-        <div className="overflow-hidden">
+        <div className="h-full min-h-0 overflow-hidden">
           <Mainbar />
         </div>
       </div>
