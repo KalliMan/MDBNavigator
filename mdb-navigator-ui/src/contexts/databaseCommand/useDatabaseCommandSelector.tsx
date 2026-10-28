@@ -11,5 +11,8 @@ export default function useDatabaseCommandSelector(id: string) {
     result: command?.result,
     batchResults: command?.batchResults ?? [],
     error: command?.error ?? null,
+    status: command?.status ?? null,
+    stats: command?.stats ?? null,
+    hubStatus: context?.state.hubStatus ?? 'disconnected',
   };
 }

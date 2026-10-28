@@ -1,21 +1,21 @@
-import { DatabaseSingleCommandResult } from "../../models/databaseCommand/result/databaseSingleCommandResult";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
-import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
+import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
+import { HubStatus } from "../../services/commandResultHub";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
   Queried = 'command/queried',
-  ResultReceived = 'command/resultReceived',
-  SingleResultReceived = 'command/singleResultReceived',
   StreamResultStarted = 'command/streamResultStarted',
   BatchResultReceived = 'command/batchResultReceived',
+  CommandFinished = 'command/finished',
+  HubStatusChanged = 'command/hubStatusChanged',
   Error = 'command/error'
 }
 
 export type ExecutingAction = {
   type: DatabaseCommandActionTypes.Executing;
-  payload: string;
+  payload: { commandId: string; executionId: string };
 };
 
 export type CommandQueriedAction = {
@@ -23,16 +23,6 @@ export type CommandQueriedAction = {
   payload: DatabaseSQLCommandQuery;
 }
 
-
-export type CommandResultReceivedAction = {
-  type: DatabaseCommandActionTypes.ResultReceived;
-  payload: DatabaseCommandResult;
-}
-
-export type CommandSingleResultReceivedAction = {
-  type: DatabaseCommandActionTypes.SingleResultReceived;
-  payload: DatabaseSingleCommandResult;
-}
 
 export type CommandBatchResultReceivedAction = {
   type: DatabaseCommandActionTypes.BatchResultReceived;
@@ -44,15 +34,25 @@ export type CommandStreamResultStartedAction = {
   payload: DatabaseCommandBatchResult;
 }
 
+export type CommandFinishedAction = {
+  type: DatabaseCommandActionTypes.CommandFinished;
+  payload: CommandFinishedResult;
+}
+
+export type HubStatusChangedAction = {
+  type: DatabaseCommandActionTypes.HubStatusChanged;
+  payload: HubStatus;
+}
+
 export type ErrorAction = {
   type: DatabaseCommandActionTypes.Error;
-  payload: string;
+  payload: { commandId: string; message: string };
 };
 
 export type DatabaseCommandActions = ExecutingAction
 | CommandQueriedAction
-| CommandResultReceivedAction
-| CommandSingleResultReceivedAction
 | CommandStreamResultStartedAction
 | CommandBatchResultReceivedAction
+| CommandFinishedAction
+| HubStatusChangedAction
 | ErrorAction;

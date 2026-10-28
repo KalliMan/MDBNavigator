@@ -175,16 +175,6 @@ WHERE  -- conditions", schema);
             return $"DROP VIEW {schema}.{name};";
         }
 
-        public async Task<DatabaseSingleCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber)
-        {
-            schema = EnsureValidIdentifier(schema, nameof(schema));
-            table = EnsureValidIdentifier(table, nameof(table));
-            var sql = $"SELECT * FROM {schema}.{table}";
-            return recordsNumber.HasValue && recordsNumber.Value > -1
-                ? await ExecuteSingleQuery(sql + " LIMIT @Limit", new { Limit = recordsNumber.Value })
-                : await ExecuteSingleQuery(sql);
-        }
-
         public string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber)
         {
             schema = EnsureValidIdentifier(schema, nameof(schema));
@@ -241,17 +231,19 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
             return await GetTableScript(sql);
         }
 
-        public async Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null)
-        {
-            using var reader = await _connection.ExecuteReaderAsync(cmdQuery, parameters);
-            var dt = new DataTable();
-            if (reader.HasRows) dt.Load(reader);
-            return new DatabaseSingleCommandResultRaw { RecordsAffected = reader.RecordsAffected, Result = dt };
-        }
-
-        public async IAsyncEnumerable<QueryBatch> StreamQuery(string cmdQuery, int batchSize, object? parameters = null, [EnumeratorCancellation] CancellationToken ct = default)
+        public async IAsyncEnumerable<QueryBatch> StreamQuery(
+            string cmdQuery,
+            int batchSize,
+            object? parameters = null,
+            int? commandTimeoutSeconds = null,
+            QueryStreamStats? stats = null,
+            [EnumeratorCancellation] CancellationToken ct = default)
         {
             await using var command = new NpgsqlCommand(cmdQuery, _connection);
+            if (commandTimeoutSeconds.HasValue)
+            {
+                command.CommandTimeout = commandTimeoutSeconds.Value;
+            }
             if (parameters != null)
             {
                 foreach (var prop in parameters.GetType().GetProperties())
@@ -285,6 +277,7 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
                     for (int i = 0; i < reader.FieldCount; i++)
                         row[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
                     batchRows.Add(row);
+                    if (stats != null) stats.RowCount++;
 
                     if (batchRows.Count == batchSize)
                     {
@@ -316,6 +309,8 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
                 resultSetIndex++;
             }
             while (await reader.NextResultAsync(ct));
+
+            if (stats != null) stats.RecordsAffected = reader.RecordsAffected;
         }
 
         private async Task<IEnumerable<ProcedureDto>> GetProceduresInternal(string type)
@@ -342,12 +337,9 @@ WHERE c.relname = '{0}' AND n.nspname = '{1}';", table, schema);
 
         private async Task<string> GetTableScript(string sql)
         {
-            var raw = await ExecuteSingleQuery(sql);
-            if (raw.Result.Rows.Count > 0 && raw.Result.Columns.Count > 0)
-            {
-                return raw.Result.Rows[0][0]?.ToString() ?? string.Empty;
-            }
-            return string.Empty;
+            // The script is the first column of the first row.
+            var script = await _connection.ExecuteScalarAsync<string?>(sql);
+            return script ?? string.Empty;
         }
 
         private static string EnsureValidIdentifier(string identifier, string paramName)

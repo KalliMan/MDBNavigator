@@ -1,6 +1,6 @@
 using MDBNavigator.API.DTOs;
+using MDBNavigator.Application.Features.DatabaseCommand.Commands.CancelQuery;
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery;
-using MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteSingleQuery;
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateFunctionScript;
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateNewTableScript;
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateStoredProcedureScript;
@@ -83,18 +83,19 @@ namespace MDBNavigator.API.Controllers
             {
                 return errorResult!;
             }
-            var acknowledged = await _mediator.Send(new ExecuteQueryQuery(sessionId, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery));
+            var acknowledged = await _mediator.Send(new ExecuteQueryQuery(sessionId, value.ConnectionId, value.Id, value.ExecutionId, value.DatabaseName, value.CmdQuery));
             return Accepted(acknowledged);
         }
 
-        [HttpPost("executeSingle")]
-        public async Task<IActionResult> ExecuteSingle([FromBody] DatabaseSQLCommandQuery value)
+        [HttpPost("cancel/{commandId}")]
+        public async Task<IActionResult> Cancel(string commandId)
         {
             if (!TryGetSessionId(out var sessionId, out var errorResult))
             {
                 return errorResult!;
             }
-            return Ok(await _mediator.Send(new ExecuteSingleQueryQuery(sessionId, value.ConnectionId, value.Id, value.DatabaseName, value.CmdQuery)));
+            await _mediator.Send(new CancelQueryCommand(sessionId, commandId));
+            return NoContent();
         }
 
         [HttpGet("procedureDefinition/{connectionId}/{databaseName}/{schema}/{name}")]

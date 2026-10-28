@@ -7,6 +7,7 @@ import Button from "../../ui/common/Button";
 import { ButtonType } from "../../ui/common/ButtonType.enum";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
+import useDatabaseCommandSelector from "../../contexts/databaseCommand/useDatabaseCommandSelector";
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
@@ -14,7 +15,16 @@ interface Props {
 }
 
 export default function DatabaseCommand({ databaseCommandQuery }: Props) {
-  const { executeDatabaseSingleSQLCommand, executeDatabaseSQLCommand } = useDatabaseCommandContext();
+  const { executeDatabaseSQLCommand, cancelDatabaseSQLCommand } = useDatabaseCommandContext();
+  const { isExecuting, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
+  // While the hub is (re)connecting, results could not be delivered; when disconnected, Execute reconnects first.
+  const isHubBusy = hubStatus === 'connecting' || hubStatus === 'reconnecting';
+  const canExecute = !isExecuting && !isHubBusy;
+  // The Ctrl+Enter command is bound once on mount, so it reads the current value through a ref.
+  const canExecuteRef = useRef(canExecute);
+  useEffect(() => {
+    canExecuteRef.current = canExecute;
+  }, [canExecute]);
   const commandQuery = useRef<DatabaseSQLCommandQuery>(databaseCommandQuery);
   const [sqlQuery, setSqlQuery] = useState<string>(
     commandQuery.current.cmdQuery
@@ -27,10 +37,10 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
 
   useEffect(() => {
     if (commandQuery.current.executeImmediately) {
-      executeDatabaseSingleSQLCommand(commandQuery.current);
+      executeDatabaseSQLCommand(commandQuery.current);
       commandQuery.current.executeImmediately = false;
     }
-  }, [commandQuery, executeDatabaseSingleSQLCommand]);
+  }, [commandQuery, executeDatabaseSQLCommand]);
 
   function handleEditorChange(value: string | undefined) {
     setSqlQuery(value || "");
@@ -41,8 +51,13 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
     executeDatabaseSQLCommand(commandQuery.current);
   }
 
+  function handleCancel() {
+    cancelDatabaseSQLCommand(commandQuery.current.id);
+  }
+
   const handleEditorMount: OnMount = (editor, monaco) => {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      if (!canExecuteRef.current) return;
       commandQuery.current.cmdQuery = editor.getValue();
       executeDatabaseSQLCommand(commandQuery.current);
     });
@@ -71,9 +86,17 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
         />
       </div>
       <div className="min-h-10 flex items-center px-2 flex-none">
-        <Button type={ButtonType.primary} onClick={handleExecute}>
-          Execute (Ctrl+Enter)
-        </Button>
+        {isExecuting ? (
+          <Button type={ButtonType.primary} onClick={handleCancel}>
+            Cancel
+          </Button>
+        ) : (
+          <span title={isHubBusy ? 'Connecting to the server...' : undefined}>
+            <Button type={ButtonType.primary} onClick={handleExecute} disabled={!canExecute}>
+              Execute (Ctrl+Enter)
+            </Button>
+          </span>
+        )}
       </div>
     </div>
   );

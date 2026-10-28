@@ -15,5 +15,8 @@ namespace MDBNavigator.Infrastructure.SignalR
 
         public async Task SendBatchCommandResult(DatabaseCommandBatchResultDto command, string applicationId)
             => await _hubContext.Clients.Group(applicationId).SendAsync("BatchCommandResult", command);
+
+        public async Task SendCommandFinished(CommandFinishedDto result, string applicationId)
+            => await _hubContext.Clients.Group(applicationId).SendAsync("CommandFinished", result);
     }
 }

@@ -10,7 +10,6 @@ import { ProceduresDetails } from '../models/schema/procedure/proceduresDetails'
 import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/view/viewsDetails';
 import { DatabaseSingleCommandResult } from '../models/databaseCommand/result/databaseSingleCommandResult';
-import { DatabaseCommandResult } from '../models/databaseCommand/result/databaseCommandResult';
 import { TableDefinitionDetails } from '../models/schema/table/tableDefinitionDetails';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
@@ -110,8 +109,8 @@ const databaseSchemaApi = {
 const databaseCommandApi = {
   execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<{ id: string }> =>
     requests.post<{ id: string }>('/databaseCommand', cmdQuery),
-  executeSingle: (cmdQuery: DatabaseSQLCommandQuery): Promise<DatabaseSingleCommandResult> =>
-    requests.post<DatabaseSingleCommandResult>('/databaseCommand/executeSingle', cmdQuery),
+  cancel: (commandId: string): Promise<void> =>
+    requests.post<void>(`/databaseCommand/cancel/${commandId}`, {}),
 
   getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<DatabaseSingleCommandResult>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
@@ -129,8 +128,6 @@ const databaseCommandApi = {
   getDropViewScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/dropViewScript/${connectionId}/${databaseName}/${schema}/${name}`),
 
-  getTopNTableRecords: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<DatabaseSingleCommandResult> =>
-    requests.get<DatabaseSingleCommandResult>(`/databaseCommand/tableRecords/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
   getTopNTableRecordsScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
     requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
 

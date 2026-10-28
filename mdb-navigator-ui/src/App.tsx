@@ -21,9 +21,9 @@ function App() {
     connect,
     reconnect
   } = useDatabaseServerConnectContext();
-  const { onBatchCommandResult } = useDatabaseCommandContext();
+  const { onBatchCommandResult, onCommandFinished, onHubStatusChanged } = useDatabaseCommandContext();
 
-  useCommandBatchResultNotifications({onBatchCommandResult});
+  useCommandBatchResultNotifications({ onBatchCommandResult, onCommandFinished, onHubStatusChanged });
   const showConnectModal =  connectNewDatabaseServer || (!databaseServerConnections!.length && !isConnecting);
   const showReconnectModal = reconnectDatabaseServer && reconnectDatabaseServerId;
   const reconnectedSettings = showReconnectModal

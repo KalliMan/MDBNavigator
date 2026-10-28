@@ -29,14 +29,20 @@ namespace MDBNavigator.Application.Contracts
         string GetCreateViewScript(string schema);
         string GetDropViewScript(string schema, string name);
 
-        Task<DatabaseSingleCommandResultRaw> GetTopNTableRecords(string schema, string table, int? recordsNumber);
         string GetTopNTableRecordsScript(string schema, string table, int? recordsNumber);
         string GetCreateNewTableScript(string schema);
         Task<string> GetCreateTableScript(string schema, string table);
         string GetDropTableScript(string schema, string table);
         Task<string> GetInsertTableScript(string schema, string table);
 
-        Task<DatabaseSingleCommandResultRaw> ExecuteSingleQuery(string cmdQuery, object? parameters = null);
-        IAsyncEnumerable<QueryBatch> StreamQuery(string cmdQuery, int batchSize, object? parameters = null, CancellationToken ct = default);
+        // commandTimeoutSeconds: null keeps the provider default, 0 means no timeout.
+        // stats is filled while the stream is consumed (row count, records affected).
+        IAsyncEnumerable<QueryBatch> StreamQuery(
+            string cmdQuery,
+            int batchSize,
+            object? parameters = null,
+            int? commandTimeoutSeconds = null,
+            QueryStreamStats? stats = null,
+            CancellationToken ct = default);
     }
 }

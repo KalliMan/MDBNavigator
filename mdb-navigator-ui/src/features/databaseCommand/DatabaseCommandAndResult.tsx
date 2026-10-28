@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function DatabaseCommandAndResult({ databaseCommandQuery }: Props) {
-const { isExecuting, error } = useDatabaseCommandSelector(databaseCommandQuery.id);
+const { isExecuting, error, status, stats, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
 
   if (!databaseCommandQuery) {
     return null;
@@ -29,6 +29,9 @@ const { isExecuting, error } = useDatabaseCommandSelector(databaseCommandQuery.i
       <DatabaseCommandStatusBar 
         isExecuting={isExecuting}
         error={error}
+        status={status}
+        stats={stats}
+        hubStatus={hubStatus}
       />
     </div>
   );

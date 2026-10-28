@@ -3,11 +3,23 @@ import { DatabaseCommandActions, DatabaseCommandActionTypes } from "./DatabaseCo
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 import { DatabaseCommandResult } from "../../models/databaseCommand/result/databaseCommandResult";
 import { DatabaseSingleCommandResult } from "../../models/databaseCommand/result/databaseSingleCommandResult";
+import { CommandExecutionStatus } from "../../models/databaseCommand/result/commandFinishedResult";
+import { HubStatus } from "../../services/commandResultHub";
+
+export type DatabaseCommandStats = {
+  rowCount: number;
+  recordsAffected: number;
+  elapsedMs: number;
+}
 
 export type DatabaseCommand = {
   id: string;
   isExecuting: boolean;
   error: string | null;
+  // Identifies the current streamed run; messages of older runs are ignored.
+  executionId: string | null;
+  status: CommandExecutionStatus | null;
+  stats: DatabaseCommandStats | null;
 
   query: DatabaseSQLCommandQuery | null;
   result: DatabaseCommandResult | null;
@@ -16,10 +28,12 @@ export type DatabaseCommand = {
 
 export type DatabaseCommandState = {
   commands: DatabaseCommand[];
+  hubStatus: HubStatus;
 }
 
 export const initialDatabaseCommandState: DatabaseCommandState = {
   commands: [],
+  hubStatus: 'disconnected',
 };
 
 export type DatabaseCommandContextType = {
@@ -27,30 +41,52 @@ export type DatabaseCommandContextType = {
   dispatch: React.Dispatch<DatabaseCommandActions>,
 }
 
+const CONNECTION_LOST_MESSAGE = 'Connection to server lost during execution';
+
+function createCommand(id: string): DatabaseCommand {
+  return {
+    id,
+    isExecuting: false,
+    error: null,
+    executionId: null,
+    status: null,
+    stats: null,
+    query: null,
+    result: null,
+    batchResults: []
+  };
+}
+
+function isCurrentExecution(command: DatabaseCommand, executionId: string) {
+  return command.executionId !== null && command.executionId === executionId;
+}
+
 export function databaseCommandReducer(state: DatabaseCommandState, action: DatabaseCommandActions): DatabaseCommandState {
   switch(action.type) {
     case DatabaseCommandActionTypes.Executing: {
-      const commandId = action.payload;
+      const { commandId, executionId } = action.payload;
+      const running: Partial<DatabaseCommand> = {
+        isExecuting: true,
+        executionId,
+        status: null,
+        stats: null,
+        result: null,
+        batchResults: [],
+        error: null
+      };
       const existingCommand = state.commands.find(c => c.id === commandId);
 
       if (existingCommand) {
         return {
+          ...state,
           commands: state.commands.map(c =>
-            c.id === commandId
-              ? { ...c, isExecuting: true, result: null, batchResults: [], error: null }
-              : c
+            c.id === commandId ? { ...c, ...running } : c
           )
         };
       } else {
         return {
-          commands: [...state.commands, {
-            id: commandId,
-            isExecuting: true,
-            error: null,
-            query: null,
-            result: null,
-            batchResults: []
-          }]
+          ...state,
+          commands: [...state.commands, { ...createCommand(commandId), ...running }]
         };
       }
     }
@@ -61,6 +97,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
 
       if (existingCommand) {
         return {
+          ...state,
           commands: state.commands.map(c =>
             c.id === query.id
               ? { ...c, query, result: null, batchResults: [], error: null }
@@ -69,50 +106,10 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         };
       } else {
         return {
-          commands: [...state.commands, {
-            id: query.id,
-            isExecuting: false,
-            error: null,
-            query,
-            result: null,
-            batchResults: []
-          }]
+          ...state,
+          commands: [...state.commands, { ...createCommand(query.id), query }]
         };
       }
-    }
-
-    case DatabaseCommandActionTypes.ResultReceived: {
-      const databaseCommandresult = action.payload;
-
-      return {
-        commands: state.commands.map(c =>
-          c.id === databaseCommandresult.id
-            ? { ...c, isExecuting: false, result: databaseCommandresult, error: null }
-            : c
-        )
-      };
-    }
-
-    case DatabaseCommandActionTypes.SingleResultReceived: {
-      const databaseSingleCommandResult = action.payload;
-      const existingDatabaseCommand = state.commands.find(c => c.id === databaseSingleCommandResult.id);
-
-      if (!existingDatabaseCommand) {
-        return {...state};
-      }
-
-      existingDatabaseCommand.result = {
-        id: existingDatabaseCommand.id,
-        results: [databaseSingleCommandResult]
-      };
-
-      return {
-        commands: state.commands.map(c =>
-          c.id === existingDatabaseCommand.id
-            ? { ...c, isExecuting: false, result: existingDatabaseCommand.result, error: null }
-            : c
-        )
-      };
     }
 
     case DatabaseCommandActionTypes.StreamResultStarted: {
@@ -120,18 +117,18 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
       const singleResult: DatabaseSingleCommandResult = {
         id: batch.id,
         recordsAffected: 0,
-        rowCount: batch.fields?.length ?? 0,
+        rowCount: 0,
         fields: batch.fields ?? [],
         resultJson: batch.resultJson
       };
       return {
+        ...state,
         commands: state.commands.map(c => {
-          if (c.id !== batch.commandId) return c;
+          if (c.id !== batch.commandId || !isCurrentExecution(c, batch.executionId)) return c;
           const existing = c.result;
+          // isExecuting stays true until CommandFinished arrives.
           return {
             ...c,
-            isExecuting: false,
-            error: null,
             result: existing
               ? { ...existing, results: [...existing.results, singleResult] }
               : { id: batch.commandId, results: [singleResult] }
@@ -143,20 +140,61 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
     case DatabaseCommandActionTypes.BatchResultReceived: {
       const batchResult = action.payload;
       return {
+        ...state,
         commands: state.commands.map(c =>
-          c.id === batchResult.commandId
+          c.id === batchResult.commandId && isCurrentExecution(c, batchResult.executionId)
             ? { ...c, batchResults: [...c.batchResults, batchResult] }
             : c
         )
       };
     }
 
-    case DatabaseCommandActionTypes.Error: {
-      const errorMessage = action.payload;
+    case DatabaseCommandActionTypes.CommandFinished: {
+      const finished = action.payload;
       return {
+        ...state,
         commands: state.commands.map(c =>
-          c.isExecuting
-            ? { ...c, isExecuting: false, error: errorMessage }
+          c.id === finished.commandId && isCurrentExecution(c, finished.executionId)
+            ? {
+                ...c,
+                isExecuting: false,
+                status: finished.status,
+                error: finished.status === 'Failed' ? finished.error ?? 'Query execution failed' : null,
+                stats: {
+                  rowCount: finished.rowCount,
+                  recordsAffected: finished.recordsAffected,
+                  elapsedMs: finished.elapsedMs
+                }
+              }
+            : c
+        )
+      };
+    }
+
+    case DatabaseCommandActionTypes.HubStatusChanged: {
+      const hubStatus = action.payload;
+      const connectionLost = hubStatus === 'reconnecting' || hubStatus === 'disconnected';
+
+      return {
+        hubStatus,
+        // Batches sent while the hub is down are lost, so running streamed executions cannot complete.
+        commands: connectionLost
+          ? state.commands.map(c =>
+              c.isExecuting && c.executionId !== null
+                ? { ...c, isExecuting: false, status: 'Failed', error: CONNECTION_LOST_MESSAGE }
+                : c
+            )
+          : state.commands
+      };
+    }
+
+    case DatabaseCommandActionTypes.Error: {
+      const { commandId, message } = action.payload;
+      return {
+        ...state,
+        commands: state.commands.map(c =>
+          c.id === commandId
+            ? { ...c, isExecuting: false, status: 'Failed', error: message }
             : c
         )
       };

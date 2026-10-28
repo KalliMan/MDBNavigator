@@ -1,60 +1,38 @@
-import {
-  HubConnection,
-  HubConnectionBuilder,
-  LogLevel,
-} from "@microsoft/signalr";
-import { useEffect, useState } from "react";
-import LocalSessionStorage from "../../utils/localSessionStorage";
+import { useEffect, useRef } from "react";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
+import { getHubConnection, HubStatus, startHub, subscribeHubStatus } from "../../services/commandResultHub";
 
 interface Props {
   onBatchCommandResult: (result: DatabaseCommandBatchResult) => void;
+  onCommandFinished: (result: CommandFinishedResult) => void;
+  onHubStatusChanged: (status: HubStatus) => void;
 }
 
-export default function useCommandBatchResultNotifications({
-  onBatchCommandResult,
-}: Props) {
-  const [connectionRef, setConnection] = useState<HubConnection>();
-
-  function createHubConnection() {
-    const appId = LocalSessionStorage.getApplicationId();
-
-    const con = new HubConnectionBuilder()
-      .withUrl(
-        `${import.meta.env.VITE_SIGNALR_URL}/batchCommandResult?applicationId=${appId}`,
-        {withCredentials: false}
-      )
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Information)
-      .build();
-
-    setConnection(con);
-  }
+export default function useCommandBatchResultNotifications(props: Props) {
+  // Handlers are read through a ref so the subscription is set up once and never goes stale.
+  const handlersRef = useRef(props);
+  useEffect(() => {
+    handlersRef.current = props;
+  });
 
   useEffect(() => {
-    createHubConnection();
-  }, []);
+    const connection = getHubConnection();
+    const onBatch = (message: DatabaseCommandBatchResult) => handlersRef.current.onBatchCommandResult(message);
+    const onFinished = (message: CommandFinishedResult) => handlersRef.current.onCommandFinished(message);
 
-  useEffect(() => {
-    if (connectionRef) {
-      try {
-        connectionRef
-          .start()
-          .then(() => {
-            connectionRef.on("BatchCommandResult", (message) => {
-              onBatchCommandResult(message);
-            });
-          })
-          .catch((err) => {
-            console.error(`Error: ${err}`);
-          });
-      } catch (error) {
-        console.error(error as Error);
-      }
-    }
+    // Handlers are registered before start() so no message can arrive unhandled.
+    connection.on("BatchCommandResult", onBatch);
+    connection.on("CommandFinished", onFinished);
+    const unsubscribe = subscribeHubStatus(status => handlersRef.current.onHubStatusChanged(status));
 
+    startHub().catch(err => console.error(`Result stream connection failed: ${err}`));
+
+    // The connection itself is app-wide and is not stopped here (safe under StrictMode double effects).
     return () => {
-      connectionRef?.stop();
+      connection.off("BatchCommandResult", onBatch);
+      connection.off("CommandFinished", onFinished);
+      unsubscribe();
     };
-  }, [connectionRef]);
+  }, []);
 }

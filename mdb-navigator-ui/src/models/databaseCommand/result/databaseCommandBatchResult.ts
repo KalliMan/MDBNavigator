@@ -3,6 +3,7 @@ import { DatabaseCommandResultField } from "./databaseCommandResultField";
 
 export interface DatabaseCommandBatchResult extends DatabaseCommandResultBase {
   commandId: string;
+  executionId: string;
   index: number;
   resultSetIndex: number;
   isFirstBatch: boolean;
