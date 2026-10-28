@@ -2,6 +2,7 @@ using MDBNavigator.Application;
 using MDBNavigator.Application.Common;
 using MDBNavigator.API.Middleware;
 using MDBNavigator.Infrastructure;
+using MDBNavigator.Infrastructure.Connection;
 using MDBNavigator.Infrastructure.PostgreSQL;
 using MDBNavigator.Infrastructure.SignalR;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -10,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(
     builder.Configuration.GetSection(QueryExecutionOptions.SectionName).Get<QueryExecutionOptions>() ?? new QueryExecutionOptions());
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection(ConnectionCacheOptions.SectionName).Get<ConnectionCacheOptions>() ?? new ConnectionCacheOptions());
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
 builder.Services.AddPostgreSQLProvider();
