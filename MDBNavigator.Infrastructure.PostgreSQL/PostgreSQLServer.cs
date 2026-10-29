@@ -66,8 +66,8 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
             _connection = null!;
         }
 
-        public async Task<IEnumerable<DatabaseDto>> GetDatabases(CancellationToken ct = default)
-            => await _connection.QueryAsync<DatabaseDto>(Command(
+        public async Task<IEnumerable<DbDatabase>> GetDatabases(CancellationToken ct = default)
+            => await _connection.QueryAsync<DbDatabase>(Command(
                 "SELECT oid AS InternalId, datname AS Name FROM pg_database WHERE datistemplate = false ORDER BY oid DESC;", ct: ct));
 
         public async Task<IEnumerable<DbTable>> GetTables(CancellationToken ct = default)
@@ -124,7 +124,7 @@ WHERE nsp.nspname = @SCHEMA AND rel.relname = @TABLE;";
             };
         }
 
-        public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures(CancellationToken ct = default) => await GetProceduresInternal("PROCEDURE", ct);
+        public async Task<IEnumerable<DbProcedure>> GetStoredProcedures(CancellationToken ct = default) => await GetProceduresInternal("PROCEDURE", ct);
 
         public string GetCreateStoredProcedureScript(string schema)
         {
@@ -139,7 +139,7 @@ $$;";
             return string.Format(template, QuoteIdentifier(schema, nameof(schema)));
         }
 
-        public async Task<IEnumerable<ProcedureDto>> GetFunctions(CancellationToken ct = default) => await GetProceduresInternal("FUNCTION", ct);
+        public async Task<IEnumerable<DbProcedure>> GetFunctions(CancellationToken ct = default) => await GetProceduresInternal("FUNCTION", ct);
 
         public string GetCreateFunctionProcedureScript(string schema)
         {
@@ -192,8 +192,8 @@ $$;";
                 $"DROP {(r.Kind == "p" ? "PROCEDURE" : "FUNCTION")} {qualifiedName}({r.Arguments});"));
         }
 
-        public async Task<IEnumerable<ViewDto>> GetViews(CancellationToken ct = default)
-            => await _connection.QueryAsync<ViewDto>(Command(
+        public async Task<IEnumerable<DbView>> GetViews(CancellationToken ct = default)
+            => await _connection.QueryAsync<DbView>(Command(
                 "SELECT table_schema AS DatabaseSchema, table_name AS Name " +
                 "FROM information_schema.tables " +
                 "WHERE table_schema NOT IN ('pg_catalog', 'information_schema') AND table_type = 'VIEW' " +
@@ -311,7 +311,7 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
                 {
                     var row = new object?[reader.FieldCount];
                     for (int i = 0; i < reader.FieldCount; i++)
-                        row[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        row[i] = reader.IsDBNull(i) ? null : JsonCellValue.From(reader.GetValue(i));
                     batchRows.Add(row);
                     totalRows++;
                     if (stats != null) stats.RowCount++;
@@ -367,7 +367,7 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
         private static CommandDefinition Command(string sql, object? parameters = null, CancellationToken ct = default)
             => new(sql, parameters, cancellationToken: ct);
 
-        private async Task<IEnumerable<ProcedureDto>> GetProceduresInternal(string type, CancellationToken ct)
+        private async Task<IEnumerable<DbProcedure>> GetProceduresInternal(string type, CancellationToken ct)
         {
             // DISTINCT: overloads are listed once; their definitions/drop scripts cover all overloads.
             var raw = await _connection.QueryAsync<ProcedureRaw>(Command(
@@ -377,7 +377,7 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
                 "ORDER BY routine_schema, routine_name",
                 new { Type = type }, ct));
 
-            return raw.Select(p => new ProcedureDto
+            return raw.Select(p => new DbProcedure
             {
                 DatabaseSchema = p.DatabaseSchema,
                 Name = p.Name,

@@ -30,55 +30,57 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
   const executeDisabledReason = !isServerConnected
     ? 'Disconnected — connect to the server again to run this query'
     : isHubBusy ? 'Connecting to the server...' : undefined;
-  // The Ctrl+Enter command is bound once on mount, so it reads the current value through a ref.
-  const canExecuteRef = useRef(canExecute);
+  // The editor's Ctrl+Enter command is bound once on mount, so it reads the current values through a ref
+  // (otherwise it would keep calling the execute function and state of the first render).
+  const latest = useRef({ canExecute, query: databaseCommandQuery, execute: executeDatabaseSQLCommand });
   useEffect(() => {
-    canExecuteRef.current = canExecute;
-  }, [canExecute]);
-  const commandQuery = useRef<DatabaseSQLCommandQuery>(databaseCommandQuery);
-  const [sqlQuery, setSqlQuery] = useState<string>(
-    commandQuery.current.cmdQuery
-  );
+    latest.current = { canExecute, query: databaseCommandQuery, execute: executeDatabaseSQLCommand };
+  });
+  const [sqlQuery, setSqlQuery] = useState<string>(databaseCommandQuery.cmdQuery);
+  // Queries opened with executeImmediately (e.g. "Select Top 100") run once when their tab opens.
+  const autoRunDone = useRef(false);
 
   useEffect(() => {
-    commandQuery.current = databaseCommandQuery;
     setSqlQuery(databaseCommandQuery.cmdQuery);
   }, [databaseCommandQuery]);
 
   useEffect(() => {
-    if (commandQuery.current.executeImmediately) {
+    if (databaseCommandQuery.executeImmediately && !autoRunDone.current) {
+      autoRunDone.current = true;
       // executeDatabaseSQLCommand reports its own errors in the tab's status, so it isn't awaited.
-      void executeDatabaseSQLCommand(commandQuery.current);
-      commandQuery.current.executeImmediately = false;
+      void executeDatabaseSQLCommand(databaseCommandQuery);
     }
-  }, [commandQuery, executeDatabaseSQLCommand]);
+  }, [databaseCommandQuery, executeDatabaseSQLCommand]);
 
   function handleEditorChange(value: string | undefined) {
     setSqlQuery(value || "");
   }
 
+  // Runs the editor text; the query object in context state is never modified.
+  function run(cmdQuery: string) {
+    void latest.current.execute({ ...latest.current.query, cmdQuery });
+  }
+
   function handleExecute() {
-    commandQuery.current.cmdQuery = sqlQuery;
-    void executeDatabaseSQLCommand(commandQuery.current);
+    run(sqlQuery);
   }
 
   function handleCancel() {
-    cancelDatabaseSQLCommand(commandQuery.current.id);
+    cancelDatabaseSQLCommand(databaseCommandQuery.id);
   }
 
   const handleEditorMount: OnMount = (editor) => {
     editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
-      if (!canExecuteRef.current) return;
-      commandQuery.current.cmdQuery = editor.getValue();
-      void executeDatabaseSQLCommand(commandQuery.current);
+      if (!latest.current.canExecute) return;
+      run(editor.getValue());
     });
   };
 
   return (
     <div className="border h-full flex flex-col">
       <div className="px-2 py-1 text-xs text-stone-600 border-b border-stone-300 flex justify-between">
-        <span>{commandQuery.current.name}</span>
-        <span>{commandQuery.current.databaseName}</span>
+        <span>{databaseCommandQuery.name}</span>
+        <span>{databaseCommandQuery.databaseName}</span>
       </div>
       <div className="flex-1 border-stone-400 border-b-2 min-h-0 p-t-2">
         <Editor

@@ -32,7 +32,7 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                Func<IServiceScopeFactory, CancellationToken, Task> task;
+                Func<IServiceProvider, CancellationToken, Task> task;
                 try
                 {
                     task = await _taskQueue.DequeueAsync(stoppingToken);
@@ -44,7 +44,9 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
 
                 try
                 {
-                    await task(_scopeFactory, stoppingToken);
+                    // Each task gets its own DI scope (scoped services such as the notifier), disposed afterwards.
+                    await using var scope = _scopeFactory.CreateAsyncScope();
+                    await task(scope.ServiceProvider, stoppingToken);
                 }
                 catch (Exception ex)
                 {

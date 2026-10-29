@@ -2,8 +2,10 @@ import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/data
 import { DatabaseCommandActions, DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
 import { CommandExecutionStatus } from "../../models/databaseCommand/result/commandFinishedResult";
 import { ResultSet } from "../../models/databaseCommand/result/resultSet";
+import { CellValue } from "../../models/databaseCommand/result/cellValue";
 import { HubStatus } from "../../services/commandResultHub";
-import type { BatchBuffer, ParsedBatch } from "./batchBuffer";
+import type { BatchBuffer } from "./batchBuffer";
+import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 
 export type DatabaseCommandStats = {
   rowCount: number;
@@ -61,9 +63,9 @@ function isCurrentExecution(command: DatabaseCommand, executionId: string) {
 }
 
 // Appends the rows of several batches with a single copy per result set.
-function appendBatches(resultSets: ResultSet[], batches: ParsedBatch[]): ResultSet[] {
+function appendBatches(resultSets: ResultSet[], batches: DatabaseCommandBatchResult[]): ResultSet[] {
   const next = [...resultSets];
-  const pendingRows = new Map<number, unknown[][][]>();
+  const pendingRows = new Map<number, CellValue[][][]>();
 
   for (const batch of batches) {
     let index = next.findIndex(rs => rs.resultSetIndex === batch.resultSetIndex);

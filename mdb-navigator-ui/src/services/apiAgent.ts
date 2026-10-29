@@ -56,10 +56,16 @@ axios.interceptors.response.use(
 
 const responseBody = <T,>(resp: AxiosResponse<T>): T => resp.data;
 
+// Object names (database, schema, table...) travel as query parameters, which axios encodes, so names with
+// characters like '/', '?' or '#' can't break the URL.
+type QueryParams = Record<string, string | number>;
+
 const requests = {
-  get: <T> (url: string) => axios.get<T>(url).then(responseBody),
+  get: <T> (url: string, params?: QueryParams) => axios.get<T>(url, { params }).then(responseBody),
   post: <T> (url: string, body: object) => axios.post<T>(url, body).then(responseBody)
 };
+
+const id = (connectionId: string) => encodeURIComponent(connectionId);
 
 const databaseConnectionApi = {
   connect: (connectionSettings: ConnectionSettings): Promise<ConnectedResult> =>
@@ -72,54 +78,54 @@ const databaseConnectionApi = {
 
 const databaseSchemaApi = {
   fetchDatabases: (connectionId: string): Promise<DatabasesDetails> =>
-    requests.get<DatabasesDetails>(`/databaseSchema/databases/${connectionId}`),
+    requests.get<DatabasesDetails>(`/databaseSchema/databases/${id(connectionId)}`),
 
-  fetchTables: (connectionId: string, databaseName: string): Promise<TablesDetails> =>
-    requests.get<TablesDetails>(`/databaseSchema/tables/${connectionId}/${databaseName}`),
-  tableDefinition: (connectionId: string, databaseName: string, schema: string, table: string): Promise<TableDefinitionDetails> =>
-    requests.get<TableDefinitionDetails>(`/databaseSchema/tableDefinition/${connectionId}/${databaseName}/${schema}/${table}`),
+  fetchTables: (connectionId: string, database: string): Promise<TablesDetails> =>
+    requests.get<TablesDetails>(`/databaseSchema/tables/${id(connectionId)}`, { database }),
+  tableDefinition: (connectionId: string, database: string, schema: string, table: string): Promise<TableDefinitionDetails> =>
+    requests.get<TableDefinitionDetails>(`/databaseSchema/tableDefinition/${id(connectionId)}`, { database, schema, table }),
 
-  fetchStoredProcedures: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
-    requests.get<ProceduresDetails>(`/databaseSchema/storedProcedures/${connectionId}/${databaseName}`),
-  fetchFunctions: (connectionId: string, databaseName: string): Promise<ProceduresDetails> =>
-    requests.get<ProceduresDetails>(`/databaseSchema/functions/${connectionId}/${databaseName}`),
-  fetchViews: (connectionId: string, databaseName: string): Promise<ViewDetails> =>
-    requests.get<ViewDetails>(`/databaseSchema/views/${connectionId}/${databaseName}`),
+  fetchStoredProcedures: (connectionId: string, database: string): Promise<ProceduresDetails> =>
+    requests.get<ProceduresDetails>(`/databaseSchema/storedProcedures/${id(connectionId)}`, { database }),
+  fetchFunctions: (connectionId: string, database: string): Promise<ProceduresDetails> =>
+    requests.get<ProceduresDetails>(`/databaseSchema/functions/${id(connectionId)}`, { database }),
+  fetchViews: (connectionId: string, database: string): Promise<ViewDetails> =>
+    requests.get<ViewDetails>(`/databaseSchema/views/${id(connectionId)}`, { database }),
 };
 
 const databaseCommandApi = {
   execute: (request: ExecuteQueryRequest): Promise<{ id: string }> =>
     requests.post<{ id: string }>('/databaseCommand', request),
   cancel: (executionId: string): Promise<void> =>
-    requests.post<void>(`/databaseCommand/cancel/${executionId}`, {}),
+    requests.post<void>(`/databaseCommand/cancel/${encodeURIComponent(executionId)}`, {}),
 
-  getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
-  getCreateStoredProcedureScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createStoredProcedureScript/${connectionId}/${databaseName}/${schema}`),
-  getCreateFunctionScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createFunctionScript/${connectionId}/${databaseName}/${schema}`),
-  getDropProcedureScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/dropProcedureScript/${connectionId}/${databaseName}/${schema}/${name}`),
+  getProcedureDefinition: (connectionId: string, database: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/procedureDefinition/${id(connectionId)}`, { database, schema, name }),
+  getCreateStoredProcedureScript: (connectionId: string, database: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createStoredProcedureScript/${id(connectionId)}`, { database, schema }),
+  getCreateFunctionScript: (connectionId: string, database: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createFunctionScript/${id(connectionId)}`, { database, schema }),
+  getDropProcedureScript: (connectionId: string, database: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/dropProcedureScript/${id(connectionId)}`, { database, schema, name }),
 
-  getViewDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/viewDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
-  getCreateViewScript: (connectionId: string, databaseName: string, schema: string,): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createViewScript/${connectionId}/${databaseName}/${schema}`),
-  getDropViewScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/dropViewScript/${connectionId}/${databaseName}/${schema}/${name}`),
+  getViewDefinition: (connectionId: string, database: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/viewDefinition/${id(connectionId)}`, { database, schema, name }),
+  getCreateViewScript: (connectionId: string, database: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createViewScript/${id(connectionId)}`, { database, schema }),
+  getDropViewScript: (connectionId: string, database: string, schema: string, name: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/dropViewScript/${id(connectionId)}`, { database, schema, name }),
 
-  getTopNTableRecordsScript: (connectionId: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
-    requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  getTopNTableRecordsScript: (connectionId: string, database: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
+    requests.get<string>(`/databaseCommand/tableRecordsScript/${id(connectionId)}`, { database, schema, table, recordsNumber }),
 
-  getCreateNewTableScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createNewTableScript/${connectionId}/${databaseName}/${schema}`),
-  getCreateTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/createTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
-  getDropTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/dropTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
-  getInsertTableScript: (connectionId: string, databaseName: string, schema: string, table: string): Promise<string> =>
-    requests.get<string>(`/databaseCommand/insertTableScript/${connectionId}/${databaseName}/${schema}/${table}`),
+  getCreateNewTableScript: (connectionId: string, database: string, schema: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createNewTableScript/${id(connectionId)}`, { database, schema }),
+  getCreateTableScript: (connectionId: string, database: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/createTableScript/${id(connectionId)}`, { database, schema, table }),
+  getDropTableScript: (connectionId: string, database: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/dropTableScript/${id(connectionId)}`, { database, schema, table }),
+  getInsertTableScript: (connectionId: string, database: string, schema: string, table: string): Promise<string> =>
+    requests.get<string>(`/databaseCommand/insertTableScript/${id(connectionId)}`, { database, schema, table }),
 }
 
 const agent = {

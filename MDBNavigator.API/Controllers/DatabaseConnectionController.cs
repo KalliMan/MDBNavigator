@@ -2,6 +2,7 @@ using MDBNavigator.API.DTOs;
 using MDBNavigator.Application.Features.Connection.Commands.Connect;
 using MDBNavigator.Application.Features.Connection.Commands.Disconnect;
 using MDBNavigator.Application.Features.Connection.Commands.Reconnect;
+using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.ValueObjects;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -29,9 +30,11 @@ namespace MDBNavigator.API.Controllers
             return Ok();
         }
 
+        // The UI sends the server type by name ("PostgreSQL", "MS SQL Server"); an unknown name becomes
+        // ServerType.None, which the connect validator rejects.
         private static ConnectionSettings MapToSettings(ConnectionSettingsQuery q) => new()
         {
-            ServerType = q.ServerType,
+            ServerType = ServerTypes.TryParse(q.ServerType, out var serverType) ? serverType : ServerType.None,
             ServerName = q.ServerName,
             Port = q.Port,
             UserName = q.UserName,

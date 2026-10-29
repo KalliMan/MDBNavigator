@@ -73,7 +73,8 @@ export function treeReducer(state: NodeDataState, action: TreeNodeActions): Node
       }
 
       default:
-        throw new Error("Unsupported Action type");
+        // Unknown actions leave the tree unchanged (a reducer must not throw during rendering).
+        break;
     }
   });
 }

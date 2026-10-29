@@ -1,10 +1,11 @@
+using MDBNavigator.Domain.Enums;
 using System.Text;
 
 namespace MDBNavigator.Domain.ValueObjects
 {
     public record ConnectionSettings
     {
-        public required string ServerType { get; set; }
+        public required ServerType ServerType { get; set; }
         public required string ServerName { get; set; }
         public int Port { get; set; }
         public required string UserName { get; set; }

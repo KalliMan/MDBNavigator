@@ -59,8 +59,8 @@ namespace MDBNavigator.API.Middleware
                 context.Response.StatusCode = statusCode;
 
                 var response = _env.IsDevelopment()
-                    ? new AppException(statusCode, message, ex.StackTrace?.ToString() ?? string.Empty)
-                    : new AppException(statusCode, message);
+                    ? new ErrorResponse(statusCode, message, ex.StackTrace?.ToString() ?? string.Empty)
+                    : new ErrorResponse(statusCode, message);
 
                 var options = new JsonSerializerOptions
                 {

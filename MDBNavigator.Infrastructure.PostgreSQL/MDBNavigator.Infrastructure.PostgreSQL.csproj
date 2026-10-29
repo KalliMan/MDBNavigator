@@ -9,6 +9,6 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
+    <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
   </ItemGroup>
 </Project>

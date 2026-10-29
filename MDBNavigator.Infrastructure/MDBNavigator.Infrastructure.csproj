@@ -8,10 +8,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Exclude nested provider projects from this project's compile glob -->
-    <Compile Remove="MDBNavigator.Infrastructure.PostgreSQL\**" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
   </ItemGroup>
 </Project>

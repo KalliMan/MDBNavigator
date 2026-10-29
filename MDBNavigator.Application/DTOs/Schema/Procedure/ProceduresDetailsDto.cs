@@ -5,6 +5,6 @@ namespace MDBNavigator.Application.DTOs.Schema.Procedure
 {
     public class ProceduresDetailsDto : DbObjectDetailsDtoBase
     {
-        public required IEnumerable<ProcedureDto> Procedures { get; set; }
+        public required IEnumerable<DbProcedure> Procedures { get; set; }
     }
 }

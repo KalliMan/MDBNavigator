@@ -17,7 +17,7 @@ namespace MDBNavigator.API.Filters
             if (values.Count != 1 || string.IsNullOrWhiteSpace(values[0]))
             {
                 context.Result = new BadRequestObjectResult(
-                    new AppException(StatusCodes.Status400BadRequest, $"The request must contain exactly one '{HeaderName}' header."));
+                    new ErrorResponse(StatusCodes.Status400BadRequest, $"The request must contain exactly one '{HeaderName}' header."));
                 return;
             }
 

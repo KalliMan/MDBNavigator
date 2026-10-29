@@ -3,7 +3,6 @@ import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { FcDatabase, FcFolder, FcOpenedFolder } from "react-icons/fc";
 import { MdErrorOutline } from "react-icons/md";
 import { NodeType } from "./NodeType";
-import { v4 as uuidv4 } from "uuid";
 import { FaTable } from "react-icons/fa6";
 import { PiBracketsCurly, PiSelectionForegroundBold } from "react-icons/pi";
 import { LuSquareFunction } from "react-icons/lu";
@@ -12,7 +11,7 @@ import { TbColumns1 } from "react-icons/tb";
 
 export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
-    id: uuidv4(),
+    id: `${parentNode.id}::loader`,
     nodeName: 'Loading...',
     isExpanded: false,
     nodes: [],
@@ -290,7 +289,7 @@ function createStoredProceduresFoldersNode(parentNode: TreeViewNodeData): TreeVi
 
 export function createStoredProcedureNode(databaseSchema: string, name: string, parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
-    id: uuidv4(),
+    id: `${parentNode.id}::procedure::${databaseSchema}::${name}`,
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
@@ -320,7 +319,7 @@ function createFunctionsFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeD
 
 export function createFunctionNode(databaseSchema: string, name: string, parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
-    id: uuidv4(),
+    id: `${parentNode.id}::function::${databaseSchema}::${name}`,
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
@@ -349,7 +348,7 @@ export function createViewsNode(parentNode: TreeViewNodeData): TreeViewNodeData 
 
 export function createViewNode(databaseSchema: string, name: string, parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
-    id: uuidv4(),
+    id: `${parentNode.id}::view::${databaseSchema}::${name}`,
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,

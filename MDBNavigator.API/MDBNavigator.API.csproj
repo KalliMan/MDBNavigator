@@ -16,7 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
     <ProjectReference Include="..\MDBNavigator.Infrastructure\MDBNavigator.Infrastructure.csproj" />
-    <ProjectReference Include="..\MDBNavigator.Infrastructure\MDBNavigator.Infrastructure.PostgreSQL\MDBNavigator.Infrastructure.PostgreSQL.csproj" />
+    <ProjectReference Include="..\MDBNavigator.Infrastructure.PostgreSQL\MDBNavigator.Infrastructure.PostgreSQL.csproj" />
   </ItemGroup>
 
 </Project>

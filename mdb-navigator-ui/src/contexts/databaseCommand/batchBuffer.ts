@@ -1,15 +1,13 @@
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 import { DatabaseCommandActions, DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
 
-export type ParsedBatch = Omit<DatabaseCommandBatchResult, 'resultJson'> & { rows: unknown[][] };
-
 // Batches can arrive hundreds of times per second; the UI is updated at most this often.
 const FLUSH_INTERVAL_MS = 150;
 
-// Parses each streamed batch once and hands them to the reducer in groups,
+// Collects streamed batches and hands them to the reducer in groups,
 // so a large result causes a few renders per second instead of one per batch.
 export function createBatchBuffer(dispatch: React.Dispatch<DatabaseCommandActions>) {
-  let queue: ParsedBatch[] = [];
+  let queue: DatabaseCommandBatchResult[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   function flush() {
@@ -27,9 +25,7 @@ export function createBatchBuffer(dispatch: React.Dispatch<DatabaseCommandAction
   }
 
   function push(batch: DatabaseCommandBatchResult) {
-    const { resultJson, ...meta } = batch;
-    // The server serializes each batch's rows as an array of row arrays.
-    queue.push({ ...meta, rows: resultJson ? JSON.parse(resultJson) as unknown[][] : [] });
+    queue.push(batch);
 
     if (!timer) {
       timer = setTimeout(flush, FLUSH_INTERVAL_MS);

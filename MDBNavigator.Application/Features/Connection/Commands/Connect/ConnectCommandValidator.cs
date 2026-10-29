@@ -1,4 +1,5 @@
 using FluentValidation;
+using MDBNavigator.Domain.Enums;
 
 namespace MDBNavigator.Application.Features.Connection.Commands.Connect
 {
@@ -7,7 +8,7 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Connect
         public ConnectCommandValidator()
         {
             RuleFor(x => x.SessionId).NotEmpty().WithMessage("SessionId is required.");
-            RuleFor(x => x.ConnectionSettings.ServerType).NotEmpty().WithMessage("ServerType is required.");
+            RuleFor(x => x.ConnectionSettings.ServerType).NotEqual(ServerType.None).WithMessage("ServerType is missing or not supported.");
             RuleFor(x => x.ConnectionSettings.ServerName).NotEmpty().WithMessage("ServerName is required.");
             RuleFor(x => x.ConnectionSettings.UserName).NotEmpty().WithMessage("UserName is required.");
             RuleFor(x => x.ConnectionSettings.Password).NotEmpty().WithMessage("Password is required.");

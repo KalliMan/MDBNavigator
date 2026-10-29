@@ -5,6 +5,6 @@ namespace MDBNavigator.Application.DTOs.Schema.View
 {
     public class ViewDetailsDto : DbObjectDetailsDtoBase
     {
-        public required IEnumerable<ViewDto> Views { get; set; }
+        public required IEnumerable<DbView> Views { get; set; }
     }
 }

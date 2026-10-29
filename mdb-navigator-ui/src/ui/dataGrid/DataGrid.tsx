@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatCell } from "./formatCell";
+import { CellValue } from "../../models/databaseCommand/result/cellValue";
 
 export interface DataGridColumn {
   name: string;
@@ -9,7 +10,7 @@ export interface DataGridColumn {
 
 interface Props {
   columns: DataGridColumn[];
-  rows: unknown[][];
+  rows: CellValue[][];
 }
 
 const ROW_HEIGHT = 32;
@@ -51,7 +52,7 @@ function headerWidths(columns: DataGridColumn[]): number[] {
 }
 
 // Widths fit the header and the first rows, then stay fixed so columns don't jump while scrolling.
-function computeColumnWidths(columns: DataGridColumn[], rows: unknown[][]): number[] {
+function computeColumnWidths(columns: DataGridColumn[], rows: CellValue[][]): number[] {
   const measure = createTextMeasurer(400);
   const sample = rows.slice(0, WIDTH_SAMPLE_ROWS);
   return headerWidths(columns).map((width, columnIndex) =>

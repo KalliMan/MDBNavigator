@@ -1,7 +1,7 @@
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus } from "../../services/commandResultHub";
-import type { ParsedBatch } from "./batchBuffer";
+import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
@@ -23,10 +23,10 @@ export type CommandQueriedAction = {
   payload: DatabaseSQLCommandQuery;
 }
 
-// A group of already parsed batches (possibly of several commands), see batchBuffer.
+// A group of batches (possibly of several commands), collected by batchBuffer.
 export type RowsAppendedAction = {
   type: DatabaseCommandActionTypes.RowsAppended;
-  payload: ParsedBatch[];
+  payload: DatabaseCommandBatchResult[];
 }
 
 export type CommandFinishedAction = {

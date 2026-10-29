@@ -1,8 +1,8 @@
 ﻿namespace MDBNavigator.API.Core
 {
-    public class AppException
+    public class ErrorResponse
     {
-        public AppException(int statusCode, string message, string? details = null)
+        public ErrorResponse(int statusCode, string message, string? details = null)
         {
             StatusCode = statusCode;
             Message = message;

@@ -4,8 +4,6 @@ export enum NodeDataActionTypes {
   SET_NODES = 'SET',
   EXPAND_NODE = 'EXPAND',
   ADD_NODE = 'ADD',
-  REMOVE_NODE = 'REMOVE',
-  UPDATE_NODE = 'UPDATE',
   SELECT_NODE = 'SELECT'
 }
 
@@ -28,16 +26,6 @@ export type AddNodeAction = {
     parentId: string;
     newNode: TreeViewNodeData;
   }
-}
-
-export type RemoveNodeAction = {
-  type: NodeDataActionTypes.REMOVE_NODE;
-  id: string;
-}
-
-export type UpdateNodeAction = {
-  type: NodeDataActionTypes.UPDATE_NODE;
-  newNode: TreeViewNodeData;
 }
 
 export type SelectNodeAction = {

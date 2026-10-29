@@ -1,3 +1,5 @@
+import { CellValue } from "../../models/databaseCommand/result/cellValue";
+
 // Cells are single-line; very long values are cut for display (the full value comes with the cell viewer).
 const MAX_DISPLAY_LENGTH = 1000;
 
@@ -6,7 +8,8 @@ export interface FormattedCell {
   isNull: boolean;
 }
 
-export function formatCell(value: unknown): FormattedCell {
+// undefined: the row has fewer values than there are columns (shown like NULL).
+export function formatCell(value: CellValue | undefined): FormattedCell {
   if (value === null || value === undefined) {
     return { text: 'NULL', isNull: true };
   }
@@ -16,11 +19,11 @@ export function formatCell(value: unknown): FormattedCell {
     text = value ? 'true' : 'false';
   } else if (typeof value === 'string') {
     text = value;
-  } else if (typeof value === 'number' || typeof value === 'bigint') {
+  } else if (typeof value === 'number') {
     text = value.toString();
   } else {
-    // json/jsonb and array columns arrive as objects
-    text = JSON.stringify(value) ?? '';
+    // PostgreSQL arrays arrive as arrays, hstore as an object
+    text = JSON.stringify(value);
   }
 
   return {

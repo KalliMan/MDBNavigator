@@ -1,5 +1,4 @@
 using MDBNavigator.Application.Contracts;
-using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.ValueObjects;
 
 namespace MDBNavigator.Infrastructure.Connection
@@ -13,12 +12,7 @@ namespace MDBNavigator.Infrastructure.Connection
 
         public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null, CancellationToken ct = default)
         {
-            if (!ServerTypes.TryParse(settings.ServerType, out var serverType))
-            {
-                throw new NotSupportedException($"Unsupported server type '{settings.ServerType}'.");
-            }
-
-            var factory = _serverFactories.FirstOrDefault(f => f.ServerType == serverType)
+            var factory = _serverFactories.FirstOrDefault(f => f.ServerType == settings.ServerType)
                 ?? throw new NotSupportedException($"No provider registered for server type '{settings.ServerType}'.");
 
             return await factory.CreateAsync(settings, databaseName, ct);

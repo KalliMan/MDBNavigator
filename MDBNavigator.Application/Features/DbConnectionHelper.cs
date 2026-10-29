@@ -1,6 +1,5 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs;
-using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.Exceptions;
 using MDBNavigator.Domain.ValueObjects;
 
@@ -29,15 +28,13 @@ namespace MDBNavigator.Application.Features
             await using var provider = await factory.CreateAsync(settings, ct: ct);
             cache.Set(GetCacheKey(sessionId, connectionId), settings);
 
-            ServerTypes.TryParse(settings.ServerType, out var serverType);
-
             return new ConnectedResultDto
             {
                 ConnectionId = connectionId,
                 ConnectionName = $"{settings.ServerName}:{settings.Port}",
                 ServerName = settings.ServerName,
                 Port = settings.Port,
-                ServerType = serverType,
+                ServerType = settings.ServerType,
                 UserName = settings.UserName
             };
         }
