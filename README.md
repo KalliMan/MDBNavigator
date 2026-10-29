@@ -100,6 +100,7 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if it doesn't exist. Put them in user secrets or environment variables. |
 | `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Sign-in with that provider, switched on when both are set (user secrets or environment variables). The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
+| `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:AppBaseUrl` (the app's address for links), and for SMTP `Email:FromAddress` and `Email:Smtp:Host`, `Port`, `Username`, `Password`. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
 | `RateLimiting:AuthRequestsPerMinute` | `10` | Sign-in, register and password requests per minute and IP address. |
 
 Environment variables read by the host:

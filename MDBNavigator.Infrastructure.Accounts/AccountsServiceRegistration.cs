@@ -1,3 +1,4 @@
+using MDBNavigator.Infrastructure.Accounts.Email;
 using MDBNavigator.Infrastructure.Accounts.Identity;
 using MDBNavigator.Infrastructure.Accounts.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -29,11 +30,15 @@ namespace MDBNavigator.Infrastructure.Accounts
 
             services.AddDbContext<AccountsDbContext>(options => AccountsDbContext.Configure(options, connectionString));
 
+            var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
+            ValidateEmailOptions(email, environment);
+
             services.AddIdentityApiEndpoints<ApplicationUser>(options =>
                 {
                     options.User.RequireUniqueEmail = true;
-                    // Switched on in step 0.1c, when email can be sent.
-                    options.SignIn.RequireConfirmedEmail = false;
+                    // Only when email can be sent. Applies to password sign-in; provider sign-in doesn't depend on it
+                    // (see ExternalLogins).
+                    options.SignIn.RequireConfirmedEmail = email.Enabled;
 
                     // Length over composition rules (current NIST guidance).
                     options.Password.RequiredLength = PasswordMinLength;
@@ -74,7 +79,38 @@ namespace MDBNavigator.Infrastructure.Accounts
                 .SetApplicationName("MDBNavigator")
                 .PersistKeysToDbContext<AccountsDbContext>();
 
+            services.AddSingleton(email);
+            if (email.Enabled)
+            {
+                services.AddSingleton<IEmailDelivery>(sp => email.Delivery == EmailDelivery.Log
+                    ? ActivatorUtilities.CreateInstance<LogEmailDelivery>(sp)
+                    : ActivatorUtilities.CreateInstance<SmtpEmailDelivery>(sp));
+                // Replaces Identity's default sender, which sends nothing. Without email that default stays.
+                services.AddSingleton<IEmailSender<ApplicationUser>, IdentityEmailSender>();
+            }
+
             return services;
+        }
+
+        // Fails at startup rather than at the first email.
+        private static void ValidateEmailOptions(EmailOptions email, IHostEnvironment environment)
+        {
+            if (!email.Enabled)
+            {
+                return;
+            }
+            if (email.Delivery == EmailDelivery.Log && !environment.IsDevelopment())
+            {
+                throw new InvalidOperationException("Email:Delivery 'Log' is allowed in Development only.");
+            }
+            if (!Uri.TryCreate(email.AppBaseUrl, UriKind.Absolute, out _))
+            {
+                throw new InvalidOperationException("Email:AppBaseUrl must be the app's absolute address, e.g. https://mdbnavigator.example.com.");
+            }
+            if (email.Delivery == EmailDelivery.Smtp && (email.Smtp.Host.Length == 0 || email.FromAddress.Length == 0))
+            {
+                throw new InvalidOperationException("Email:Smtp:Host and Email:FromAddress must be set when Email:Delivery is 'Smtp'.");
+            }
         }
 
         // A relative file path is taken from the app's folder, not the current directory, so the database is in the

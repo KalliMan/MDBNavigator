@@ -35,11 +35,14 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 | `ConnectionStrings:AppDb` | | The app database. Default: `Data Source=data/mdbnavigator.db`. A relative path is taken from the app's folder. Not used with `Auth:Mode = None`. |
 | `RateLimiting:AuthRequestsPerMinute` | default `10` | Requests per minute and IP address to the sign-in, register, password and email endpoints. |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Each provider is switched on only when both values are set. The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
-| `Email:*` (SMTP) | | Email confirmation and password reset are on only when SMTP is configured. |
+| `Email:Delivery` | `None` (default), `Smtp`, `Log` | Email confirmation and password reset are on with `Smtp`, or with `Log` (Development only: emails go to the log). |
+| `Email:AppBaseUrl` | | The app's address for links in emails, e.g. `https://mdbnavigator.example.com`. Required when email is on. |
+| `Email:FromAddress`, `Email:FromName` | | The sender. `FromName` defaults to `MDBNavigator`. |
+| `Email:Smtp:Host`, `Port` (587), `Username`, `Password` | | The mail server. Port 465 uses TLS from the start, any other port STARTTLS. The password is a secret (user secrets, environment variable). |
 
 ## Server
 
-- **Endpoints** under `/api/auth`: Identity's built-in endpoints (`login`, `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword`, `manage/info`), plus Identity's `register` behind a check of `Auth:SignUp`, and our own `settings` (anonymous: mode, sign-up and the configured providers), `logout`, `me`, `external/{provider}` and `external/callback`.
+- **Endpoints** under `/api/auth`: Identity's built-in endpoints (`login`, `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword`, `manage/info`), plus Identity's `register` behind a check of `Auth:SignUp`, and our own `settings` (anonymous: mode, sign-up, the configured providers and whether email is on), `logout`, `me`, `external/{provider}` and `external/callback`.
 - **Bearer tokens:** Identity's login can also return a bearer token (`useCookies=false`), for API clients and tools such as `MDBNavigator.API.http`. The UI uses only the cookie.
 - **Session cookie:** `mdbnav_session`, HttpOnly, `Secure` outside development, `SameSite=Lax`, with a 14-day sliding expiry. Lax still keeps the cookie off cross-site POST requests, and it lets the social-login redirect back from the provider work. Our GET requests don't change anything.
 - **Passwords:** at least 10 characters, with no rules about digits or symbols. Length matters more than composition, as current NIST guidance says.
@@ -49,7 +52,13 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
   - **Which providers verify:** Google says so per login (`verified_email`). GitHub returns only verified addresses (with the `user:email` scope, also a private primary one). Microsoft is treated as unverified, because work accounts can carry an address their organization never checked.
   - **A new account** through a provider has its email confirmed only when the provider verified it. With `Auth:SignUp = Closed`, no new accounts are created this way; existing ones can still sign in.
   - **Error codes** for the sign-in page: `external-cancelled`, `external-failed`, `external-no-email`, `external-email-in-use`, `external-locked-out`, `external-sign-up-closed`.
-- **Email confirmation** is required only when SMTP is configured. Without SMTP, accounts work right away, and an admin resets passwords.
+- **Email** is optional. Without it, accounts work right away, and an admin resets passwords. With it:
+  - A new account gets a confirmation link and must confirm before **signing in with a password**. Signing in through a provider doesn't require it; the provider vouches for the person.
+  - **Turning email on later** affects existing accounts: their emails were never confirmed, so their next password sign-in is refused until they confirm. The sign-in page offers to resend the link.
+  - Links point to UI pages (`/confirm-email`, `/reset-password`) under `Email:AppBaseUrl`. The address is configured, never taken from the request, so a forged `Host` header can't turn a reset link into a link to another site.
+  - "Forgot password" answers the same whether or not the account exists, and sends nothing for unknown or unconfirmed addresses. A reset code works once.
+  - A failed send is logged (without the address) rather than failing the request; the user can ask for the email again.
+  - Invalid email settings stop the app at startup with a message.
 - **Sessions:** the session id becomes `userId:tabId`. The tab id still comes from the `id` header. The SignalR hub requires sign-in and puts each connection in the group of its own `userId:tabId`. It no longer trusts the `applicationId` query string.
 - **Data Protection keys** are stored in the app database, so cookies stay valid across restarts and containers.
 - **Migrations** run at startup.
@@ -99,7 +108,6 @@ The workspace gets a slim top bar: the app name on the left, the user menu on th
 
 ## Open questions
 
-- **0.1c: confirmed email and provider accounts.** Accounts created through Microsoft have an unconfirmed email. Once email confirmation is required (SMTP configured), it must apply to password sign-in only, or those accounts couldn't sign in.
 - **0.1d: the dev proxy and the return address.** The provider return address is built from the request. The Vite proxy must keep the browser's host (`changeOrigin: false`) and the scheme must match, either by proxying to the API's HTTP port or by forwarding `X-Forwarded-Proto`. Otherwise the provider rejects the return address.
 
 - **`Auth:Mode = None` inside Docker.** Requests reach the container from the Docker network, not from loopback, so the local-machine check would reject them. Decide in 0.4 whether `None` is allowed there, and how.

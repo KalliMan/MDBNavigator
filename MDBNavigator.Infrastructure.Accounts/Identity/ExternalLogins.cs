@@ -78,7 +78,20 @@ namespace MDBNavigator.Infrastructure.Accounts.Identity
             }
             if (existing.IsNotAllowed)
             {
-                return ExternalLoginResult.Failed;
+                // Identity refuses because the email isn't confirmed (required once email is switched on). That rule
+                // is for passwords; here the provider vouches for the person, so a linked account may sign in.
+                var linked = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+                if (linked is null)
+                {
+                    return ExternalLoginResult.Failed;
+                }
+                if (await _userManager.IsLockedOutAsync(linked))
+                {
+                    return ExternalLoginResult.LockedOut;
+                }
+
+                await _signInManager.SignInAsync(linked, isPersistent: true, info.LoginProvider);
+                return ExternalLoginResult.Success;
             }
 
             var email = info.Principal.FindFirstValue(ClaimTypes.Email);

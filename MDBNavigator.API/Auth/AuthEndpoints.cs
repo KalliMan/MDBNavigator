@@ -1,6 +1,7 @@
 using MDBNavigator.API.Core;
 using MDBNavigator.API.DTOs;
 using MDBNavigator.Infrastructure.Accounts;
+using MDBNavigator.Infrastructure.Accounts.Email;
 using MDBNavigator.Infrastructure.Accounts.Identity;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
@@ -17,12 +18,12 @@ namespace MDBNavigator.API.Auth
 
             if (options.Mode != AuthMode.Accounts)
             {
-                auth.MapGet("settings", () => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), []));
+                auth.MapGet("settings", () => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), [], EmailEnabled: false));
                 return;
             }
 
-            auth.MapGet("settings", async (ExternalLogins logins) =>
-                new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync()));
+            auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email) =>
+                new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled));
 
             // Identity's endpoints: login (?useCookies=true for the web session), register, confirmEmail,
             // resendConfirmationEmail, forgotPassword, resetPassword, manage/info, ...
