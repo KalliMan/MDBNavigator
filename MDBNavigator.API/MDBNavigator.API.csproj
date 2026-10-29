@@ -11,11 +11,17 @@
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+    <!-- For the EF Core tools (dotnet ef migrations add) only; not shipped with the app. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
     <ProjectReference Include="..\MDBNavigator.Infrastructure\MDBNavigator.Infrastructure.csproj" />
+    <ProjectReference Include="..\MDBNavigator.Infrastructure.Accounts\MDBNavigator.Infrastructure.Accounts.csproj" />
     <ProjectReference Include="..\MDBNavigator.Infrastructure.PostgreSQL\MDBNavigator.Infrastructure.PostgreSQL.csproj" />
   </ItemGroup>
 

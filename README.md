@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet. Picking it in the connect dialog fails with "No provider registered".
 
-> **Security status:** there is no user authentication yet. Anyone who can reach the API can use it to connect to any host the API server can reach. Run it only on `localhost` until authentication is in place (in progress).
+> **Security status:** sign-in is being added ([design](docs/specs/authentication.md)). The API already requires an account by default (`Auth:Mode = Accounts`), but the UI's sign-in screens don't exist yet, so development runs with `Auth:Mode = None`: no sign-in, and requests are accepted only from the local machine. Guardrails on which database hosts may be reached come next ([roadmap](docs/ROADMAP.md), 0.2).
 
 ## Features
 
@@ -24,6 +24,7 @@ A web-based database navigator: connect to a database server, browse its databas
 | `MDBNavigator.Domain` | Entities, value objects (`ConnectionSettings`), enums, domain exceptions. No dependencies. |
 | `MDBNavigator.Application` | Use cases as MediatR requests and handlers (`Features/...`), validators, DTOs, and the contracts the other layers implement (`IDatabaseProvider`, `IConnectionCache`, `IBatchNotifier`, ...). |
 | `MDBNavigator.Infrastructure` | Implementations that don't depend on a database server: connection cache, background query queue and execution registry, SignalR hub and notifier. |
+| `MDBNavigator.Infrastructure.Accounts` | The app's own accounts: ASP.NET Core Identity on EF Core, stored in SQLite, with migrations, the admin seeding and the Data Protection keys. |
 | `MDBNavigator.Infrastructure.PostgreSQL` | PostgreSQL provider (Npgsql + Dapper): schema queries, script generation, streaming, cell conversion (`JsonCellValue`), error descriptions. |
 | `MDBNavigator.API` | ASP.NET Core host: controllers, session filter, exception middleware, configuration. Serves the built UI in production. |
 | `mdb-navigator-ui` | React + TypeScript + Vite single-page app. See [its README](mdb-navigator-ui/README.md). |
@@ -94,6 +95,12 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `QueryExecution:MaxConcurrentQueries` | `8` | Background workers running streamed queries in parallel. Further runs wait in a queue. |
 | `QueryExecution:MaxRowsPerExecution` | `100000` | Rows streamed per execution, across all result sets. When reached, the query is cancelled and the run reports `truncated: true`. `0` means unlimited. |
 | `ConnectionCache:SlidingExpirationMinutes` | `480` | A connection's settings are dropped after this long without use, and the user has to reconnect. |
+| `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in and no app database; only requests from the local machine are served. Development uses `None` for now. |
+| `Auth:SignUp` | `Open` | `Closed`: nobody can create an account; the first admin comes from `Auth:Admin`. |
+| `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if it doesn't exist. Put them in user secrets or environment variables. |
+| `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
+| `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Sign-in with that provider, switched on when both are set (user secrets or environment variables). The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
+| `RateLimiting:AuthRequestsPerMinute` | `10` | Sign-in, register and password requests per minute and IP address. |
 
 Environment variables read by the host:
 
@@ -109,7 +116,9 @@ CORS allows only `http://localhost:3000` and `http://localhost:5173`, the Vite d
 
 ## API
 
-All endpoints are under `/api`, and every request must carry an `id` header with the client's session id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to that id. A request without exactly one `id` header gets `400`.
+All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](MDBNavigator.API/MDBNavigator.API.http) has sample requests.
+
+Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode and sign-up), `register`, `login`, `logout`, `me`, plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](docs/specs/authentication.md).
 
 Errors are returned as JSON:
 
@@ -134,7 +143,7 @@ Errors are returned as JSON:
 
 Query results never travel in an HTTP response. They are pushed over a SignalR hub, which lets a large result render while it is still being read and lets the user cancel at any time.
 
-**1. Connect to the hub** at `/batchCommandResult?applicationId={sessionId}`, using the same session id as the `id` header. The server sends only to that session's group, and clients never call the hub. Connect before starting a query, because messages sent while you are not connected are lost.
+**1. Connect to the hub** at `/batchCommandResult?applicationId={tabId}`, using the same tab id as the `id` header (and, with accounts, the session cookie). The server sends only to that session's group (`{userId}:{tabId}`), and clients never call the hub. Connect before starting a query, because messages sent while you are not connected are lost.
 
 **2. Start the run.** The client generates a unique `executionId` and posts:
 

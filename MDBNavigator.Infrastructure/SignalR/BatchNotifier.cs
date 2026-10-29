@@ -13,10 +13,11 @@ namespace MDBNavigator.Infrastructure.SignalR
             _hubContext = hubContext;
         }
 
-        public async Task SendBatchCommandResult(DatabaseCommandBatchResultDto command, string applicationId)
-            => await _hubContext.Clients.Group(applicationId).SendAsync("BatchCommandResult", command);
+        // Each session has its own hub group (see BatchCommandResultHub).
+        public async Task SendBatchCommandResult(DatabaseCommandBatchResultDto command, string sessionId)
+            => await _hubContext.Clients.Group(sessionId).SendAsync("BatchCommandResult", command);
 
-        public async Task SendCommandFinished(CommandFinishedDto result, string applicationId)
-            => await _hubContext.Clients.Group(applicationId).SendAsync("CommandFinished", result);
+        public async Task SendCommandFinished(CommandFinishedDto result, string sessionId)
+            => await _hubContext.Clients.Group(sessionId).SendAsync("CommandFinished", result);
     }
 }

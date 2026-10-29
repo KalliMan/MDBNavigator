@@ -39,6 +39,8 @@ bld/
 #wwwroot/
 # The API serves the built UI from wwwroot; it is produced by the build (Dockerfile), not committed.
 MDBNavigator.API/wwwroot/
+# The app's SQLite database (accounts), created at startup.
+MDBNavigator.API/data/
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/

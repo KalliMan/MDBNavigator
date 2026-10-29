@@ -1,0 +1,35 @@
+# Sign-in flow (Auth:Mode = Accounts), runnable from Visual Studio.
+# Development runs with Auth:Mode = None until the UI has sign-in screens (roadmap 0.1d). To try these requests,
+# set "Auth:Mode": "Accounts" in the API's user secrets and restart it.
+
+@host = https://localhost:3001
+@tab = http-file-tab
+
+### Which screens the UI shows: mode (Accounts/None) and sign-up (Open/Closed)
+GET {{host}}/api/auth/settings
+
+### Create an account (passwords: at least 10 characters)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "user-password-1" }
+
+### Sign in. The browser uses ?useCookies=true and gets the session cookie; here useCookies=false returns a
+### bearer token, which the requests below send.
+# @name login
+POST {{host}}/api/auth/login?useCookies=false
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "user-password-1" }
+
+### Who am I
+GET {{host}}/api/auth/me
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### Every API call needs sign-in plus the tab id header ("Not Connected" is expected: no connection yet)
+GET {{host}}/api/databaseSchema/databases/not-connected
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+
+### Without sign-in: 401
+GET {{host}}/api/auth/me
