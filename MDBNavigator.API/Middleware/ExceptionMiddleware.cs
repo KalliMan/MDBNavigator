@@ -29,6 +29,12 @@ namespace MDBNavigator.API.Middleware
             {
                 await _next(context);
             }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                // The client went away (tab closed, request aborted) and its CancellationToken stopped the work.
+                // Nobody is left to receive a response, so this is not an error.
+                _logger.LogDebug("Request {Method} {Path} was aborted by the client", context.Request.Method, context.Request.Path);
+            }
             catch (Exception ex)
             {
                 var (statusCode, message) = MapException(ex, context.RequestServices.GetService<IDatabaseErrorDescriber>());

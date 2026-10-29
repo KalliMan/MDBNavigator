@@ -3,8 +3,9 @@ import LocalSessionStorage from '../utils/localSessionStorage';
 import { ConnectionSettings } from '../models/connect/connectionSettings';
 import { TablesDetails } from '../models/schema/table/tablesDetails';
 import { DatabasesDetails } from '../models/schema/database/databasesDetails';
-import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
+import { ExecuteQueryRequest } from '../models/databaseCommand/query/executeQueryRequest';
 import { toast } from 'react-toastify';
+import { getResponseErrorMessage } from '../utils/errorMessage';
 import { ProceduresDetails } from '../models/schema/procedure/proceduresDetails';
 import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/view/viewsDetails';
@@ -22,27 +23,6 @@ axios.interceptors.request.use((config) => {
 
   return config;
 });
-
-// The API answers with { message } (ExceptionMiddleware); ASP.NET itself may answer with ProblemDetails
-// ({ title, detail, errors }) or plain text. Returns a readable message for any of these.
-function getErrorMessage(data: unknown, status: number): string {
-  if (typeof data === 'string' && data.trim()) {
-    return data;
-  }
-  if (data && typeof data === 'object') {
-    const body = data as { message?: string; detail?: string; title?: string; errors?: Record<string, string[] | string> };
-    if (body.errors) {
-      const messages = Object.values(body.errors).flat().filter(Boolean);
-      if (messages.length > 0) {
-        return messages.join('\n');
-      }
-    }
-    if (body.message) return body.message;
-    if (body.detail) return body.detail;
-    if (body.title) return body.title;
-  }
-  return `Request failed (${status})`;
-}
 
 axios.interceptors.response.use(
   (response) => response,
@@ -66,7 +46,7 @@ axios.interceptors.response.use(
         break;
       default:
         // 400, 404, 409, 5xx ...: the server's explanation, or a status-based fallback.
-        toast.error(getErrorMessage(data, status));
+        toast.error(getResponseErrorMessage(data, status));
         break;
     }
 
@@ -108,10 +88,10 @@ const databaseSchemaApi = {
 };
 
 const databaseCommandApi = {
-  execute: (cmdQuery: DatabaseSQLCommandQuery): Promise<{ id: string }> =>
-    requests.post<{ id: string }>('/databaseCommand', cmdQuery),
-  cancel: (commandId: string): Promise<void> =>
-    requests.post<void>(`/databaseCommand/cancel/${commandId}`, {}),
+  execute: (request: ExecuteQueryRequest): Promise<{ id: string }> =>
+    requests.post<{ id: string }>('/databaseCommand', request),
+  cancel: (executionId: string): Promise<void> =>
+    requests.post<void>(`/databaseCommand/cancel/${executionId}`, {}),
 
   getProcedureDefinition: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/procedureDefinition/${connectionId}/${databaseName}/${schema}/${name}`),
@@ -129,8 +109,8 @@ const databaseCommandApi = {
   getDropViewScript: (connectionId: string, databaseName: string, schema: string, name: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/dropViewScript/${connectionId}/${databaseName}/${schema}/${name}`),
 
-  getTopNTableRecordsScript: (connectionId: string, id: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
-    requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${id}/${databaseName}/${schema}/${table}/${recordsNumber}`),
+  getTopNTableRecordsScript: (connectionId: string, databaseName: string, schema: string, table: string, recordsNumber: number): Promise<string> =>
+    requests.get<string>(`/databaseCommand/tableRecordsScript/${connectionId}/${databaseName}/${schema}/${table}/${recordsNumber}`),
 
   getCreateNewTableScript: (connectionId: string, databaseName: string, schema: string): Promise<string> =>
     requests.get<string>(`/databaseCommand/createNewTableScript/${connectionId}/${databaseName}/${schema}`),

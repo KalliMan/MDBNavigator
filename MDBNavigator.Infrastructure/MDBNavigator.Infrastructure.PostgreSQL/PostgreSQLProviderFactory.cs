@@ -8,10 +8,10 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
     {
         public ServerType ServerType => ServerType.PostgreSQL;
 
-        public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null)
+        public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null, CancellationToken ct = default)
         {
             var server = new PostgreSQLServer();
-            await server.ConnectAsync(settings, databaseName);
+            await server.ConnectAsync(settings, databaseName, ct);
             return server;
         }
     }

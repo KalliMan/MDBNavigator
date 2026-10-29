@@ -3,5 +3,5 @@ using MediatR;
 
 namespace MDBNavigator.Application.Features.DatabaseCommand.Commands.CancelQuery
 {
-    public record CancelQueryCommand(string SessionId, string CommandId) : ICommand<Unit>;
+    public record CancelQueryCommand(string SessionId, string ExecutionId) : ICommand<Unit>;
 }

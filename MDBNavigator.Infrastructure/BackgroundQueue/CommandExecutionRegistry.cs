@@ -9,12 +9,12 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
 
         private readonly ConcurrentDictionary<string, Execution> _executions = new();
 
-        private static string GetKey(string sessionId, string commandId) => $"{sessionId}_{commandId}";
+        private static string GetKey(string sessionId, string executionId) => $"{sessionId}_{executionId}";
 
-        public CancellationTokenSource Register(string sessionId, string connectionId, string commandId)
+        public CancellationTokenSource Register(string sessionId, string connectionId, string executionId)
         {
             var execution = new Execution(sessionId, connectionId, new CancellationTokenSource());
-            var key = GetKey(sessionId, commandId);
+            var key = GetKey(sessionId, executionId);
 
             _executions.AddOrUpdate(key, execution, (_, previous) =>
             {
@@ -25,9 +25,9 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
             return execution.Cts;
         }
 
-        public void Cancel(string sessionId, string commandId)
+        public void Cancel(string sessionId, string executionId)
         {
-            if (_executions.TryGetValue(GetKey(sessionId, commandId), out var execution))
+            if (_executions.TryGetValue(GetKey(sessionId, executionId), out var execution))
             {
                 TryCancel(execution.Cts);
             }
@@ -44,9 +44,9 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
             }
         }
 
-        public void Complete(string sessionId, string commandId, CancellationTokenSource cts)
+        public void Complete(string sessionId, string executionId, CancellationTokenSource cts)
         {
-            var key = GetKey(sessionId, commandId);
+            var key = GetKey(sessionId, executionId);
             if (_executions.TryGetValue(key, out var execution) && execution.Cts == cts)
             {
                 _executions.TryRemove(new KeyValuePair<string, Execution>(key, execution));

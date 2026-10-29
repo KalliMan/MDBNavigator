@@ -10,7 +10,7 @@ using System.Diagnostics;
 
 namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
 {
-    public record ExecuteQueryQuery(string SessionId, string ConnectionId, string Id, string ExecutionId, string DatabaseName, string CmdQuery)
+    public record ExecuteQueryQuery(string SessionId, string ConnectionId, string ExecutionId, string DatabaseName, string CmdQuery)
         : IQuery<CommandAcknowledgedDto>;
 
     public class ExecuteQueryHandler : IRequestHandler<ExecuteQueryQuery, CommandAcknowledgedDto>
@@ -29,7 +29,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
         public Task<CommandAcknowledgedDto> Handle(ExecuteQueryQuery request, CancellationToken cancellationToken)
         {
             // Registered before enqueueing so the run can be cancelled while it still waits for a worker.
-            var executionCts = _registry.Register(request.SessionId, request.ConnectionId, request.Id);
+            var executionCts = _registry.Register(request.SessionId, request.ConnectionId, request.ExecutionId);
             var registry = _registry;
             var options = _options;
 
@@ -51,7 +51,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
 
                     var cache = scope.ServiceProvider.GetRequiredService<IConnectionCache>();
                     var factory = scope.ServiceProvider.GetRequiredService<IDatabaseProviderFactory>();
-                    await using var provider = await DbConnectionHelper.CreateProviderAsync(cache, factory, request.SessionId, request.ConnectionId, request.DatabaseName);
+                    await using var provider = await DbConnectionHelper.CreateProviderAsync(cache, factory, request.SessionId, request.ConnectionId, request.DatabaseName, linkedCts.Token);
 
                     var batches = provider.StreamQuery(
                         request.CmdQuery,
@@ -73,19 +73,18 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Query execution {CommandId} failed", request.Id);
+                    logger.LogError(ex, "Query execution {ExecutionId} failed", request.ExecutionId);
                     status = CommandExecutionStatus.Failed;
                     // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).
                     error = scope.ServiceProvider.GetService<IDatabaseErrorDescriber>()?.Describe(ex) ?? ex.Message;
                 }
                 finally
                 {
-                    registry.Complete(request.SessionId, request.Id, executionCts);
+                    registry.Complete(request.SessionId, request.ExecutionId, executionCts);
                 }
 
                 await notifier.SendCommandFinished(new CommandFinishedDto
                 {
-                    CommandId = request.Id,
                     ExecutionId = request.ExecutionId,
                     Status = status,
                     RowCount = stats.RowCount,
@@ -96,13 +95,12 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                 }, request.SessionId);
             });
 
-            return Task.FromResult(new CommandAcknowledgedDto { Id = request.Id });
+            return Task.FromResult(new CommandAcknowledgedDto { Id = request.ExecutionId });
         }
 
         private static DatabaseCommandBatchResultDto ToDto(ExecuteQueryQuery request, QueryBatch batch) => new()
         {
-            Id = $"{request.Id}_{batch.ResultSetIndex}",
-            CommandId = request.Id,
+            Id = $"{request.ExecutionId}_{batch.ResultSetIndex}",
             ExecutionId = request.ExecutionId,
             Index = batch.BatchIndex,
             ResultSetIndex = batch.ResultSetIndex,

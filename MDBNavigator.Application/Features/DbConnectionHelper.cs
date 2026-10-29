@@ -23,9 +23,10 @@ namespace MDBNavigator.Application.Features
             IDatabaseProviderFactory factory,
             string sessionId,
             string connectionId,
-            ConnectionSettings settings)
+            ConnectionSettings settings,
+            CancellationToken ct = default)
         {
-            await using var provider = await factory.CreateAsync(settings);
+            await using var provider = await factory.CreateAsync(settings, ct: ct);
             cache.Set(GetCacheKey(sessionId, connectionId), settings);
 
             ServerTypes.TryParse(settings.ServerType, out var serverType);
@@ -47,7 +48,8 @@ namespace MDBNavigator.Application.Features
             IDatabaseProviderFactory factory,
             string sessionId,
             string connectionId,
-            string? databaseName = null)
+            string? databaseName = null,
+            CancellationToken ct = default)
         {
             var key = GetCacheKey(sessionId, connectionId);
             if (!cache.TryGet(key, out var settings) || settings is null)
@@ -55,7 +57,7 @@ namespace MDBNavigator.Application.Features
                 throw new NotConnectedException("Not Connected! Please reconnect.");
             }
 
-            return await factory.CreateAsync(settings, databaseName);
+            return await factory.CreateAsync(settings, databaseName, ct);
         }
     }
 }

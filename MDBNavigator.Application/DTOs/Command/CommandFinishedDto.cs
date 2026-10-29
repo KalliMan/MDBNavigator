@@ -9,7 +9,6 @@ namespace MDBNavigator.Application.DTOs.Command
 
     public class CommandFinishedDto
     {
-        public required string CommandId { get; init; }
         public required string ExecutionId { get; init; }
         public required CommandExecutionStatus Status { get; init; }
         public long RowCount { get; init; }

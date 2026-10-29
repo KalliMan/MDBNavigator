@@ -7,24 +7,33 @@ import { DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus, waitUntilConnected } from "../../services/commandResultHub";
-import { AxiosError } from "axios";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 export const DatabaseCommandContext = createContext<DatabaseCommandContextType | null>(null);
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError) {
-    return error.response?.data?.message ?? error.message;
-  }
-  return error instanceof Error ? error.message : 'Unknown error occurred';
-}
-
+// The server knows a run only by its executionId; which tab (command) it belongs to is tracked here.
 export default function useDatabaseCommandContext(){
   const context = useContext(DatabaseCommandContext);
   if (!context) {
     throw new Error('useDatabaseCommandContext must be used within a DatabaseCommandContextProvider');
   }
 
+  async function cancelExecution(executionId: string) {
+    try {
+      // The outcome is reported by the CommandFinished message (status Cancelled).
+      await agent.databaseCommandApi.cancel(executionId);
+    } catch {
+      // Errors are already shown by the api agent interceptor.
+    }
+  }
+
   async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
+    // A tab runs one query at a time: a still running previous run is stopped on the server.
+    const previous = context!.state.commands.find(c => c.id === cmdQuery.id);
+    if (previous?.isExecuting && previous.executionId) {
+      cancelExecution(previous.executionId);
+    }
+
     const executionId = uuidv4();
     context!.dispatch({
       type: DatabaseCommandActionTypes.Executing,
@@ -34,7 +43,12 @@ export default function useDatabaseCommandContext(){
     try {
       // Results arrive only via SignalR, so the hub must be connected before the server starts streaming.
       await waitUntilConnected();
-      await agent.databaseCommandApi.execute({ ...cmdQuery, executionId });
+      await agent.databaseCommandApi.execute({
+        connectionId: cmdQuery.connectionId,
+        databaseName: cmdQuery.databaseName,
+        cmdQuery: cmdQuery.cmdQuery,
+        executionId
+      });
       // data arrives via SignalR BatchCommandResult, the run ends with CommandFinished
     } catch (error) {
       context!.dispatch({
@@ -44,12 +58,10 @@ export default function useDatabaseCommandContext(){
     }
   }
 
-  async function cancelDatabaseSQLCommand(commandId: string) {
-    try {
-      // The outcome is reported by the CommandFinished message (status Cancelled).
-      await agent.databaseCommandApi.cancel(commandId);
-    } catch {
-      // Errors are already shown by the api agent interceptor.
+  function cancelDatabaseSQLCommand(commandId: string) {
+    const command = context!.state.commands.find(c => c.id === commandId);
+    if (command?.isExecuting && command.executionId) {
+      cancelExecution(command.executionId);
     }
   }
 

@@ -3,18 +3,9 @@ import { DatabaseServerConnectContextType } from "./DatabaseServerConnectReducer
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 import { DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
 import agent from "../../services/apiAgent";
-import { AxiosError } from "axios";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 export const DatabaseServerConnectContext = createContext<DatabaseServerConnectContextType | null>(null);
-
-// Prefer the server's explanation (e.g. "Connection failed: password authentication failed ...")
-// over axios' generic "Request failed with status code 400".
-function getErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError) {
-    return error.response?.data?.message ?? error.message;
-  }
-  return error instanceof Error ? error.message : 'Unknown error occurred';
-}
 
 export default function useDatabaseServerConnectContext() {
   const context = useContext(DatabaseServerConnectContext);

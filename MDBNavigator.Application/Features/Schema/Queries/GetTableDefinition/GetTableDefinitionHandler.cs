@@ -1,29 +1,18 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs.Schema.Table;
 using MDBNavigator.Application.Messaging;
-using MDBNavigator.Domain.Schema.Table;
-using MediatR;
 
 namespace MDBNavigator.Application.Features.Schema.Queries.GetTableDefinition
 {
-    public record GetTableDefinitionQuery(string SessionId, string ConnectionId, string DatabaseName, string Schema, string Table)
-        : IQuery<TableDefinitionDto>;
+    public record GetTableDefinitionQuery(string SessionId, string ConnectionId, string DatabaseName, string Schema, string Table) : IQuery<TableDefinitionDto>, IConnectionRequest;
 
-    public class GetTableDefinitionHandler : IRequestHandler<GetTableDefinitionQuery, TableDefinitionDto>
+    public class GetTableDefinitionHandler : ConnectionRequestHandler<GetTableDefinitionQuery, TableDefinitionDto>
     {
-        private readonly IConnectionCache _cache;
-        private readonly IDatabaseProviderFactory _factory;
+        public GetTableDefinitionHandler(IConnectionCache cache, IDatabaseProviderFactory factory) : base(cache, factory) { }
 
-        public GetTableDefinitionHandler(IConnectionCache cache, IDatabaseProviderFactory factory)
+        protected override async Task<TableDefinitionDto> Handle(GetTableDefinitionQuery request, IDatabaseProvider provider, CancellationToken cancellationToken)
         {
-            _cache = cache;
-            _factory = factory;
-        }
-
-        public async Task<TableDefinitionDto> Handle(GetTableDefinitionQuery request, CancellationToken cancellationToken)
-        {
-            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
-            var definition = await provider.GetTableDefinition(request.Schema, request.Table);
+            var definition = await provider.GetTableDefinition(request.Schema, request.Table, cancellationToken);
             return new TableDefinitionDto
             {
                 ConnectionId = request.ConnectionId,
@@ -37,4 +26,3 @@ namespace MDBNavigator.Application.Features.Schema.Queries.GetTableDefinition
         }
     }
 }
-

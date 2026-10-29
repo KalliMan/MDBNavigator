@@ -11,7 +11,7 @@ namespace MDBNavigator.Infrastructure.Connection
         public DatabaseProviderFactory(IEnumerable<IDbServerFactory> serverFactories)
             => _serverFactories = serverFactories;
 
-        public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null)
+        public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null, CancellationToken ct = default)
         {
             if (!ServerTypes.TryParse(settings.ServerType, out var serverType))
             {
@@ -21,7 +21,7 @@ namespace MDBNavigator.Infrastructure.Connection
             var factory = _serverFactories.FirstOrDefault(f => f.ServerType == serverType)
                 ?? throw new NotSupportedException($"No provider registered for server type '{settings.ServerType}'.");
 
-            return await factory.CreateAsync(settings, databaseName);
+            return await factory.CreateAsync(settings, databaseName, ct);
         }
     }
 }

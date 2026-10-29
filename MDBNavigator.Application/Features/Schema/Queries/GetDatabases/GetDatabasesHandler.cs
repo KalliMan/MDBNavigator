@@ -1,34 +1,27 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs.Schema.Database;
 using MDBNavigator.Application.Messaging;
-using MediatR;
 
 namespace MDBNavigator.Application.Features.Schema.Queries.GetDatabases
 {
-    public record GetDatabasesQuery(string SessionId, string ConnectionId) : IQuery<DatabasesDetailsDto>;
-
-    public class GetDatabasesHandler : IRequestHandler<GetDatabasesQuery, DatabasesDetailsDto>
+    public record GetDatabasesQuery(string SessionId, string ConnectionId) : IQuery<DatabasesDetailsDto>, IConnectionRequest
     {
-        private readonly IConnectionCache _cache;
-        private readonly IDatabaseProviderFactory _factory;
+        public string? DatabaseName => null;
+    }
 
-        public GetDatabasesHandler(IConnectionCache cache, IDatabaseProviderFactory factory)
-        {
-            _cache = cache;
-            _factory = factory;
-        }
+    public class GetDatabasesHandler : ConnectionRequestHandler<GetDatabasesQuery, DatabasesDetailsDto>
+    {
+        public GetDatabasesHandler(IConnectionCache cache, IDatabaseProviderFactory factory) : base(cache, factory) { }
 
-        public async Task<DatabasesDetailsDto> Handle(GetDatabasesQuery request, CancellationToken cancellationToken)
+        protected override async Task<DatabasesDetailsDto> Handle(GetDatabasesQuery request, IDatabaseProvider provider, CancellationToken cancellationToken)
         {
-            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId);
-            var databases = await provider.GetDatabases();
+            var items = await provider.GetDatabases(cancellationToken);
             return new DatabasesDetailsDto
             {
                 ConnectionId = request.ConnectionId,
                 DataSource = provider.DataSource,
-                Databases = databases
+                Databases = items
             };
         }
     }
 }
-

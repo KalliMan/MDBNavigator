@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MDBNavigator.API.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
     public class DatabaseConnectionController : BaseApiController
     {
         private readonly IMediator _mediator;
@@ -17,35 +15,17 @@ namespace MDBNavigator.API.Controllers
         public DatabaseConnectionController(IMediator mediator) => _mediator = mediator;
 
         [HttpPost("connect")]
-        public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value)
-        {
-            if (!TryGetSessionId(out var sessionId, out var errorResult))
-            {
-                return errorResult!;
-            }
-            var settings = MapToSettings(value);
-            return Ok(await _mediator.Send(new ConnectCommand(sessionId, settings)));
-        }
+        public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value, CancellationToken cancellationToken)
+            => Ok(await _mediator.Send(new ConnectCommand(SessionId, MapToSettings(value)), cancellationToken));
 
         [HttpPost("reconnect/{connectionId}")]
-        public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value)
-        {
-            if (!TryGetSessionId(out var sessionId, out var errorResult))
-            {
-                return errorResult!;
-            }
-            var settings = MapToSettings(value);
-            return Ok(await _mediator.Send(new ReconnectCommand(sessionId, connectionId, settings)));
-        }
+        public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value, CancellationToken cancellationToken)
+            => Ok(await _mediator.Send(new ReconnectCommand(SessionId, connectionId, MapToSettings(value)), cancellationToken));
 
         [HttpPost("disconnect/{connectionId}")]
-        public async Task<IActionResult> Disconnect([FromRoute] string connectionId)
+        public async Task<IActionResult> Disconnect([FromRoute] string connectionId, CancellationToken cancellationToken)
         {
-            if (!TryGetSessionId(out var sessionId, out var errorResult))
-            {
-                return errorResult!;
-            }
-            await _mediator.Send(new DisconnectCommand(sessionId, connectionId));
+            await _mediator.Send(new DisconnectCommand(SessionId, connectionId), cancellationToken);
             return Ok();
         }
 
@@ -59,4 +39,3 @@ namespace MDBNavigator.API.Controllers
         };
     }
 }
-

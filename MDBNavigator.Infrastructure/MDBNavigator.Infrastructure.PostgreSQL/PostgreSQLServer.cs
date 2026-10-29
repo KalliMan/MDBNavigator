@@ -28,7 +28,7 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
 
         public async ValueTask DisposeAsync() => await DisconnectAsync();
 
-        internal async Task ConnectAsync(ConnectionSettings settings, string? databaseName = null)
+        internal async Task ConnectAsync(ConnectionSettings settings, string? databaseName = null, CancellationToken ct = default)
         {
             var builder = new NpgsqlConnectionStringBuilder
             {
@@ -47,7 +47,7 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
             _connection = new NpgsqlConnection(builder.ConnectionString);
             try
             {
-                await _connection.OpenAsync();
+                await _connection.OpenAsync(ct);
             }
             catch
             {
@@ -66,19 +66,19 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
             _connection = null!;
         }
 
-        public async Task<IEnumerable<DatabaseDto>> GetDatabases()
-            => await _connection.QueryAsync<DatabaseDto>(
-                "SELECT oid AS InternalId, datname AS Name FROM pg_database WHERE datistemplate = false ORDER BY oid DESC;");
+        public async Task<IEnumerable<DatabaseDto>> GetDatabases(CancellationToken ct = default)
+            => await _connection.QueryAsync<DatabaseDto>(Command(
+                "SELECT oid AS InternalId, datname AS Name FROM pg_database WHERE datistemplate = false ORDER BY oid DESC;", ct: ct));
 
-        public async Task<IEnumerable<DbTable>> GetTables()
-            => await _connection.QueryAsync<DbTable>(
+        public async Task<IEnumerable<DbTable>> GetTables(CancellationToken ct = default)
+            => await _connection.QueryAsync<DbTable>(Command(
                 @"SELECT TABLE_SCHEMA AS DATABASESCHEMA, TABLE_NAME AS NAME
                   FROM INFORMATION_SCHEMA.TABLES
                   WHERE TABLE_SCHEMA NOT IN ('pg_catalog', 'information_schema')
                     AND TABLE_TYPE = 'BASE TABLE'
-                  ORDER BY TABLE_SCHEMA");
+                  ORDER BY TABLE_SCHEMA", ct: ct));
 
-        public async Task<TableDefinition> GetTableDefinition(string schema, string table)
+        public async Task<TableDefinition> GetTableDefinition(string schema, string table, CancellationToken ct = default)
         {
             var query = @"
 SELECT COLUMN_NAME AS ColumnName, DATA_TYPE AS DataType,
@@ -115,7 +115,7 @@ JOIN pg_catalog.pg_class rel ON rel.oid = con.conrelid
 JOIN pg_catalog.pg_namespace nsp ON nsp.oid = con.connamespace
 WHERE nsp.nspname = @SCHEMA AND rel.relname = @TABLE;";
 
-            var multi = await _connection.QueryMultipleAsync(query, new { Schema = schema, Table = table });
+            var multi = await _connection.QueryMultipleAsync(Command(query, new { Schema = schema, Table = table }, ct));
             return new TableDefinition
             {
                 Columns = await multi.ReadAsync<TableColumn>(),
@@ -124,7 +124,7 @@ WHERE nsp.nspname = @SCHEMA AND rel.relname = @TABLE;";
             };
         }
 
-        public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures() => await GetProceduresInternal("PROCEDURE");
+        public async Task<IEnumerable<ProcedureDto>> GetStoredProcedures(CancellationToken ct = default) => await GetProceduresInternal("PROCEDURE", ct);
 
         public string GetCreateStoredProcedureScript(string schema)
         {
@@ -139,7 +139,7 @@ $$;";
             return string.Format(template, QuoteIdentifier(schema, nameof(schema)));
         }
 
-        public async Task<IEnumerable<ProcedureDto>> GetFunctions() => await GetProceduresInternal("FUNCTION");
+        public async Task<IEnumerable<ProcedureDto>> GetFunctions(CancellationToken ct = default) => await GetProceduresInternal("FUNCTION", ct);
 
         public string GetCreateFunctionProcedureScript(string schema)
         {
@@ -155,14 +155,14 @@ $$;";
         }
 
         // Overloads share a name, so the definitions of all of them are returned (one statement each).
-        public async Task<string> GetProcedureDefinition(string schema, string name)
+        public async Task<string> GetProcedureDefinition(string schema, string name, CancellationToken ct = default)
         {
-            var definitions = (await _connection.QueryAsync<string>(
+            var definitions = (await _connection.QueryAsync<string>(Command(
                 $@"SELECT pg_get_functiondef(p.oid)
                    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
                    WHERE n.nspname = @Schema AND p.proname = @Name AND p.prokind IN {RoutineKinds}
                    ORDER BY p.oid",
-                new { Schema = schema, Name = name })).ToList();
+                new { Schema = schema, Name = name }, ct))).ToList();
 
             if (definitions.Count == 0)
             {
@@ -173,15 +173,15 @@ $$;";
         }
 
         // One DROP per overload, with the right keyword and the argument types that identify it.
-        public async Task<string> GetDropProcedureScript(string schema, string name)
+        public async Task<string> GetDropProcedureScript(string schema, string name, CancellationToken ct = default)
         {
             var qualifiedName = QualifiedName(schema, name);
-            var routines = (await _connection.QueryAsync<(string Kind, string Arguments)>(
+            var routines = (await _connection.QueryAsync<(string Kind, string Arguments)>(Command(
                 $@"SELECT p.prokind::text AS Kind, pg_get_function_identity_arguments(p.oid) AS Arguments
                    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
                    WHERE n.nspname = @Schema AND p.proname = @Name AND p.prokind IN {RoutineKinds}
                    ORDER BY p.oid",
-                new { Schema = schema, Name = name })).ToList();
+                new { Schema = schema, Name = name }, ct))).ToList();
 
             if (routines.Count == 0)
             {
@@ -192,21 +192,21 @@ $$;";
                 $"DROP {(r.Kind == "p" ? "PROCEDURE" : "FUNCTION")} {qualifiedName}({r.Arguments});"));
         }
 
-        public async Task<IEnumerable<ViewDto>> GetViews()
-            => await _connection.QueryAsync<ViewDto>(
+        public async Task<IEnumerable<ViewDto>> GetViews(CancellationToken ct = default)
+            => await _connection.QueryAsync<ViewDto>(Command(
                 "SELECT table_schema AS DatabaseSchema, table_name AS Name " +
                 "FROM information_schema.tables " +
                 "WHERE table_schema NOT IN ('pg_catalog', 'information_schema') AND table_type = 'VIEW' " +
-                "ORDER BY table_schema");
+                "ORDER BY table_schema", ct: ct));
 
         // pg_get_viewdef also works for views the user doesn't own (information_schema.views hides those).
-        public async Task<string> GetViewDefinition(string schema, string name)
+        public async Task<string> GetViewDefinition(string schema, string name, CancellationToken ct = default)
         {
-            var definition = await _connection.QueryFirstOrDefaultAsync<string?>(
+            var definition = await _connection.QueryFirstOrDefaultAsync<string?>(Command(
                 $@"SELECT 'CREATE OR REPLACE VIEW ' || {QualifiedRelationSql} || ' AS' || E'\n' || pg_get_viewdef(c.oid, true)
                   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                   WHERE c.relkind = 'v' AND n.nspname = @Schema AND c.relname = @Name",
-                new { Schema = schema, Name = name });
+                new { Schema = schema, Name = name }, ct));
 
             return definition ?? throw new ObjectNotFoundException($"View {schema}.{name} was not found.");
         }
@@ -233,7 +233,7 @@ WHERE  -- conditions", QuoteIdentifier(schema, nameof(schema)));
         public string GetCreateNewTableScript(string schema)
             => $"CREATE TABLE {QuoteIdentifier(schema, nameof(schema))}.\"MyTable\"\r\n(\r\n    \"Id\" integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 ),\r\n    CONSTRAINT \"PK_MyTable_Id\" PRIMARY KEY (\"Id\")\r\n);";
 
-        public async Task<string> GetCreateTableScript(string schema, string table)
+        public async Task<string> GetCreateTableScript(string schema, string table, CancellationToken ct = default)
         {
             const string sql = $@"SELECT
     'CREATE TABLE ' || {QualifiedRelationSql} || ' (' || E'\n' ||
@@ -245,13 +245,13 @@ WHERE  -- conditions", QuoteIdentifier(schema, nameof(schema)));
               FROM pg_constraint con WHERE con.conrelid = c.oid), '') AS full_ddl
 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relname = @Table AND n.nspname = @Schema;";
-            return await GetTableScript(sql, schema, table);
+            return await GetTableScript(sql, schema, table, ct);
         }
 
         public string GetDropTableScript(string schema, string table)
             => $"DROP TABLE {QualifiedName(schema, table)};";
 
-        public async Task<string> GetInsertTableScript(string schema, string table)
+        public async Task<string> GetInsertTableScript(string schema, string table, CancellationToken ct = default)
         {
             const string sql = $@"SELECT
 'INSERT INTO ' || {QualifiedRelationSql} || ' (' ||
@@ -260,7 +260,7 @@ VALUES (' ||
 (SELECT string_agg('DEFAULT', ', ') FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped) || ');' AS insert_ddl
 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relname = @Table AND n.nspname = @Schema;";
-            return await GetTableScript(sql, schema, table);
+            return await GetTableScript(sql, schema, table, ct);
         }
 
         public async IAsyncEnumerable<QueryBatch> StreamQuery(
@@ -363,15 +363,19 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
             if (stats != null) stats.RecordsAffected = reader.RecordsAffected;
         }
 
-        private async Task<IEnumerable<ProcedureDto>> GetProceduresInternal(string type)
+        // Dapper command carrying the request's cancellation token.
+        private static CommandDefinition Command(string sql, object? parameters = null, CancellationToken ct = default)
+            => new(sql, parameters, cancellationToken: ct);
+
+        private async Task<IEnumerable<ProcedureDto>> GetProceduresInternal(string type, CancellationToken ct)
         {
             // DISTINCT: overloads are listed once; their definitions/drop scripts cover all overloads.
-            var raw = await _connection.QueryAsync<ProcedureRaw>(
+            var raw = await _connection.QueryAsync<ProcedureRaw>(Command(
                 "SELECT DISTINCT routine_schema As DatabaseSchema, routine_name As Name, routine_type AS ProcedureType " +
                 "FROM information_schema.routines " +
                 "WHERE routine_schema NOT IN ('pg_catalog', 'information_schema') AND routine_type = @Type " +
                 "ORDER BY routine_schema, routine_name",
-                new { Type = type });
+                new { Type = type }, ct));
 
             return raw.Select(p => new ProcedureDto
             {
@@ -386,10 +390,10 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
             });
         }
 
-        private async Task<string> GetTableScript(string sql, string schema, string table)
+        private async Task<string> GetTableScript(string sql, string schema, string table, CancellationToken ct)
         {
             // The script is the first column of the first row; no row means the table doesn't exist.
-            var script = await _connection.ExecuteScalarAsync<string?>(sql, new { Schema = schema, Table = table });
+            var script = await _connection.ExecuteScalarAsync<string?>(Command(sql, new { Schema = schema, Table = table }, ct));
             return script ?? throw new ObjectNotFoundException($"Table {schema}.{table} was not found.");
         }
 

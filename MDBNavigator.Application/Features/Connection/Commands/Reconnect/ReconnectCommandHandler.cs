@@ -23,7 +23,7 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Reconnect
                 return await DbConnectionHelper.ConnectAsync(
                     _connectionCache, _providerFactory,
                     request.SessionId, request.ConnectionId,
-                    request.ConnectionSettings);
+                    request.ConnectionSettings, cancellationToken);
             }
             catch (ConnectionFailedException)
             {

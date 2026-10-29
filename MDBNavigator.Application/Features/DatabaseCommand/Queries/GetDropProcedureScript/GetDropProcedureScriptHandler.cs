@@ -1,22 +1,15 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.Messaging;
-using MediatR;
 
 namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetDropProcedureScript
 {
-    public record GetDropProcedureScriptQuery(string SessionId, string ConnectionId, string DatabaseName, string Schema, string Name) : IQuery<string>;
+    public record GetDropProcedureScriptQuery(string SessionId, string ConnectionId, string DatabaseName, string Schema, string Name) : IQuery<string>, IConnectionRequest;
 
-    public class GetDropProcedureScriptHandler : IRequestHandler<GetDropProcedureScriptQuery, string>
+    public class GetDropProcedureScriptHandler : ConnectionRequestHandler<GetDropProcedureScriptQuery, string>
     {
-        private readonly IConnectionCache _cache;
-        private readonly IDatabaseProviderFactory _factory;
+        public GetDropProcedureScriptHandler(IConnectionCache cache, IDatabaseProviderFactory factory) : base(cache, factory) { }
 
-        public GetDropProcedureScriptHandler(IConnectionCache cache, IDatabaseProviderFactory factory) { _cache = cache; _factory = factory; }
-
-        public async Task<string> Handle(GetDropProcedureScriptQuery request, CancellationToken cancellationToken)
-        {
-            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
-            return await provider.GetDropProcedureScript(request.Schema, request.Name);
-        }
+        protected override Task<string> Handle(GetDropProcedureScriptQuery request, IDatabaseProvider provider, CancellationToken cancellationToken)
+            => provider.GetDropProcedureScript(request.Schema, request.Name, cancellationToken);
     }
 }

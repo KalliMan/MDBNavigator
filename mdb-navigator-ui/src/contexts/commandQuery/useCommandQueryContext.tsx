@@ -2,10 +2,11 @@ import { createContext, useContext } from "react";
 import { CommandQueryContextType } from "./CommandQueryReducer";
 import { v4 as uuidv4 } from 'uuid';
 import agent from "../../services/apiAgent";
-import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { CommandQueryActionTypes } from "./CommandQueryActionType";
 
 export const CommandQueryContext = createContext<CommandQueryContextType | null>(null);
+
+const api = agent.databaseCommandApi;
 
 export default function useCommandQueryContext(){
   const context = useContext(CommandQueryContext);
@@ -13,247 +14,68 @@ export default function useCommandQueryContext(){
     throw new Error('useCommandQueryContext must be used within a CommandQueryContext');
   }
 
-  async function queryCommandGetTopNTableRecords(connectionId: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
-
-    const id = uuidv4();
-    const topNRecordsQuery = await agent.databaseCommandApi.getTopNTableRecordsScript(connectionId, id, databaseName, schema, table, recordsNumber);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId: connectionId,
-      id,
-      databaseName,
-      name: `${schema}.${table}`,
-      cmdQuery: topNRecordsQuery,
-      executeImmediately: true
-    };
-
+  // Every tree action ends here: a new query becomes a new tab (see MainBar).
+  function openQueryTab(connectionId: string, databaseName: string, name: string, cmdQuery: string, executeImmediately = false) {
     context!.dispatch({
       type: CommandQueryActionTypes.Queried,
-      payload: query
+      payload: { connectionId, id: uuidv4(), databaseName, name, cmdQuery, executeImmediately }
     });
+  }
+
+  // Tables
+  async function queryCommandGetTopNTableRecords(connectionId: string, databaseName: string, schema: string, table: string, recordsNumber: number) {
+    const script = await api.getTopNTableRecordsScript(connectionId, databaseName, schema, table, recordsNumber);
+    openQueryTab(connectionId, databaseName, `${schema}.${table}`, script, true);
   }
 
   async function queryForDatabase(connectionId: string, databaseName: string, schema: string) {
-    const id = uuidv4();
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id,
-      databaseName,
-      name: `${schema}.*`,
-      cmdQuery: `SELECT * FROM ${schema || '{Schema}'}.{TableName}`,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
-  }
-
-  async function queryCommandProcedureDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
-    const procedureCodeQuery = await agent.databaseCommandApi.getProcedureDefinition(connectionId, databaseName, schema, name);
-
-    const id = uuidv4();
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id,
-      databaseName,
-      name: `${schema}.${name}`,
-      cmdQuery: procedureCodeQuery,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
-  }
-
-  async function queryCommandCreateStoredProcedureScript(connectionId: string, databaseName: string, schema: string = 'public') {
-    const createProcedureScript = await agent.databaseCommandApi.getCreateStoredProcedureScript(connectionId, databaseName, schema);
-
-    const id = uuidv4();
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id,
-      databaseName,
-      name: `${schema}.ProcedureName`,
-      cmdQuery: createProcedureScript,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
-  }
-
-  async function queryCommandCreateFunctionScript(connectionId: string, databaseName: string, schema: string = 'public') {
-    const createFunctionScript = await agent.databaseCommandApi.getCreateFunctionScript(connectionId, databaseName, schema);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id: uuidv4(),
-      databaseName,
-      name: `${schema}.FunctionName`,
-      cmdQuery: createFunctionScript,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
-  }
-
-  async function queryCommandViewDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
-    const viewCodeQuery = await agent.databaseCommandApi.getViewDefinition(connectionId, databaseName, schema, name);
-
-    const id = uuidv4();
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id,
-      databaseName,
-      name: `${schema}.${name}`,
-      cmdQuery: viewCodeQuery,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
-  }
-
-  async function queryCommandCreateViewScript(connectionId: string, databaseName: string, schema: string = 'public') {
-    const createViewScript = await agent.databaseCommandApi.getCreateViewScript(connectionId, databaseName, schema);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id: uuidv4(),
-      databaseName,
-      name: `${schema}.ViewName`,
-      cmdQuery: createViewScript,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+    openQueryTab(connectionId, databaseName, `${schema}.*`, `SELECT * FROM ${schema || '{Schema}'}.{TableName}`);
   }
 
   async function queryCommandCreateNewTableScript(connectionId: string, databaseName: string, schema: string = 'public') {
-    const createTableQuery = await agent.databaseCommandApi.getCreateNewTableScript(connectionId, databaseName, schema);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id: uuidv4(),
-      databaseName,
-      name: `${schema}.TableName`,
-      cmdQuery: createTableQuery,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+    openQueryTab(connectionId, databaseName, `${schema}.TableName`, await api.getCreateNewTableScript(connectionId, databaseName, schema));
   }
 
   async function queryCommandCreateTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
-
-    const id = uuidv4();
-    const createTableQuery = await agent.databaseCommandApi.getCreateTableScript(connectionId, databaseName, schema, table);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id,
-      databaseName,
-      name: `${schema}.${table}`,
-      cmdQuery: createTableQuery,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+    openQueryTab(connectionId, databaseName, `${schema}.${table}`, await api.getCreateTableScript(connectionId, databaseName, schema, table));
   }
 
   async function queryCommandInsertTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
-    const id = uuidv4();
-    const insertTableQuery = await agent.databaseCommandApi.getInsertTableScript(connectionId, databaseName, schema, table);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id,
-      databaseName,
-      name: `${schema}.${table}`,
-      cmdQuery: insertTableQuery,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+    openQueryTab(connectionId, databaseName, `${schema}.${table}`, await api.getInsertTableScript(connectionId, databaseName, schema, table));
   }
 
-
   async function queryCommandDropTableScript(connectionId: string, databaseName: string, schema: string, table: string) {
-    const dropTableScript = await agent.databaseCommandApi.getDropTableScript(connectionId, databaseName, schema, table);
+    openQueryTab(connectionId, databaseName, `${schema}.${table}`, await api.getDropTableScript(connectionId, databaseName, schema, table));
+  }
 
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id: uuidv4(),
-      databaseName,
-      name: `${schema}.${table}`,
-      cmdQuery: dropTableScript,
-      executeImmediately: false
-    };
+  // Procedures and functions
+  async function queryCommandProcedureDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
+    openQueryTab(connectionId, databaseName, `${schema}.${name}`, await api.getProcedureDefinition(connectionId, databaseName, schema, name));
+  }
 
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+  async function queryCommandCreateStoredProcedureScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    openQueryTab(connectionId, databaseName, `${schema}.ProcedureName`, await api.getCreateStoredProcedureScript(connectionId, databaseName, schema));
+  }
+
+  async function queryCommandCreateFunctionScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    openQueryTab(connectionId, databaseName, `${schema}.FunctionName`, await api.getCreateFunctionScript(connectionId, databaseName, schema));
   }
 
   async function queryCommandDropProcedureScript(connectionId: string, databaseName: string, schema: string, name: string) {
-    const dropProcedureScript = await agent.databaseCommandApi.getDropProcedureScript(connectionId, databaseName, schema, name);
+    openQueryTab(connectionId, databaseName, `${schema}.${name}`, await api.getDropProcedureScript(connectionId, databaseName, schema, name));
+  }
 
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id: uuidv4(),
-      databaseName,
-      name: `${schema}.${name}`,
-      cmdQuery: dropProcedureScript,
-      executeImmediately: false
-    };
+  // Views
+  async function queryCommandViewDefinition(connectionId: string, databaseName: string, schema: string, name: string) {
+    openQueryTab(connectionId, databaseName, `${schema}.${name}`, await api.getViewDefinition(connectionId, databaseName, schema, name));
+  }
 
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+  async function queryCommandCreateViewScript(connectionId: string, databaseName: string, schema: string = 'public') {
+    openQueryTab(connectionId, databaseName, `${schema}.ViewName`, await api.getCreateViewScript(connectionId, databaseName, schema));
   }
 
   async function queryCommandDropViewScript(connectionId: string, databaseName: string, schema: string, name: string) {
-    const dropViewScript = await agent.databaseCommandApi.getDropViewScript(connectionId, databaseName, schema, name);
-
-    const query: DatabaseSQLCommandQuery = {
-      connectionId,
-      id: uuidv4(),
-      databaseName,
-      name: `${schema}.${name}`,
-      cmdQuery: dropViewScript,
-      executeImmediately: false
-    };
-
-    context!.dispatch({
-      type: CommandQueryActionTypes.Queried,
-      payload: query
-    });
+    openQueryTab(connectionId, databaseName, `${schema}.${name}`, await api.getDropViewScript(connectionId, databaseName, schema, name));
   }
 
   const { databaseCommandQueries } = context.state;

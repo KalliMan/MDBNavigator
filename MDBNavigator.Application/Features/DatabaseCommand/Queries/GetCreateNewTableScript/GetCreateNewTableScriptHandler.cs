@@ -1,23 +1,15 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.Messaging;
-using MediatR;
 
 namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateNewTableScript
 {
-    public record GetCreateNewTableScriptQuery(string SessionId, string ConnectionId, string DatabaseName, string Schema) : IQuery<string>;
+    public record GetCreateNewTableScriptQuery(string SessionId, string ConnectionId, string DatabaseName, string Schema) : IQuery<string>, IConnectionRequest;
 
-    public class GetCreateNewTableScriptHandler : IRequestHandler<GetCreateNewTableScriptQuery, string>
+    public class GetCreateNewTableScriptHandler : ConnectionRequestHandler<GetCreateNewTableScriptQuery, string>
     {
-        private readonly IConnectionCache _cache;
-        private readonly IDatabaseProviderFactory _factory;
+        public GetCreateNewTableScriptHandler(IConnectionCache cache, IDatabaseProviderFactory factory) : base(cache, factory) { }
 
-        public GetCreateNewTableScriptHandler(IConnectionCache cache, IDatabaseProviderFactory factory) { _cache = cache; _factory = factory; }
-
-        public async Task<string> Handle(GetCreateNewTableScriptQuery request, CancellationToken cancellationToken)
-        {
-            await using var provider = await DbConnectionHelper.CreateProviderAsync(_cache, _factory, request.SessionId, request.ConnectionId, request.DatabaseName);
-            return provider.GetCreateNewTableScript(request.Schema);
-        }
+        protected override Task<string> Handle(GetCreateNewTableScriptQuery request, IDatabaseProvider provider, CancellationToken cancellationToken)
+            => Task.FromResult(provider.GetCreateNewTableScript(request.Schema));
     }
 }
-

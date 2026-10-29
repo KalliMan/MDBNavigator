@@ -149,7 +149,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
       return {
         ...state,
         commands: state.commands.map(c => {
-          const own = batches.filter(b => b.commandId === c.id && isCurrentExecution(c, b.executionId));
+          const own = batches.filter(b => isCurrentExecution(c, b.executionId));
           // isExecuting stays true until CommandFinished arrives.
           return own.length > 0 ? { ...c, resultSets: appendBatches(c.resultSets, own) } : c;
         })
@@ -161,7 +161,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
       return {
         ...state,
         commands: state.commands.map(c =>
-          c.id === finished.commandId && isCurrentExecution(c, finished.executionId)
+          isCurrentExecution(c, finished.executionId)
             ? {
                 ...c,
                 isExecuting: false,
