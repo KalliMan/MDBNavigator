@@ -1,5 +1,5 @@
 import { CoordPosition } from "../../types/coordPosition";
-import { useTreeViewContext } from "./TreeViewContextProvider";
+import { useTreeViewContext } from "./useTreeViewContext";
 import TreeViewIExpandedIcon from "./TreeViewIExpandedIcon";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
 import { TreeViewNodeData } from "./TreeViewNodeData";

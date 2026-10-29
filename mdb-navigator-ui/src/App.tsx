@@ -61,7 +61,7 @@ function App() {
             error={error}
             isConnecting={isConnecting}
             onCancel={cancelConnectDialog}
-            onOk={(connectionSettings) => reconnect(reconnectedSettings.connectionId, connectionSettings!)}
+            onOk={(connectionSettings) => reconnect(reconnectedSettings.connectionId, connectionSettings)}
           />
         </ModalWindow>
       }

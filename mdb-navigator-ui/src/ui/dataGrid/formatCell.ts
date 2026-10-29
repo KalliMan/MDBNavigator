@@ -14,11 +14,13 @@ export function formatCell(value: unknown): FormattedCell {
   let text: string;
   if (typeof value === 'boolean') {
     text = value ? 'true' : 'false';
-  } else if (typeof value === 'object') {
-    // json/jsonb and array columns arrive as objects
-    text = JSON.stringify(value);
+  } else if (typeof value === 'string') {
+    text = value;
+  } else if (typeof value === 'number' || typeof value === 'bigint') {
+    text = value.toString();
   } else {
-    text = String(value);
+    // json/jsonb and array columns arrive as objects
+    text = JSON.stringify(value) ?? '';
   }
 
   return {

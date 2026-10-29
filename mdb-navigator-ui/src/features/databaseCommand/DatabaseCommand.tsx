@@ -1,5 +1,6 @@
 import Editor, { OnMount } from "@monaco-editor/react";
 import "./monacoSetup";
+import { KeyCode, KeyMod } from "monaco-editor";
 import { LanguageIdEnum } from "monaco-sql-languages";
 
 import { useEffect, useRef, useState } from "react";
@@ -46,7 +47,8 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
 
   useEffect(() => {
     if (commandQuery.current.executeImmediately) {
-      executeDatabaseSQLCommand(commandQuery.current);
+      // executeDatabaseSQLCommand reports its own errors in the tab's status, so it isn't awaited.
+      void executeDatabaseSQLCommand(commandQuery.current);
       commandQuery.current.executeImmediately = false;
     }
   }, [commandQuery, executeDatabaseSQLCommand]);
@@ -57,18 +59,18 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
 
   function handleExecute() {
     commandQuery.current.cmdQuery = sqlQuery;
-    executeDatabaseSQLCommand(commandQuery.current);
+    void executeDatabaseSQLCommand(commandQuery.current);
   }
 
   function handleCancel() {
     cancelDatabaseSQLCommand(commandQuery.current.id);
   }
 
-  const handleEditorMount: OnMount = (editor, monaco) => {
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+  const handleEditorMount: OnMount = (editor) => {
+    editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
       if (!canExecuteRef.current) return;
       commandQuery.current.cmdQuery = editor.getValue();
-      executeDatabaseSQLCommand(commandQuery.current);
+      void executeDatabaseSQLCommand(commandQuery.current);
     });
   };
 

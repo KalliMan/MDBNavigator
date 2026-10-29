@@ -47,11 +47,23 @@ if (builder.Configuration.GetValue<string>("ASPNETCORE_HTTPS_PORT") != null)
 }
 
 app.MapHub<BatchCommandResultHub>("/batchCommandResult");
-app.UseDefaultFiles();
-app.UseStaticFiles();
+
+// The built UI is in wwwroot only when it was built into it (the Dockerfile does that). In development the UI
+// runs on the Vite dev server, so there is nothing to serve; skipping this avoids the "WebRootPath was not found" warnings.
+var serveUi = Directory.Exists(app.Environment.WebRootPath)
+    && File.Exists(Path.Combine(app.Environment.WebRootPath, "index.html"));
+if (serveUi)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 
 app.MapControllers();
-app.MapFallbackToFile("index.html");
+if (serveUi)
+{
+    // Client-side routes (anything that is not an API/hub endpoint or a file) get the SPA.
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
 

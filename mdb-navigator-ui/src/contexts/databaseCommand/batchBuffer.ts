@@ -28,7 +28,8 @@ export function createBatchBuffer(dispatch: React.Dispatch<DatabaseCommandAction
 
   function push(batch: DatabaseCommandBatchResult) {
     const { resultJson, ...meta } = batch;
-    queue.push({ ...meta, rows: resultJson ? JSON.parse(resultJson) : [] });
+    // The server serializes each batch's rows as an array of row arrays.
+    queue.push({ ...meta, rows: resultJson ? JSON.parse(resultJson) as unknown[][] : [] });
 
     if (!timer) {
       timer = setTimeout(flush, FLUSH_INTERVAL_MS);

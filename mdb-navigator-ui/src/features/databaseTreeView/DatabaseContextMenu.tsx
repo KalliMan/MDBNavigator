@@ -17,10 +17,10 @@ interface DatabaseContextMenuProps {
     handleNewServerConnection: (node: TreeViewNodeData | undefined) => void;
     handleDisconnect: (node: TreeViewNodeData | undefined) => void;
     handleReconnect: (node: TreeViewNodeData | undefined) => void;
-    handleNewQueryForDatabase: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleNewQueryForDatabase: (node: TreeViewNodeData | undefined) => void;
     handleCreateNewTable: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleCreateTableScript: (node: TreeViewNodeData | undefined) => Promise<void>;
-    handleNewQueryForTables: (node: TreeViewNodeData | undefined) => Promise<void>;
+    handleNewQueryForTables: (node: TreeViewNodeData | undefined) => void;
     handleInsertTableScript: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleRefreshTables: (node: TreeViewNodeData | undefined) => Promise<void>;
     handleSelectTop100Records: (node: TreeViewNodeData | undefined) => Promise<void>;

@@ -47,7 +47,7 @@ export default function ConnectToServer({ initialConnectionSettings = null, erro
       };
     }
 
-    return source as ConnectionSettings;
+    return source;
   }
 
   const [connectionSettings, setConnectionSettings] = useState<ConnectionSettings>(

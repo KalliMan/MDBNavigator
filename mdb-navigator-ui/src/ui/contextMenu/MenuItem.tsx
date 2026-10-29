@@ -3,7 +3,7 @@ import { JSX } from "react";
 interface Props {
   icon?: JSX.Element;
   disabled?: boolean;
-  onClick?(): void;
+  onClick?: () => void;
 }
 
 export default function MenuItem({ children, icon, disabled, onClick }: React.PropsWithChildren<Props>) {

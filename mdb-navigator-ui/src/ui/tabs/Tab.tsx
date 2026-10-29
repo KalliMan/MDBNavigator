@@ -1,9 +1,9 @@
-interface Props {
+export interface TabProps {
   id: string;
   label: string;
 }
 
-export default function Tab({ label, id, children }: React.PropsWithChildren<Props>) {
+export default function Tab({ label, id, children }: React.PropsWithChildren<TabProps>) {
   return (
     <div about={label} key={id} className="hidden">
       {children}

@@ -41,19 +41,12 @@ export default function useDatabaseServerConnectContext() {
     }
   }
 
-  async function promptReconnectWithSettings(connectionId: string) {
-    try {
-      context!.dispatch({
-        type: DatabaseServerConnectActionTypes.PromptReconnectWithSettings,
-        payload: connectionId
-      });
-    } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error);
-      context!.dispatch({
-        type: DatabaseServerConnectActionTypes.Error,
-        payload: errorMessage
-      });
-    }
+  // Only opens the reconnect dialog; the request happens in reconnect().
+  function promptReconnectWithSettings(connectionId: string) {
+    context!.dispatch({
+      type: DatabaseServerConnectActionTypes.PromptReconnectWithSettings,
+      payload: connectionId
+    });
   }
 
   async function reconnect(connectionId: string, connectionSettings: ConnectionSettings) {

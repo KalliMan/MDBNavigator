@@ -28,7 +28,8 @@ export default function useCommandQueryContext(){
     openQueryTab(connectionId, databaseName, `${schema}.${table}`, script, true);
   }
 
-  async function queryForDatabase(connectionId: string, databaseName: string, schema: string) {
+  // No request involved: opens an editable query template.
+  function queryForDatabase(connectionId: string, databaseName: string, schema: string) {
     openQueryTab(connectionId, databaseName, `${schema}.*`, `SELECT * FROM ${schema || '{Schema}'}.{TableName}`);
   }
 
@@ -83,7 +84,7 @@ export default function useCommandQueryContext(){
   return {
     databaseCommandQueries,
     queryCommandGetTopNTableRecords: catchErrors(queryCommandGetTopNTableRecords),
-    queryForDatabase: catchErrors(queryForDatabase),
+    queryForDatabase,
     queryCommandProcedureDefinition: catchErrors(queryCommandProcedureDefinition),
     queryCommandCreateStoredProcedureScript: catchErrors(queryCommandCreateStoredProcedureScript),
     queryCommandCreateFunctionScript: catchErrors(queryCommandCreateFunctionScript),

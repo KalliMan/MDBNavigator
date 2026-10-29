@@ -109,7 +109,8 @@ export default function useContextMenuHandlers({
   function handleDisconnect(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
     if (targetNode) {
-      disconnect(targetNode.id);
+      // disconnect reports failures through the connect context's error state.
+      void disconnect(targetNode.id);
     }
   }
 
@@ -120,14 +121,14 @@ export default function useContextMenuHandlers({
     }
   }
 
-  async function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
+  function handleNewQueryForDatabase(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
     if (targetNode) {
-      const serverNode = getServerNodeFromDatabaseNode(targetNode!);
+      const serverNode = getServerNodeFromDatabaseNode(targetNode);
 
       if (serverNode) {
-        await queryForDatabase(serverNode?.id, targetNode.nodeName, targetNode?.metaData || "");
+        queryForDatabase(serverNode?.id, targetNode.nodeName, targetNode?.metaData || "");
       }
     }
   }
@@ -159,7 +160,7 @@ export default function useContextMenuHandlers({
     }
   }
 
-  async function handleNewQueryForTables(targetNode: TreeViewNodeData | undefined) {
+  function handleNewQueryForTables(targetNode: TreeViewNodeData | undefined) {
     setContextMenuTarget(EmptyPosition);
 
     if (!targetNode) {
@@ -168,7 +169,7 @@ export default function useContextMenuHandlers({
 
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
-      await queryForDatabase(
+      queryForDatabase(
         nodes.serverNode?.id,
         nodes.databaseNode.nodeName,
         targetNode.metaData || ""
@@ -324,7 +325,7 @@ export default function useContextMenuHandlers({
 
     const nodes = getNodeHierarchy(targetNode);
     if (nodes) {
-      queryCommandDropTableScript(
+      await queryCommandDropTableScript(
         nodes.serverNode.id,
         nodes.databaseNode.nodeName,
         targetNode.metaData || "",

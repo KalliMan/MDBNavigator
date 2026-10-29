@@ -34,7 +34,8 @@ export default function DatabaseSchemaContextProvider({ children }: React.PropsW
           type: DatabaseSchemaActionTypes.AddedSchema,
           payload: { connectionId: id, isLoading: false, error: null, databasesDetails: null }
         });
-        loadDatabases(dispatch, id);
+        // Fire and forget: loadDatabases reports failures through the Error action.
+        void loadDatabases(dispatch, id);
       });
   }, [databaseServerConnections]);
 

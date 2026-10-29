@@ -1,6 +1,6 @@
 export interface Props {
   isExpanded?: boolean;
-  onExpand(): void;
+  onExpand: () => void;
 }
 
 export default function TreeViewIExpandedIcon({isExpanded, onExpand}: Props) {

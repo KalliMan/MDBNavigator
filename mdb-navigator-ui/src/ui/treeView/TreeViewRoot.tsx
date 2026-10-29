@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { TreeViewNodeData } from "./TreeViewNodeData";
 import { NodeDataActionTypes } from "./TreeViewNodeActionTypes";
-import { useTreeViewContext } from "./TreeViewContextProvider";
+import { useTreeViewContext } from "./useTreeViewContext";
 import { TreeViewNode } from "./TreeViewNode";
 import { CoordPosition } from "../../types/coordPosition";
 import { TreeViewSettings } from "./TreeViewSettings";
@@ -29,7 +29,7 @@ export function TreeViewRoot({root, settings, onNodeClick, onExpand}: Props) {
     <div className="w-fit text-left cursor-pointer">
       <ul className="ml-5">
         <TreeViewNode
-          node={state.nodeData!}
+          node={state.nodeData}
           settings={settings}
           onNodeClick={onNodeClick}
           onExpand={onExpand}

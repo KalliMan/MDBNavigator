@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
-import Tab from './Tab';
+import { Children, isValidElement, ReactElement, useEffect, useRef } from 'react';
+import Tab, { TabProps } from './Tab';
 import { HiXMark } from 'react-icons/hi2';
+
+type TabElement = ReactElement<React.PropsWithChildren<TabProps>>;
 
 interface Props {
   // Controlled: the parent owns which tab is active.
@@ -11,7 +13,8 @@ interface Props {
 
 export default function Tabs({ activeId, onClose, onSetActiveTab, children }: React.PropsWithChildren<Props>) {
 
-  const childrenProps = Array.isArray(children) ? children : [children];
+  // Children are <Tabs.Tab> elements; their props (id, label, content) describe the tabs.
+  const childrenProps = Children.toArray(children).filter(isValidElement) as TabElement[];
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -19,7 +22,7 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
 
     const activeElement = scrollContainerRef.current.querySelector(
       `[data-tab-id="${activeId}"]`
-    ) as HTMLElement | null;
+    );
 
     activeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }, [activeId]);

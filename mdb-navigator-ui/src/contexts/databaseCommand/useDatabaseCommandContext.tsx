@@ -31,7 +31,7 @@ export default function useDatabaseCommandContext(){
     // A tab runs one query at a time: a still running previous run is stopped on the server.
     const previous = context!.state.commands.find(c => c.id === cmdQuery.id);
     if (previous?.isExecuting && previous.executionId) {
-      cancelExecution(previous.executionId);
+      void cancelExecution(previous.executionId);
     }
 
     const executionId = uuidv4();
@@ -61,7 +61,7 @@ export default function useDatabaseCommandContext(){
   function cancelDatabaseSQLCommand(commandId: string) {
     const command = context!.state.commands.find(c => c.id === commandId);
     if (command?.isExecuting && command.executionId) {
-      cancelExecution(command.executionId);
+      void cancelExecution(command.executionId);
     }
   }
 
