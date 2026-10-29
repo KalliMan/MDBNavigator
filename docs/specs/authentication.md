@@ -63,7 +63,8 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 - **Data Protection keys** are stored in the app database, so cookies stay valid across restarts and containers.
 - **Migrations** run at startup.
 - **`Auth:Mode = None`** registers no Identity and needs no app database. Every request must come from the local machine, and all of them act as one user, `local`.
-- **Development** uses `Auth:Mode = None` until the sign-in screens exist (0.1d), so the current UI keeps working.
+- **Development** uses accounts with `Email:Delivery = Log` (confirmation links appear in the API's output). The Vite dev server proxies to the API's HTTP port and keeps the browser's host, so the provider return address is `http://localhost:3000/api/auth/signin-{provider}`: register that in each provider's app for development.
+- **No CORS:** the UI always comes from the API's origin.
 - **Roles:** `Admin` exists from the start. In Phase 0 it has no extra screens; user management comes with the team edition.
 
 ## UI
@@ -95,20 +96,19 @@ Only the providers that are configured get a button. The pages use the current l
 
 ### Top bar
 
-The workspace gets a slim top bar: the app name on the left, the user menu on the right (email, how you signed in, Log out). The UI refresh will add more to it later: a connect button, the dark mode switch, help.
+The workspace gets a slim top bar: the app name on the left, the user menu on the right (email, how you signed in, Log out). It sits above dialogs, so Log out stays reachable while the mandatory connect dialog is open. The UI refresh will add more to it later: a connect button, the dark mode switch, help.
 
 ### Edge cases
 
-- **Session expired:** any 401 sends the app to `/login`, and it returns to the workspace afterwards. Database connections survive, because the server keys them by `userId:tabId`, which hasn't changed. Unsaved SQL in editor tabs is lost; saving drafts comes with query history in Phase 1.
+- **Session expired:** any 401 shows the sign-in page ("Your session has ended"). The workspace stays mounted, only hidden, so when the same user signs in again with a password, every tab, query, result and connection is still there (the server keys connections by `userId:tabId`, which hasn't changed). The request that got the 401 says the session had ended and should be run again. Signing in through a provider leaves the page, so the open tabs are lost in that case.
 - **Log out:** reloads the page into `/login`, which clears every tab, result and connection from memory.
 - **Another user signs in on the same tab:** their `userId` differs, so they get "Not connected" instead of the previous user's connections.
-- **Result stream:** the hub checks the sign-in when it connects. If it can't reconnect because of a 401, the app treats that as signed out.
+- **Result stream:** the hub checks the sign-in when it connects. A hub connection that can't reconnect shows as disconnected; the next API call then gets the 401 and shows the sign-in page.
 - **Account deleted:** the user's cached connections are removed, and their running queries are cancelled.
 - **Users who signed up through a provider** have no password. The account page offers "Set password" instead of "Change password".
 
 ## Open questions
 
-- **0.1d: the dev proxy and the return address.** The provider return address is built from the request. The Vite proxy must keep the browser's host (`changeOrigin: false`) and the scheme must match, either by proxying to the API's HTTP port or by forwarding `X-Forwarded-Proto`. Otherwise the provider rejects the return address.
 
 - **`Auth:Mode = None` inside Docker.** Requests reach the container from the Docker network, not from loopback, so the local-machine check would reject them. Decide in 0.4 whether `None` is allowed there, and how.
 - **Getting into the public demo** without a sign-up wall (0.5b).

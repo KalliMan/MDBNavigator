@@ -39,7 +39,7 @@ namespace MDBNavigator.API.Auth
 
             auth.MapGet("me", async (ClaimsPrincipal principal, UserManager<ApplicationUser> users) =>
                     await users.GetUserAsync(principal) is { } user
-                        ? Results.Ok(new CurrentUserDto(user.Email ?? string.Empty, await users.IsInRoleAsync(user, RoleNames.Admin)))
+                        ? Results.Ok(new CurrentUserDto(user.Email ?? string.Empty, await users.IsInRoleAsync(user, RoleNames.Admin), SignInMethod(principal)))
                         // The cookie is valid but the account is gone.
                         : Results.Unauthorized())
                 .RequireAuthorization();
@@ -94,6 +94,11 @@ namespace MDBNavigator.API.Auth
             ExternalLoginResult.SignUpClosed => "external-sign-up-closed",
             _ => ExternalProviders.FailedError
         };
+
+        // Identity records it in the session: the provider's name for a provider sign-in, "amr" = "pwd" for a password.
+        private static string? SignInMethod(ClaimsPrincipal principal)
+            => principal.FindFirstValue(ClaimTypes.AuthenticationMethod)
+                ?? (principal.HasClaim("amr", "pwd") ? "Password" : null);
 
         private static bool IsRegister(HttpRequest request)
             => request.Path.Value?.EndsWith("/register", StringComparison.OrdinalIgnoreCase) == true;

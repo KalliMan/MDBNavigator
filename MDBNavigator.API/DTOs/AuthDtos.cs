@@ -4,5 +4,6 @@ namespace MDBNavigator.API.DTOs
     // providers that have a button (e.g. ["GitHub", "Google"]), and whether email works (confirmation, forgot password).
     public record AuthSettingsDto(string Mode, string SignUp, IReadOnlyList<string> Providers, bool EmailEnabled);
 
-    public record CurrentUserDto(string Email, bool IsAdmin);
+    // SignInMethod: how this session signed in, "Password" or a provider name such as "Google"; null when unknown.
+    public record CurrentUserDto(string Email, bool IsAdmin, string? SignInMethod);
 }

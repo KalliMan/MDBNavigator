@@ -4,7 +4,7 @@ The MDBNavigator web client: React 19, TypeScript and Vite. For the overall proj
 
 ## Getting started
 
-Prerequisites: Node.js 20 or later, and the API running on `https://localhost:3001` (see the root README). The browser calls the API over HTTPS, so the .NET development certificate must be trusted (`dotnet dev-certs https --trust`).
+Prerequisites: Node.js 20 or later, and the API running from its `https` launch profile (see the root README).
 
 ```sh
 npm ci
@@ -12,7 +12,9 @@ cp .env.development.local.example .env.development.local   # optional: pre-fills
 npm run dev
 ```
 
-The dev server runs on http://localhost:3000 with a fixed port. The API's CORS policy allows this origin and `5173`. `npm run dev` listens on all network interfaces (`--host 0.0.0.0`), so other machines on your network can open the page too.
+The dev server runs on http://localhost:3000 with a fixed port. It proxies `/api` and `/batchCommandResult` (WebSockets included) to the API's HTTP port, `http://localhost:3002`, so the browser talks to one origin, exactly as in production, where the API serves the built UI. That is what lets the HttpOnly sign-in cookie work without any CORS setup. To point the proxy elsewhere, set `API_PROXY_TARGET`. `npm run dev` listens on all network interfaces (`--host 0.0.0.0`), so other machines on your network can open the page too.
+
+**First run:** create an account on the sign-in page. Development sends no real email (`Email:Delivery = Log`): the confirmation link appears in the API's output (Visual Studio's Output window, or the console).
 
 ## Scripts
 
@@ -31,11 +33,12 @@ Vite reads `.env.development` for `npm run dev` and `.env.production` for `npm r
 
 | Variable | Used in | Meaning |
 |---|---|---|
-| `VITE_API_URL` | all builds | Base URL of the REST API, including `/api`. Development: `https://localhost:3001/api`. Production: `/api`. |
-| `VITE_SIGNALR_URL` | all builds | Origin of the SignalR hub; `/batchCommandResult` is appended. Development: `https://localhost:3001`. Production: empty, meaning the same origin. |
+| `VITE_API_URL` | all builds | Base URL of the REST API, including `/api`. `/api` in development and production (same origin). |
+| `VITE_SIGNALR_URL` | all builds | Origin of the SignalR hub; `/batchCommandResult` is appended. Empty in development and production, meaning the same origin. |
 | `VITE_DEV_DB_SERVER`, `VITE_DEV_DB_PORT`, `VITE_DEV_DB_USER`, `VITE_DEV_DB_PASSWORD` | `npm run dev` only | Defaults for the connect dialog. Put them in `.env.development.local`. They are read only when `import.meta.env.DEV` is true, so production builds never contain them. |
+| `API_PROXY_TARGET` | dev server only | Where the dev proxy sends API calls. Default `http://localhost:3002`. Not a `VITE_` variable, so it never reaches the browser bundle. |
 
-The production values assume the API serves the built UI from its `wwwroot`. If the UI is hosted elsewhere, set both URLs to the API's absolute address at build time, and add the UI's origin to the API's CORS policy.
+The UI must be served from the API's origin: the sign-in cookie is `SameSite=Lax` and the API has no CORS policy. In production the API serves the built UI from its `wwwroot`.
 
 New variables must also be declared in `src/vite-env.d.ts`.
 
@@ -43,13 +46,21 @@ New variables must also be declared in `src/vite-env.d.ts`.
 
 | Folder | Contents |
 |---|---|
-| `src/features` | Screens: connect dialog, schema tree view with context menus, SQL editor with result view and status bar. |
-| `src/contexts` | App state: one React context with a reducer per area (server connections, database schema, query tabs, command execution). |
-| `src/services` | `apiAgent.ts`: axios setup, the session `id` header, error toasts, and all REST calls. `commandResultHub.ts`: the single SignalR connection and its status. |
+| `src/Root.tsx` | The routes: the sign-in pages, or the workspace (`App.tsx`) at `/`. |
+| `src/features` | Screens: sign-in pages (`auth/`), connect dialog, schema tree view with context menus, SQL editor with result view and status bar. |
+| `src/contexts` | App state: one React context per area. `auth/` holds who is signed in; the others (server connections, database schema, query tabs, command execution) use reducers. |
+| `src/services` | `apiAgent.ts`: axios setup, the tab `id` header, error toasts, the session-ended handling, and all REST calls. `authApi.ts`: the sign-in calls, on their own axios instance without toasts. `commandResultHub.ts`: the single SignalR connection and its status. |
 | `src/models` | Types for what the API sends and receives. |
 | `src/ui` | Reusable components with no app knowledge: `DataGrid`, `TreeView`, tabs, sidebars and splitters, modal, context menu, inputs. |
-| `src/layout` | Nav bar and main bar. |
-| `src/common/sharedHooks`, `src/utils` | Shared hooks and helpers, such as the per-tab session id in `localSessionStorage.ts` and error message extraction. |
+| `src/layout` | Top bar with the user menu, nav bar and main bar. |
+| `src/common/sharedHooks`, `src/utils` | Shared hooks and helpers, such as the per-tab id in `localSessionStorage.ts` and error message extraction. |
+
+## Sign-in in the UI
+
+- On start, `AuthContextProvider` asks for `/api/auth/settings` (mode, sign-up, providers, email) and `/api/auth/me`. With `Auth:Mode = None` there are no sign-in pages, and the top bar says "Local mode".
+- The workspace is mounted once someone signs in and then stays mounted, only hidden while another page shows. When the session ends, an API call gets 401, `apiAgent` tells the auth context, and the sign-in page appears. If the same user signs in again, every tab, query and result is still there. A different user, or Log out, reloads the page, so nothing of one user's workspace reaches another.
+- Provider sign-in is a plain link to `/api/auth/external/{provider}`; the browser goes to the provider and comes back.
+- The top bar sits above dialogs, so Log out stays reachable while the mandatory connect dialog is open.
 
 ## How a query runs in the UI
 

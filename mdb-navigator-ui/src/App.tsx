@@ -3,6 +3,7 @@ import useDatabaseServerConnectContext from "./contexts/databaseServerConnect/us
 import ConnectToServer from "./features/connect/ConnectToServer";
 import Mainbar from "./layout/MainBar";
 import NavBar from "./layout/NavBar";
+import TopBar from "./layout/TopBar";
 import Loader from "./ui/loader/Loader";
 import ModalWindow from "./ui/modalWindow/ModalWindow";
 import VerticalSidebar from "./ui/sidebar/VerticalSidebar";
@@ -66,12 +67,15 @@ function App() {
         </ModalWindow>
       }
 
-      <div className="w-screen h-screen grid grid-cols-[max-content_auto] gap-y-1 border-2 border-stone-400 overflow-hidden">
-        <VerticalSidebar>
-          <NavBar />
-        </VerticalSidebar>
-        <div className="h-full min-h-0 overflow-hidden">
-          <Mainbar />
+      <div className="w-screen h-screen flex flex-col border-2 border-stone-400 overflow-hidden">
+        <TopBar />
+        <div className="flex-1 min-h-0 grid grid-cols-[max-content_auto] gap-y-1 overflow-hidden">
+          <VerticalSidebar>
+            <NavBar />
+          </VerticalSidebar>
+          <div className="h-full min-h-0 overflow-hidden">
+            <Mainbar />
+          </div>
         </div>
       </div>
     </div>

@@ -22,18 +22,8 @@ builder.Services.AddInfrastructureServices();
 builder.Services.AddPostgreSQLProvider();
 builder.Services.AddAuth(authOptions, builder.Configuration, builder.Environment);
 
-builder.Services.AddCors(opt =>
-{
-    opt.AddPolicy("CorsPolicy", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:3000", "http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
+// No CORS: the UI always comes from the API's own origin (production: wwwroot; development: the Vite dev server
+// proxies /api and /batchCommandResult), which the SameSite sign-in cookie needs anyway.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -54,9 +44,10 @@ if (authOptions.Mode == AuthMode.None)
 {
     app.UseMiddleware<LocalRequestsOnlyMiddleware>();
 }
-app.UseCors("CorsPolicy");
 
-if (builder.Configuration.GetValue<string>("ASPNETCORE_HTTPS_PORT") != null)
+// Not in Development: the Vite dev server proxies to the HTTP port (same origin as the page, http://localhost:3000),
+// and a redirect to https://localhost:3001 would make every call cross-origin.
+if (!app.Environment.IsDevelopment() && builder.Configuration.GetValue<string>("ASPNETCORE_HTTPS_PORT") != null)
 {
     app.UseHttpsRedirection();
 }

@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet. Picking it in the connect dialog fails with "No provider registered".
 
-> **Security status:** sign-in is being added ([design](docs/specs/authentication.md)). The API already requires an account by default (`Auth:Mode = Accounts`), but the UI's sign-in screens don't exist yet, so development runs with `Auth:Mode = None`: no sign-in, and requests are accepted only from the local machine. Guardrails on which database hosts may be reached come next ([roadmap](docs/ROADMAP.md), 0.2).
+> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. Guardrails on which database hosts may be reached come next ([roadmap](docs/ROADMAP.md), 0.2); until then, don't expose an instance with open sign-up to the internet.
 
 ## Features
 
@@ -50,19 +50,15 @@ A web-based database navigator: connect to a database server, browse its databas
 
 ### 1. Start the API
 
-The UI calls the API over HTTPS, so trust the ASP.NET Core development certificate once:
-
-```sh
-dotnet dev-certs https --trust
-```
-
-Then run the `https` launch profile, either from Visual Studio or with:
+Run the `https` launch profile, either from Visual Studio or with:
 
 ```sh
 dotnet run --project MDBNavigator.API --launch-profile https
 ```
 
-The API listens on `https://localhost:3001` (and `http://localhost:3002`).
+The API listens on `https://localhost:3001` and `http://localhost:3002`; the UI's dev server proxies to the latter. On first start it creates its SQLite database, `MDBNavigator.API/data/mdbnavigator.db` (git-ignored).
+
+Development settings (`appsettings.Development.json`) use accounts with emails written to the log instead of being sent: when you create an account, the confirmation link appears in the API's output. To skip sign-in on your own machine, set `Auth:Mode` to `None` in the API's user secrets.
 
 ### 2. Start the UI
 
@@ -72,11 +68,11 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. To pre-fill the connect dialog during development, copy `.env.development.local.example` to `.env.development.local` and set your server and credentials. That file is git-ignored, and its values are never included in production builds.
+Open http://localhost:3000 and create an account. The dev server forwards `/api` and `/batchCommandResult` to the API, so the browser sees a single origin, as in production. To pre-fill the connect dialog during development, copy `.env.development.local.example` to `.env.development.local` and set your server and credentials. That file is git-ignored, and its values are never included in production builds.
 
 ### Production build (single origin)
 
-In production the API serves the UI itself, so the browser talks to one origin and no CORS is involved:
+In production the API serves the UI itself, so the browser talks to one origin. This is required: the sign-in cookie is `SameSite=Lax` and the API has no CORS policy.
 
 1. `npm run build` in `mdb-navigator-ui`. `.env.production` uses relative URLs (`/api`, `/batchCommandResult`).
 2. Copy the contents of `mdb-navigator-ui/dist` into `MDBNavigator.API/wwwroot`.
@@ -95,7 +91,7 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `QueryExecution:MaxConcurrentQueries` | `8` | Background workers running streamed queries in parallel. Further runs wait in a queue. |
 | `QueryExecution:MaxRowsPerExecution` | `100000` | Rows streamed per execution, across all result sets. When reached, the query is cancelled and the run reports `truncated: true`. `0` means unlimited. |
 | `ConnectionCache:SlidingExpirationMinutes` | `480` | A connection's settings are dropped after this long without use, and the user has to reconnect. |
-| `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in and no app database; only requests from the local machine are served. Development uses `None` for now. |
+| `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in and no app database; only requests from the local machine are served. |
 | `Auth:SignUp` | `Open` | `Closed`: nobody can create an account; the first admin comes from `Auth:Admin`. |
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if it doesn't exist. Put them in user secrets or environment variables. |
 | `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
@@ -109,9 +105,9 @@ Environment variables read by the host:
 |---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Development` adds exception messages and stack traces to error responses. Any other value returns a generic message for unexpected errors. |
 | `ASPNETCORE_URLS` | Addresses to listen on, for example `http://0.0.0.0:8080`. The launch profiles set these for local runs. |
-| `ASPNETCORE_HTTPS_PORT` | When set, HTTP requests are redirected to HTTPS on this port. Leave it unset behind a TLS-terminating proxy; `X-Forwarded-Proto` and `X-Forwarded-For` are honoured. |
+| `ASPNETCORE_HTTPS_PORT` | When set, HTTP requests are redirected to HTTPS on this port, except in Development, where the UI's dev proxy uses the HTTP port. Leave it unset behind a TLS-terminating proxy; `X-Forwarded-Proto` and `X-Forwarded-For` are honoured. |
 
-CORS allows only `http://localhost:3000` and `http://localhost:5173`, the Vite dev server origins (`Program.cs`). Production needs no CORS because the UI is served from the same origin.
+There is no CORS policy: the UI always comes from the API's own origin (in development through the Vite proxy).
 
 **How connection credentials are kept.** Connection settings are held in server memory only, per browser tab and connection. The password is encrypted with a key that exists only in the running process. A restart drops every connection, and users reconnect.
 
@@ -144,7 +140,7 @@ Errors are returned as JSON:
 
 Query results never travel in an HTTP response. They are pushed over a SignalR hub, which lets a large result render while it is still being read and lets the user cancel at any time.
 
-**1. Connect to the hub** at `/batchCommandResult?applicationId={tabId}`, using the same tab id as the `id` header (and, with accounts, the session cookie). The server sends only to that session's group (`{userId}:{tabId}`), and clients never call the hub. Connect before starting a query, because messages sent while you are not connected are lost.
+**1. Connect to the hub** at `/batchCommandResult?tabId={tabId}`, using the same tab id as the `id` header (and, with accounts, the session cookie). The server sends only to that session's group (`{userId}:{tabId}`), and clients never call the hub. Connect before starting a query, because messages sent while you are not connected are lost.
 
 **2. Start the run.** The client generates a unique `executionId` and posts:
 

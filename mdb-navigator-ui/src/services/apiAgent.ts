@@ -17,12 +17,17 @@ axios.defaults.timeout = 60_000;
 
 axios.interceptors.request.use((config) => {
   if (config.headers) {
-    const id = LocalSessionStorage.getApplicationId();
-    config.headers.set('id', id);
+    config.headers.set('id', LocalSessionStorage.getTabId());
   }
 
   return config;
 });
+
+// Set by the auth context: a 401 means the session ended, and the app shows the sign-in page.
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
 
 axios.interceptors.response.use(
   (response) => response,
@@ -39,7 +44,8 @@ axios.interceptors.response.use(
     const { data, status } = error.response;
     switch (status) {
       case 401:
-        toast.error("Unauthorised!");
+        // No toast: the sign-in page explains it.
+        onUnauthorized?.();
         break;
       case 403:
         toast.error("Forbidden!");

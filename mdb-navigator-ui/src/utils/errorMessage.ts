@@ -3,6 +3,10 @@ import { AxiosError } from 'axios';
 // The API answers with { message } (ExceptionMiddleware); ASP.NET itself may answer with ProblemDetails
 // ({ title, detail, errors }) or plain text. Returns a readable message for any of these.
 export function getResponseErrorMessage(data: unknown, status: number): string {
+  if (status === 401) {
+    // The app shows the sign-in page meanwhile; this text stays on whatever the request was for (e.g. a query tab).
+    return 'Your session had ended, so this didn\'t run. Please try again now that you are signed in.';
+  }
   if (typeof data === 'string' && data.trim()) {
     return data;
   }

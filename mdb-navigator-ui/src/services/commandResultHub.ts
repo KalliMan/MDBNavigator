@@ -23,13 +23,11 @@ function setStatus(status: HubStatus) {
 
 export function getHubConnection(): HubConnection {
   if (!_connection) {
-    const appId = LocalSessionStorage.getApplicationId();
+    const tabId = LocalSessionStorage.getTabId();
 
+    // Same origin as the page, so the sign-in cookie goes along; the server joins this tab's results group.
     _connection = new HubConnectionBuilder()
-      .withUrl(
-        `${import.meta.env.VITE_SIGNALR_URL}/batchCommandResult?applicationId=${appId}`,
-        { withCredentials: false }
-      )
+      .withUrl(`${import.meta.env.VITE_SIGNALR_URL}/batchCommandResult?tabId=${encodeURIComponent(tabId)}`)
       .withAutomaticReconnect()
       .configureLogging(import.meta.env.DEV ? LogLevel.Information : LogLevel.Warning)
       .build();

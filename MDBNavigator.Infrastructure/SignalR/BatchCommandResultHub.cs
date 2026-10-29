@@ -8,7 +8,7 @@ namespace MDBNavigator.Infrastructure.SignalR
     {
         public override async Task OnConnectedAsync()
         {
-            var tabId = Context.GetHttpContext()?.Request.Query["applicationId"].ToString();
+            var tabId = Context.GetHttpContext()?.Request.Query["tabId"].ToString();
             if (!string.IsNullOrEmpty(tabId))
             {
                 // The group is the session, so a connection only receives its own user's results. With accounts the
