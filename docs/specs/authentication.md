@@ -42,7 +42,7 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 
 ## Server
 
-- **Endpoints** under `/api/auth`: Identity's built-in endpoints (`login`, `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword`, `manage/info`), plus Identity's `register` behind a check of `Auth:SignUp`, and our own `settings` (anonymous: mode, sign-up, the configured providers and whether email is on), `logout`, `me`, `external/{provider}` and `external/callback`.
+- **Endpoints** under `/api/auth`: Identity's built-in endpoints (`login`, `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword`, `manage/info`), plus Identity's `register` behind a check of `Auth:SignUp`, and our own `settings` (anonymous: mode, sign-up, the configured providers and whether email is on), `logout`, `me`, `external/{provider}` and `external/callback`. The signed-in user's own account is under `account`: `GET account`, `POST account/password`, `GET account/link/{provider}` and `account/link/callback`, `DELETE account/logins/{provider}`, `POST account/delete`.
 - **Bearer tokens:** Identity's login can also return a bearer token (`useCookies=false`), for API clients and tools such as `MDBNavigator.API.http`. The UI uses only the cookie.
 - **Session cookie:** `mdbnav_session`, HttpOnly, `Secure` outside development, `SameSite=Lax`, with a 14-day sliding expiry. Lax still keeps the cookie off cross-site POST requests, and it lets the social-login redirect back from the provider work. Our GET requests don't change anything.
 - **Passwords:** at least 10 characters, with no rules about digits or symbols. Length matters more than composition, as current NIST guidance says.
@@ -89,7 +89,7 @@ Pages use `react-router`. Email links and the social-login return need real addr
 | `/confirm-email` | "Your email is confirmed", with "Sign in" | From the email link |
 | `/forgot-password` | Email field. The answer never reveals whether an account exists. | SMTP configured |
 | `/reset-password` | New password | From the email link |
-| `/account` | Change or set password, linked providers, delete account | Signed in (step 0.1e) |
+| `/account` | Change or set password, linked providers, delete account | Signed in |
 | `/` | The workspace | Signed in, or `Auth:Mode = None` |
 
 Only the providers that are configured get a button. The pages use the current look (Tailwind and the existing `Button` and `Input` components). The UI refresh in Phase 1 restyles them with the rest of the app.
@@ -106,6 +106,15 @@ The workspace gets a slim top bar: the app name on the left, the user menu on th
 - **Result stream:** the hub checks the sign-in when it connects. A hub connection that can't reconnect shows as disconnected; the next API call then gets the 401 and shows the sign-in page.
 - **Account deleted:** the user's cached connections are removed, and their running queries are cancelled.
 - **Users who signed up through a provider** have no password. The account page offers "Set password" instead of "Change password".
+
+### Account page
+
+Opened from the user menu ("Account").
+
+- **Password:** change it (current password required) or set a first one. This session stays signed in; the account's other sessions are signed out at their next check (Identity's default: every 30 minutes).
+- **Sign-in providers:** every configured provider, with Link or Unlink. Linking is a round trip through the provider and back to `/account`. It needs no email match, because the user proves both accounts by signing in to each, and the user id travels with the request and is checked on the way back. A provider account already linked to another MDBNavigator account is refused. The last way to sign in (no password, one provider) can't be unlinked.
+- **Delete account:** needs the password, or for an account without one, its email typed in. The last admin can't delete their account. Deleting removes the account and its provider links, signs out, and on the server forgets the user's cached connections and cancels their running queries, in all their tabs.
+- The workspace stays hidden but mounted while the page is open, and its dialogs (e.g. the mandatory connect dialog) don't show over it.
 
 ## Open questions
 
