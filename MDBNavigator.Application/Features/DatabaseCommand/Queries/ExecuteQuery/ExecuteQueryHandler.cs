@@ -71,10 +71,10 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                     // Npgsql may surface a cancelled command as OperationCanceledException or PostgresException (57014).
                     status = CommandExecutionStatus.Cancelled;
                 }
-                catch (Exception ex) when (ex is DbException or NotConnectedException)
+                catch (Exception ex) when (ex is DbException or NotConnectedException or ConnectionNotAllowedException)
                 {
-                    // An error in the user's SQL (syntax, missing table, constraint...) or an expired connection
-                    // is expected, not a server fault.
+                    // An error in the user's SQL (syntax, missing table, constraint...), an expired connection or a
+                    // host the connection guard now refuses (its name resolves elsewhere) is expected, not a server fault.
                     logger.LogWarning("Query execution {ExecutionId} failed: {Message}", request.ExecutionId, ex.Message);
                     status = CommandExecutionStatus.Failed;
                     // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).

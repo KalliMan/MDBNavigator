@@ -1,5 +1,6 @@
 using MDBNavigator.Application;
 using MDBNavigator.Application.Common;
+using MDBNavigator.Application.Contracts;
 using MDBNavigator.API.Auth;
 using MDBNavigator.API.Middleware;
 using MDBNavigator.Infrastructure;
@@ -17,6 +18,16 @@ builder.Services.AddSingleton(
     builder.Configuration.GetSection(QueryExecutionOptions.SectionName).Get<QueryExecutionOptions>() ?? new QueryExecutionOptions());
 builder.Services.AddSingleton(
     builder.Configuration.GetSection(ConnectionCacheOptions.SectionName).Get<ConnectionCacheOptions>() ?? new ConnectionCacheOptions());
+
+// Unless set, the connection guard follows who can get in: only with open sign-up can strangers use the server,
+// and then the server's own network (localhost, private ranges) is not theirs to reach. Otherwise the users are the
+// machine's owner (Auth:Mode None serves only local requests) or people an admin let in, and they reach everything.
+var connectionGuardOptions = builder.Configuration.GetSection(ConnectionGuardOptions.SectionName).Get<ConnectionGuardOptions>()
+    ?? new ConnectionGuardOptions();
+connectionGuardOptions.Mode ??= authOptions.Mode == AuthMode.Accounts && authOptions.SignUp == SignUpMode.Open
+    ? ConnectionGuardMode.Public
+    : ConnectionGuardMode.Off;
+builder.Services.AddSingleton(connectionGuardOptions);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
 builder.Services.AddPostgreSQLProvider();
@@ -28,6 +39,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
+
+// Created now rather than on the first connection, so a bad ConnectionGuard:Allow entry stops startup
+// and the mode in effect is logged.
+app.Services.GetRequiredService<IConnectionGuard>();
 
 if (authOptions.Mode == AuthMode.Accounts)
 {

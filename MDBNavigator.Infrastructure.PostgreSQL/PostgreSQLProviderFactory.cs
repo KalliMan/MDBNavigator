@@ -1,6 +1,7 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.ValueObjects;
+using System.Net;
 
 namespace MDBNavigator.Infrastructure.PostgreSQL
 {
@@ -8,10 +9,10 @@ namespace MDBNavigator.Infrastructure.PostgreSQL
     {
         public ServerType ServerType => ServerType.PostgreSQL;
 
-        public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, string? databaseName = null, CancellationToken ct = default)
+        public async Task<IDatabaseProvider> CreateAsync(ConnectionSettings settings, IReadOnlyList<IPAddress> addresses, string? databaseName = null, CancellationToken ct = default)
         {
             var server = new PostgreSQLServer();
-            await server.ConnectAsync(settings, databaseName, ct);
+            await server.ConnectAsync(settings, addresses, databaseName, ct);
             return server;
         }
     }

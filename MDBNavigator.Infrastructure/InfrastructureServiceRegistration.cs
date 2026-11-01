@@ -12,6 +12,7 @@ namespace MDBNavigator.Infrastructure
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
         {
             services.AddSingleton<IConnectionCache, ConnectionCache>();
+            services.AddSingleton<IConnectionGuard, ConnectionGuard>();
             services.AddScoped<IDatabaseProviderFactory, DatabaseProviderFactory>();
             services.AddScoped<IBatchNotifier, BatchNotifier>();
             services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();

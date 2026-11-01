@@ -81,6 +81,7 @@ namespace MDBNavigator.API.Middleware
             ValidationException
                 or NotConnectedException
                 or ConnectionFailedException
+                or ConnectionNotAllowedException
                 or NotSupportedException
                 or ArgumentException => ((int)HttpStatusCode.BadRequest, ex.Message),
             _ => ((int)HttpStatusCode.InternalServerError,
