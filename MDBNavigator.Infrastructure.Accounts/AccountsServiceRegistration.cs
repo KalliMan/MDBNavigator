@@ -73,6 +73,7 @@ namespace MDBNavigator.Infrastructure.Accounts
             // Google / Microsoft / GitHub, each only when configured.
             services.AddAuthentication().AddExternalProviders(configuration);
             services.AddScoped<ExternalLogins>();
+            services.AddScoped<AccountManagement>();
 
             // Without stored keys, every restart would sign everybody out.
             services.AddDataProtection()

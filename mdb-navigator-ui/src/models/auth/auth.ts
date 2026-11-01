@@ -9,6 +9,15 @@ export interface AuthSettings {
   emailEnabled: boolean;
 }
 
+// GET /api/auth/account: the signed-in user's own account.
+export interface AccountInfo {
+  email: string;
+  // False for an account created through a provider, until a password is set.
+  hasPassword: boolean;
+  // Providers this account can sign in with, e.g. ['Google'].
+  linkedProviders: string[];
+}
+
 // GET /api/auth/me
 export interface CurrentUser {
   email: string;

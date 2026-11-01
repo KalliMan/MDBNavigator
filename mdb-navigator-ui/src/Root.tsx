@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import App from "./App";
 import useAuth from "./contexts/auth/useAuth";
 import DatabaseContextProvider from "./contexts/DatabaseContextProvider";
+import AccountPage from "./features/account/AccountPage";
 import CheckInboxPage from "./features/auth/CheckInboxPage";
 import ConfirmEmailPage from "./features/auth/ConfirmEmailPage";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
@@ -47,7 +48,7 @@ export default function Root() {
       {workspaceOpened && (
         <div className={showWorkspace ? 'contents' : 'hidden'}>
           <DatabaseContextProvider>
-            <App />
+            <App active={showWorkspace} />
           </DatabaseContextProvider>
         </div>
       )}
@@ -62,6 +63,7 @@ export default function Root() {
             <Route path="/confirm-email" element={<ConfirmEmailPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/account" element={status === 'signedIn' ? <AccountPage /> : <Navigate to="/login?returnTo=%2Faccount" replace />} />
           </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,3 +1,4 @@
+using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Domain.ValueObjects;
 using Microsoft.AspNetCore.DataProtection;
@@ -49,6 +50,18 @@ namespace MDBNavigator.Infrastructure.Connection
             var existed = _cache.TryGetValue(key, out _);
             _cache.Remove(key);
             return existed;
+        }
+
+        // Keys are "{sessionId}_{connectionId}" and a session id starts with the user id (SessionKey).
+        public int RemoveAllForUser(string userId)
+        {
+            var prefix = SessionKey.UserPrefix(userId);
+            var keys = _cache.Keys.OfType<string>().Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+            foreach (var key in keys)
+            {
+                _cache.Remove(key);
+            }
+            return keys.Count;
         }
 
         public void Dispose() => _cache.Dispose();

@@ -115,7 +115,7 @@ There is no CORS policy: the UI always comes from the API's own origin (in devel
 
 All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](MDBNavigator.API/MDBNavigator.API.http) has sample requests.
 
-Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode and sign-up), `register`, `login`, `logout`, `me`, plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](docs/specs/authentication.md).
+Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode, sign-up, providers, email), `register`, `login`, `logout`, `me`, `external/{provider}`, the signed-in user's own `account` (password, linked providers, deletion), plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](docs/specs/authentication.md).
 
 Errors are returned as JSON:
 

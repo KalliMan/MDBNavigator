@@ -8,5 +8,8 @@ namespace MDBNavigator.Application.Common
         public const string LocalUserId = "local";
 
         public static string Create(string userId, string tabId) => $"{userId}:{tabId}";
+
+        // Every session of this user starts with it (all their browser tabs).
+        public static string UserPrefix(string userId) => $"{userId}:";
     }
 }

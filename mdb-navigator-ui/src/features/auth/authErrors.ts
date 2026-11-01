@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 import { PASSWORD_MIN_LENGTH } from './authValidation';
 
-export type AuthField = 'email' | 'password' | 'confirmPassword';
+export type AuthField = 'email' | 'currentPassword' | 'password' | 'confirmPassword';
 
 // Messages for one form: per field, plus one for the whole form.
 export type AuthErrors = Partial<Record<AuthField | 'form', string>>;
@@ -22,7 +22,22 @@ const validationCodes: Record<string, { field: AuthField | 'form'; message: stri
   InvalidUserName: { field: 'email', message: 'Please enter a valid email address.' },
   PasswordTooShort: { field: 'password', message: `The password must have at least ${PASSWORD_MIN_LENGTH} characters.` },
   InvalidToken: { field: 'form', message: 'This link is no longer valid. Please ask for a new one.' },
+  // The account page (MDBNavigator.Infrastructure.Accounts/Identity/AccountManagement.cs).
+  PasswordMismatch: { field: 'currentPassword', message: 'The password is wrong.' },
+  EmailMismatch: { field: 'email', message: 'That is not this account\'s email address.' },
+  LastSignInMethod: { field: 'form', message: 'This is your only way to sign in. Set a password first, or link another provider.' },
+  LastAdmin: { field: 'form', message: 'You are the only admin, so this account can\'t be deleted.' },
+  NotLinked: { field: 'form', message: 'That provider isn\'t linked to your account.' },
+  AccountNotFound: { field: 'form', message: 'This account no longer exists. Please sign in again.' },
 };
+
+// ?error= codes the API sends back to the account page after linking a provider.
+const linkErrors: Record<string, string> = {
+  'link-failed': 'Linking didn\'t work. Please try again.',
+  'link-in-use': 'That provider account is already linked to another MDBNavigator account.',
+};
+
+export const accountLinkError = (code: string | null) => (code ? linkErrors[code] ?? linkErrors['link-failed'] : undefined);
 
 // Identity's login answers 401 with one of these words as the detail.
 const loginFailures: Record<string, string> = {
@@ -62,6 +77,10 @@ export function toAuthErrors(error: unknown): AuthErrors {
   const loginFailure = error.response.status === 401 ? loginFailures[problem?.detail ?? ''] : undefined;
   if (loginFailure) {
     return { form: loginFailure };
+  }
+  if (error.response.status === 401) {
+    // Not a sign-in attempt: the session ended (e.g. on the account page).
+    return { form: 'Your session has ended. Please sign in again.' };
   }
 
   const result: AuthErrors = {};

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
+import { useNavigate } from "react-router";
 import useOutsideClick from "../common/sharedHooks/useOutsideClick";
 import useAuth from "../contexts/auth/useAuth";
 
@@ -26,6 +27,7 @@ export default function TopBar() {
 
 function UserMenu({ email, signInMethod }: { email: string; signInMethod: string | null }) {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const ref = useOutsideClick(close);
@@ -56,6 +58,14 @@ function UserMenu({ email, signInMethod }: { email: string; signInMethod: string
               </p>
             )}
           </div>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => { setOpen(false); void navigate('/account'); }}
+            className="w-full px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-100 cursor-pointer"
+          >
+            Account
+          </button>
           <button
             type="button"
             role="menuitem"

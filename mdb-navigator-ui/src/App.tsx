@@ -11,7 +11,13 @@ import useDatabaseCommandContext from "./contexts/databaseCommand/useDatabaseCom
 import useCommandBatchResultNotifications from "./common/sharedHooks/useCommandBatchResultNotifications";
 import { ServerType } from "./types/serverTypeOptions";
 
-function App() {
+interface Props {
+  // False while another page (sign-in, account) is shown. The workspace then stays mounted but hidden, and its
+  // dialogs, which render into document.body, must not show either.
+  active: boolean;
+}
+
+function App({ active }: Props) {
 
   const {
     isConnecting,
@@ -29,8 +35,8 @@ function App() {
   useCommandBatchResultNotifications({ onBatchCommandResult, onCommandFinished, onHubStatusChanged });
   const hasConnections = databaseServerConnections.length > 0;
   // Without any connection the connect dialog is mandatory; otherwise it can be cancelled.
-  const showConnectModal = connectNewDatabaseServer || !hasConnections;
-  const showReconnectModal = reconnectDatabaseServer && reconnectDatabaseServerId;
+  const showConnectModal = active && (connectNewDatabaseServer || !hasConnections);
+  const showReconnectModal = active && reconnectDatabaseServer && reconnectDatabaseServerId;
   const reconnectedSettings = showReconnectModal
     ? databaseServerConnections.find(conn => conn.connectedResult?.connectionId === reconnectDatabaseServerId)?.connectedResult
     : null;

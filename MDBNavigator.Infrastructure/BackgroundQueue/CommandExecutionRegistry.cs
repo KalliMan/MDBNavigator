@@ -1,3 +1,4 @@
+using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using System.Collections.Concurrent;
 
@@ -42,6 +43,21 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
                     TryCancel(execution.Cts);
                 }
             }
+        }
+
+        public int CancelAllForUser(string userId)
+        {
+            var prefix = SessionKey.UserPrefix(userId);
+            var cancelled = 0;
+            foreach (var execution in _executions.Values)
+            {
+                if (execution.SessionId.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    TryCancel(execution.Cts);
+                    cancelled++;
+                }
+            }
+            return cancelled;
         }
 
         public void Complete(string sessionId, string executionId, CancellationTokenSource cts)

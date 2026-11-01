@@ -10,6 +10,9 @@ namespace MDBNavigator.Application.Contracts
 
         void CancelAllForConnection(string sessionId, string connectionId);
 
+        // Every running query of the user, in all their browser tabs. Returns how many were cancelled.
+        int CancelAllForUser(string userId);
+
         // Removes the run if it is still the registered one, then disposes its token source.
         void Complete(string sessionId, string executionId, CancellationTokenSource cts);
     }

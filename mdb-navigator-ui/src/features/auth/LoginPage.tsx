@@ -64,6 +64,7 @@ export default function LoginPage() {
   return (
     <AuthLayout title="Sign in">
       {sessionExpired && <AuthNotice tone="info">Your session has ended. Please sign in again.</AuthNotice>}
+      {searchParams.get('deleted') && <AuthNotice tone="success">Your account was deleted.</AuthNotice>}
       {externalError && <AuthNotice tone="error">{externalError}</AuthNotice>}
 
       <ExternalSignInButtons providers={settings?.providers ?? []} returnTo={returnTo} />

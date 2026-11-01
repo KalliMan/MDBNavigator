@@ -1,5 +1,6 @@
 using MDBNavigator.API.Core;
 using MDBNavigator.API.DTOs;
+using MDBNavigator.Application.Contracts;
 using MDBNavigator.Infrastructure.Accounts;
 using MDBNavigator.Infrastructure.Accounts.Email;
 using MDBNavigator.Infrastructure.Accounts.Identity;
@@ -52,7 +53,67 @@ namespace MDBNavigator.API.Auth
             });
 
             MapExternalSignIn(auth, options);
+            MapAccount(auth);
         }
+
+        // The signed-in user's own account (the UI's /account page).
+        private static void MapAccount(RouteGroupBuilder auth)
+        {
+            var account = auth.MapGroup("account").RequireAuthorization();
+
+            account.MapGet("", async (ClaimsPrincipal principal, AccountManagement accounts) =>
+                await accounts.GetAsync(principal) is { } info ? Results.Ok(info) : Results.Unauthorized());
+
+            account.MapPost("password", async (SetPasswordRequest request, ClaimsPrincipal principal, AccountManagement accounts) =>
+                    ToResult(await accounts.SetPasswordAsync(principal, request.CurrentPassword, request.NewPassword)))
+                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+
+            // Linking is a browser navigation like provider sign-in, but back to the account page.
+            account.MapGet("link/{provider}", async (string provider, ClaimsPrincipal principal, ExternalLogins logins, AccountManagement accounts) =>
+                    await logins.FindProviderAsync(provider) is { } scheme
+                        ? Results.Challenge(accounts.CreateLinkChallenge(scheme, "/api/auth/account/link/callback", principal), [scheme])
+                        : Results.Redirect("/account?error=link-failed"))
+                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+
+            account.MapGet("link/callback", async (ClaimsPrincipal principal, AccountManagement accounts) =>
+                {
+                    var (result, provider) = await accounts.CompleteLinkAsync(principal);
+                    return Results.Redirect(result.Succeeded
+                        ? $"/account?linked={Uri.EscapeDataString(provider ?? string.Empty)}"
+                        : result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.LoginAlreadyAssociated))
+                            ? "/account?error=link-in-use"
+                            : "/account?error=link-failed");
+                })
+                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+
+            account.MapDelete("logins/{provider}", async (string provider, ClaimsPrincipal principal, AccountManagement accounts) =>
+                ToResult(await accounts.UnlinkAsync(principal, provider)));
+
+            account.MapPost("delete", async (DeleteAccountRequest request, ClaimsPrincipal principal, AccountManagement accounts,
+                    IConnectionCache connections, ICommandExecutionRegistry executions, ILogger<AccountManagement> logger) =>
+                {
+                    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var result = await accounts.DeleteAsync(principal, request.Password, request.Email);
+                    if (result.Succeeded && userId is not null)
+                    {
+                        // Nothing of the account may outlive it: its cached database credentials and running queries.
+                        var cancelled = executions.CancelAllForUser(userId);
+                        var removed = connections.RemoveAllForUser(userId);
+                        logger.LogInformation("Account deleted; {Removed} cached connections removed, {Cancelled} running queries cancelled",
+                            removed, cancelled);
+                    }
+                    return ToResult(result);
+                })
+                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+        }
+
+        // Errors in the shape of Identity's own endpoints: a validation problem keyed by error code.
+        private static IResult ToResult(IdentityResult result)
+            => result.Succeeded
+                ? Results.NoContent()
+                : Results.ValidationProblem(result.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
 
         // Sign-in with Google/Microsoft/GitHub. The browser navigates here (a link, not a fetch call), goes to the
         // provider, comes back to the provider's return path (/api/auth/signin-..., handled by ASP.NET Core), then to

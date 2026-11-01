@@ -6,4 +6,10 @@ namespace MDBNavigator.API.DTOs
 
     // SignInMethod: how this session signed in, "Password" or a provider name such as "Google"; null when unknown.
     public record CurrentUserDto(string Email, bool IsAdmin, string? SignInMethod);
+
+    // CurrentPassword is empty when the account has no password yet (created through a provider).
+    public record SetPasswordRequest(string? CurrentPassword, string NewPassword);
+
+    // Password for accounts that have one; otherwise the account's email, typed in as confirmation.
+    public record DeleteAccountRequest(string? Password, string? Email);
 }

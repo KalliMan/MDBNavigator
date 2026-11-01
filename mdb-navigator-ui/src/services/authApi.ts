@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { AuthSettings, CurrentUser } from '../models/auth/auth';
+import { AccountInfo, AuthSettings, CurrentUser } from '../models/auth/auth';
 
 // Its own axios instance: the sign-in pages show errors inline, so the app-wide interceptors in apiAgent (toasts,
 // the session-expired handling) must not run for these calls.
@@ -33,7 +33,20 @@ const authApi = {
   forgotPassword: (email: string) => http.post('/auth/forgotPassword', { email }).then(() => undefined),
   resetPassword: (email: string, resetCode: string, newPassword: string) =>
     http.post('/auth/resetPassword', { email, resetCode, newPassword }).then(() => undefined),
+
+  getAccount: () => http.get<AccountInfo>('/auth/account').then(r => r.data),
+  // currentPassword: null when the account has no password yet (it gets its first one).
+  setPassword: (currentPassword: string | null, newPassword: string) =>
+    http.post('/auth/account/password', { currentPassword, newPassword }).then(() => undefined),
+  unlinkProvider: (provider: string) => http.delete(`/auth/account/logins/${encodeURIComponent(provider)}`).then(() => undefined),
+  // The password, or for an account without one, its email typed in as confirmation.
+  deleteAccount: (proof: { password?: string; email?: string }) => http.post('/auth/account/delete', proof).then(() => undefined),
 };
+
+// Linking a provider is a full-page navigation too; the browser comes back to /account.
+export function linkProviderUrl(provider: string) {
+  return `${import.meta.env.VITE_API_URL}/auth/account/link/${encodeURIComponent(provider.toLowerCase())}`;
+}
 
 // Sign-in with a provider is a full-page navigation (to the provider and back), not an API call.
 export function externalSignInUrl(provider: string, returnTo: string) {
