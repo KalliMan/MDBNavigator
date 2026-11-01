@@ -47,7 +47,7 @@ New variables must also be declared in `src/vite-env.d.ts`.
 | Folder | Contents |
 |---|---|
 | `src/Root.tsx` | The routes: the sign-in pages, or the workspace (`App.tsx`) at `/`. |
-| `src/features` | Screens: sign-in pages (`auth/`), connect dialog, schema tree view with context menus, SQL editor with result view and status bar. |
+| `src/features` | Screens: sign-in pages (`auth/`), the CAPTCHA (`captcha/`), connect dialog, schema tree view with context menus, SQL editor with result view and status bar. |
 | `src/contexts` | App state: one React context per area. `auth/` holds who is signed in; the others (server connections, database schema, query tabs, command execution) use reducers. |
 | `src/services` | `apiAgent.ts`: axios setup, the tab `id` header, error toasts, the session-ended handling, and all REST calls. `authApi.ts`: the sign-in calls, on their own axios instance without toasts. `commandResultHub.ts`: the single SignalR connection and its status. |
 | `src/models` | Types for what the API sends and receives. |
@@ -57,10 +57,11 @@ New variables must also be declared in `src/vite-env.d.ts`.
 
 ## Sign-in in the UI
 
-- On start, `AuthContextProvider` asks for `/api/auth/settings` (mode, sign-up, providers, email) and `/api/auth/me`. With `Auth:Mode = None` there are no sign-in pages, and the top bar says "Local mode".
+- On start, `AuthContextProvider` asks for `/api/auth/settings` (mode, sign-up, providers, email, CAPTCHA) and `/api/auth/me`. With `Auth:Mode = None` there are no sign-in pages, and the top bar says "Local mode".
 - The workspace is mounted once someone signs in and then stays mounted, only hidden while another page shows. When the session ends, an API call gets 401, `apiAgent` tells the auth context, and the sign-in page appears. If the same user signs in again, every tab, query and result is still there. A different user, or Log out, reloads the page, so nothing of one user's workspace reaches another.
 - Provider sign-in is a plain link to `/api/auth/external/{provider}`; the browser goes to the provider and comes back.
 - The top bar sits above dialogs, so Log out stays reachable while the mandatory connect dialog is open.
+- `features/captcha/Captcha.tsx` shows the CAPTCHA the server asks for: on the register page always, in the connect dialog after the server answered `428`. Turnstile's script is loaded from Cloudflare when the widget first shows. ALTCHA (the `altcha` package, pinned) is a separate chunk loaded only on servers that use it, with its proof-of-work worker bundled as our own file rather than a `blob:` URL. A token works once, so both places remount the widget after every attempt.
 
 ## How a query runs in the UI
 

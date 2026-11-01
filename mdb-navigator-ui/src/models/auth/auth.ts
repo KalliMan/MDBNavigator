@@ -7,6 +7,10 @@ export interface AuthSettings {
   providers: string[];
   // Email confirmation and "forgot password" work only when the server can send email.
   emailEnabled: boolean;
+  // Asked when creating an account and after repeated failed connects. 'None': never asked.
+  captchaProvider: 'None' | 'Turnstile' | 'Altcha';
+  // Set with 'Turnstile': the public key the widget is rendered with.
+  turnstileSiteKey: string | null;
 }
 
 // GET /api/auth/account: the signed-in user's own account.

@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet. Picking it in the connect dialog fails with "No provider registered".
 
-> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Connecting and running queries are [rate limited](#rate-limits) per user. An optional CAPTCHA and security headers come next ([roadmap](docs/ROADMAP.md), 0.2).
+> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Connecting and running queries are [rate limited](#rate-limits-and-captcha) per user, and an optional CAPTCHA can be asked on sign-up and after repeated failed connects. Security headers come next ([roadmap](docs/ROADMAP.md), 0.2d).
 
 ## Features
 
@@ -101,7 +101,9 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `RateLimiting:ConnectsPerMinute` | `10` | Connect and reconnect requests per minute and user. |
 | `RateLimiting:QueriesPerMinute` | `60` | Query runs started per minute and user. |
 | `RateLimiting:MaxRunningQueriesPerUser` | `3` | Query runs one user may have running or waiting for a worker at once, across all their tabs. |
-| `RateLimiting:FailedConnectsBeforeWait`, `FailedConnectWaitMinutes` | `5`, `10` | After this many failed connects within the minutes, connecting is refused for the minutes. See [rate limits](#rate-limits). |
+| `RateLimiting:FailedConnectsBeforeWait`, `FailedConnectWaitMinutes` | `5`, `10` | After this many failed connects within the minutes, connecting is refused for the minutes, or needs a CAPTCHA when one is set. See [rate limits and CAPTCHA](#rate-limits-and-captcha). |
+| `Captcha:Provider` | `None` | `Turnstile` (Cloudflare) or `Altcha` (self-hosted) asks for a CAPTCHA when creating an account and after repeated failed connects. See [rate limits and CAPTCHA](#rate-limits-and-captcha). |
+| `Captcha:Turnstile:SiteKey`, `SecretKey` | | Needed with `Turnstile`, from the Cloudflare dashboard. The secret key goes in user secrets or an environment variable. |
 | `ConnectionGuard:Mode` | from `Auth` | Which database hosts users may connect to: `Public`, `AllowList` or `Off`. When not set: `Public` with `Auth:Mode = Accounts` and `Auth:SignUp = Open`, otherwise `Off`. See [connection guardrails](#connection-guardrails). |
 | `ConnectionGuard:Allow` | | Host names, IP addresses or ranges (`10.20.0.0/16`) allowed in addition (`Public`) or exclusively (`AllowList`). Development allows `localhost`. |
 
@@ -132,7 +134,7 @@ The server opens database connections itself, so on an instance where strangers 
 - An invalid `Allow` entry stops the app at startup, and the mode in effect is logged.
 - In Docker, `localhost` is the container itself: allow the database's service name or `host.docker.internal` instead.
 
-### Rate limits
+### Rate limits and CAPTCHA
 
 The server opens database connections and runs queries for its users, so without limits one user could use it to guess database passwords, scan hosts and ports, or keep every query worker busy. A refused request gets `429` with a message and, where the wait is known, a `Retry-After` header. Every `RateLimiting` value can be set to `0` to switch that limit off.
 
@@ -142,13 +144,27 @@ The server opens database connections and runs queries for its users, so without
 - **Failed connects:** after `FailedConnectsBeforeWait` failures within `FailedConnectWaitMinutes`, connects are refused for `FailedConnectWaitMinutes` ("try again in N minutes"), without trying the connection. Every failure counts: a wrong password, a host that doesn't answer, a host the [connection guardrails](#connection-guardrails) refuse. A successful connect doesn't reset the count, or a script could connect to a database of its own between guesses.
 - The counts are kept in memory, per server instance, and start over on a restart. That is enough for one instance; several instances behind a load balancer would need a shared store.
 
+**CAPTCHA.** Off by default. With `Captcha:Provider` set, a CAPTCHA is asked in two places:
+
+- **Creating an account,** always. Signing in through Google, Microsoft or GitHub asks for none, since the provider has checked the person already.
+- **Connecting after `FailedConnectsBeforeWait` failures,** in place of the wait: every connect needs a newly solved CAPTCHA until the wait would have ended. A successful connect doesn't end it early, for the same reason it doesn't reset the count.
+
+The browser sends the solved token in a `Captcha-Token` header. A request without one, or with an invalid or already used one, gets `428` with a message, and the UI shows the CAPTCHA. Each token works once, so the UI gets a new one after every attempt.
+
+| Provider | How it works | Trade-offs |
+|---|---|---|
+| `Turnstile` | Cloudflare's widget. The server checks each token with Cloudflare's `siteverify`. | Needs a (free) Cloudflare account and the two keys. The visitor's browser talks to Cloudflare. If Cloudflare can't be reached, the check fails rather than letting everyone through. |
+| `Altcha` | Self-hosted proof of work: the browser solves a challenge from `GET /api/captcha/challenge`, which takes it a few seconds of computing, and the server checks the answer itself. | No account and nothing leaves the server. A bot can still solve it, but each attempt costs it the same seconds. Challenges expire after 10 minutes and are signed with a key made at startup, so a restart only means the widget fetches a new one. Needs HTTPS (or `localhost`): the widget uses the browser's Web Crypto. |
+
+To try Turnstile locally, Cloudflare's test keys work on any host: site key `1x00000000000000000000AA` with secret `1x0000000000000000000000000000000AA` always passes, and secret `2x0000000000000000000000000000000AA` always fails.
+
 **How connection credentials are kept.** Connection settings are held in server memory only, per browser tab and connection. The password is encrypted with a key that exists only in the running process. A restart drops every connection, and users reconnect.
 
 ## API
 
 All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](MDBNavigator.API/MDBNavigator.API.http) has sample requests.
 
-Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode, sign-up, providers, email), `register`, `login`, `logout`, `me`, `external/{provider}`, the signed-in user's own `account` (password, linked providers, deletion), plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](docs/specs/authentication.md).
+Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode, sign-up, providers, email, CAPTCHA provider and Turnstile site key), `register`, `login`, `logout`, `me`, `external/{provider}`, the signed-in user's own `account` (password, linked providers, deletion), plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](docs/specs/authentication.md).
 
 Errors are returned as JSON:
 
@@ -156,11 +172,11 @@ Errors are returned as JSON:
 { "statusCode": 400, "message": "Connection failed: password authentication failed for user \"admin\"", "details": null }
 ```
 
-`details` contains the stack trace in Development only. Database and validation errors are `400`, a missing object is `404`, a [rate limit](#rate-limits) is `429`, and anything else is `500`.
+`details` contains the stack trace in Development only. Database and validation errors are `400`, a missing object is `404`, a [rate limit](#rate-limits-and-captcha) is `429`, a missing or invalid CAPTCHA is `428`, and anything else is `500`.
 
 | Method and path | Purpose |
 |---|---|
-| `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName }`. |
+| `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName }`. After repeated failed connects, needs a `Captcha-Token` header when a CAPTCHA is set. |
 | `POST databaseConnection/reconnect/{connectionId}` | Same body. Replaces the settings for an existing connection id. |
 | `POST databaseConnection/disconnect/{connectionId}` | Forgets the connection and cancels its running queries. |
 | `GET databaseSchema/{databases\|tables\|storedProcedures\|functions\|views}/{connectionId}` | Schema objects. All except `databases` take `?database=`. |
@@ -168,6 +184,7 @@ Errors are returned as JSON:
 | `GET databaseCommand/{script}/{connectionId}?database=&schema=&...` | Generated SQL text: `tableRecordsScript`, `createTableScript`, `insertTableScript`, `procedureDefinition`, `viewDefinition`, and so on. Object names are always query parameters, never path segments. |
 | `POST databaseCommand` | Starts a streamed query (see below). |
 | `POST databaseCommand/cancel/{executionId}` | Cancels a run. Returns `204` whether or not the run still exists. |
+| `GET captcha/challenge` | Anonymous, only with `Captcha:Provider = Altcha`: a new ALTCHA challenge. Rate limited per IP address. |
 
 ### Streaming query results
 

@@ -14,6 +14,7 @@ namespace MDBNavigator.API.RateLimiting
         public const string Auth = "auth";
         public const string Connect = "connect";
         public const string Query = "query";
+        public const string Captcha = "captcha";
 
         public static IServiceCollection AddRateLimits(this IServiceCollection services, RateLimitingOptions options)
         {
@@ -35,6 +36,9 @@ namespace MDBNavigator.API.RateLimiting
 
                 // Per IP address, against password guessing (on top of the account lockout) and email flooding.
                 limiter.AddPolicy(Auth, http => PerMinute(GetIpAddress(http), options.AuthRequestsPerMinute));
+                // ALTCHA challenges: per IP address too (the sign-up page has no user yet), with a limit of its own, so
+                // a widget fetching a new challenge doesn't use up the sign-in attempts.
+                limiter.AddPolicy(Captcha, http => PerMinute(GetIpAddress(http), options.AuthRequestsPerMinute));
 
                 // Per user: each connect opens a connection to a host the user picks, and each query occupies a worker.
                 limiter.AddPolicy(Connect, http => PerMinute(GetUserOrIpAddress(http), options.ConnectsPerMinute));

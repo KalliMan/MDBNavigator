@@ -10,12 +10,15 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Reconnect
         private readonly IDatabaseProviderFactory _providerFactory;
         private readonly IConnectionCache _connectionCache;
         private readonly IConnectAttemptLimiter _attemptLimiter;
+        private readonly ICaptchaVerifier _captcha;
 
-        public ReconnectCommandHandler(IDatabaseProviderFactory providerFactory, IConnectionCache connectionCache, IConnectAttemptLimiter attemptLimiter)
+        public ReconnectCommandHandler(IDatabaseProviderFactory providerFactory, IConnectionCache connectionCache, IConnectAttemptLimiter attemptLimiter,
+            ICaptchaVerifier captcha)
         {
             _providerFactory = providerFactory;
             _connectionCache = connectionCache;
             _attemptLimiter = attemptLimiter;
+            _captcha = captcha;
         }
 
         public async Task<ConnectedResultDto> Handle(ReconnectCommand request, CancellationToken cancellationToken)
@@ -23,11 +26,11 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Reconnect
             try
             {
                 return await DbConnectionHelper.ConnectAsync(
-                    _connectionCache, _providerFactory, _attemptLimiter,
+                    _connectionCache, _providerFactory, _attemptLimiter, _captcha,
                     request.SessionId, request.ConnectionId,
-                    request.ConnectionSettings, cancellationToken);
+                    request.ConnectionSettings, request.CaptchaToken, cancellationToken);
             }
-            catch (Exception ex) when (ex is ConnectionFailedException or TooManyRequestsException)
+            catch (Exception ex) when (ex is ConnectionFailedException or TooManyRequestsException or CaptchaRequiredException)
             {
                 throw;
             }

@@ -10,6 +10,7 @@ import { ProceduresDetails } from '../models/schema/procedure/proceduresDetails'
 import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/view/viewsDetails';
 import { TableDefinitionDetails } from '../models/schema/table/tableDefinitionDetails';
+import { captchaHeaders } from './authApi';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 // Regular API calls are short (queries stream via SignalR after a 202), so a hanging request is an error.
@@ -50,6 +51,9 @@ axios.interceptors.response.use(
       case 403:
         toast.error("Forbidden!");
         break;
+      case 428:
+        // No toast: the request needs a CAPTCHA, and the dialog that sent it shows one.
+        break;
       default:
         // 400, 404, 409, 5xx ...: the server's explanation, or a status-based fallback.
         toast.error(getResponseErrorMessage(data, status));
@@ -68,16 +72,20 @@ type QueryParams = Record<string, string | number>;
 
 const requests = {
   get: <T> (url: string, params?: QueryParams) => axios.get<T>(url, { params }).then(responseBody),
-  post: <T> (url: string, body: object) => axios.post<T>(url, body).then(responseBody)
+  post: <T> (url: string, body: object, headers?: Record<string, string>) => axios.post<T>(url, body, { headers }).then(responseBody)
 };
+
+// The server answered 428: the request needs a solved CAPTCHA (after repeated failed connects).
+export const isCaptchaRequired = (error: unknown) => error instanceof AxiosError && error.response?.status === 428;
 
 const id = (connectionId: string) => encodeURIComponent(connectionId);
 
+// captchaToken: only needed after repeated failed connects, when the server asks for one (428).
 const databaseConnectionApi = {
-  connect: (connectionSettings: ConnectionSettings): Promise<ConnectedResult> =>
-    requests.post<ConnectedResult>('/databaseConnection/connect', connectionSettings),
-  reconnect: (connectionId: string, reconnectionSettings: ConnectionSettings): Promise<ConnectedResult> =>
-    requests.post<ConnectedResult>(`/databaseConnection/reconnect/${connectionId}`, reconnectionSettings),
+  connect: (connectionSettings: ConnectionSettings, captchaToken?: string | null): Promise<ConnectedResult> =>
+    requests.post<ConnectedResult>('/databaseConnection/connect', connectionSettings, captchaHeaders(captchaToken)),
+  reconnect: (connectionId: string, reconnectionSettings: ConnectionSettings, captchaToken?: string | null): Promise<ConnectedResult> =>
+    requests.post<ConnectedResult>(`/databaseConnection/reconnect/${connectionId}`, reconnectionSettings, captchaHeaders(captchaToken)),
   disconnect: (connectionId: string): Promise<void> =>
     requests.post<void>(`/databaseConnection/disconnect/${connectionId}`, { }),
 }

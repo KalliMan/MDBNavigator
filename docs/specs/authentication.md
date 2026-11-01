@@ -33,7 +33,8 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 | `Auth:SignUp` | `Open` (default), `Closed` | `Closed`: nobody can create an account through the UI or the API. |
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if no admin exists. Needed with `SignUp = Closed`. |
 | `ConnectionStrings:AppDb` | | The app database. Default: `Data Source=data/mdbnavigator.db`. A relative path is taken from the app's folder. Not used with `Auth:Mode = None`. |
-| `RateLimiting:AuthRequestsPerMinute` | default `10` | Requests per minute and IP address to the sign-in, register, password and email endpoints. `0` switches the limit off. The other rate limits (connects, queries) are in the [README](../README.md#rate-limits). |
+| `RateLimiting:AuthRequestsPerMinute` | default `10` | Requests per minute and IP address to the sign-in, register, password and email endpoints. `0` switches the limit off. The other rate limits (connects, queries) are in the [README](../README.md#rate-limits-and-captcha). |
+| `Captcha:Provider` | `None` (default), `Turnstile`, `Altcha` | Asks for a CAPTCHA when creating an account (and after repeated failed connects). `Turnstile` also needs `Captcha:Turnstile:SiteKey` and `SecretKey`. Details in the [README](../README.md#rate-limits-and-captcha). |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Each provider is switched on only when both values are set. The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
 | `Email:Delivery` | `None` (default), `Smtp`, `Log` | Email confirmation and password reset are on with `Smtp`, or with `Log` (Development only: emails go to the log). |
 | `Email:AppBaseUrl` | | The app's address for links in emails, e.g. `https://mdbnavigator.example.com`. Required when email is on. |
@@ -42,10 +43,11 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 
 ## Server
 
-- **Endpoints** under `/api/auth`: Identity's built-in endpoints (`login`, `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword`, `manage/info`), plus Identity's `register` behind a check of `Auth:SignUp`, and our own `settings` (anonymous: mode, sign-up, the configured providers and whether email is on), `logout`, `me`, `external/{provider}` and `external/callback`. The signed-in user's own account is under `account`: `GET account`, `POST account/password`, `GET account/link/{provider}` and `account/link/callback`, `DELETE account/logins/{provider}`, `POST account/delete`.
+- **Endpoints** under `/api/auth`: Identity's built-in endpoints (`login`, `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword`, `manage/info`), plus Identity's `register` behind a check of `Auth:SignUp` and the CAPTCHA, and our own `settings` (anonymous: mode, sign-up, the configured providers, whether email is on, and the CAPTCHA provider with Turnstile's site key), `logout`, `me`, `external/{provider}` and `external/callback`. The signed-in user's own account is under `account`: `GET account`, `POST account/password`, `GET account/link/{provider}` and `account/link/callback`, `DELETE account/logins/{provider}`, `POST account/delete`.
 - **Bearer tokens:** Identity's login can also return a bearer token (`useCookies=false`), for API clients and tools such as `MDBNavigator.API.http`. The UI uses only the cookie.
 - **Session cookie:** `mdbnav_session`, HttpOnly, `Secure` outside development, `SameSite=Lax`, with a 14-day sliding expiry. Lax still keeps the cookie off cross-site POST requests, and it lets the social-login redirect back from the provider work. Our GET requests don't change anything.
 - **Passwords:** at least 10 characters, with no rules about digits or symbols. Length matters more than composition, as current NIST guidance says.
+- **Sign-up CAPTCHA:** with `Captcha:Provider` set, `register` needs a solved CAPTCHA in the `Captcha-Token` header (Identity's request body can't be extended), or it answers `428`. It is checked before Identity looks at the body, so a token is used up even when the email turns out to be taken. Provider sign-in asks for no CAPTCHA: the provider has checked the person.
 - **Lockout:** 5 failed attempts lock the account for 5 minutes. The sign-in, register, password and email endpoints are rate limited per IP address. `me`, `settings` and `logout` are not, because the UI calls them on every load.
 - **Social login:** the browser goes to `/api/auth/external/{provider}?returnTo=…`, then to the provider, and back through `/api/auth/external/callback`, which redirects into the app or to `/login?error=…`. `returnTo` must be a path on this site; anything else becomes `/`.
   - **Linking to an existing account** (same email) happens only when **the provider verified the email and the account has confirmed it**. Otherwise someone could register the address first, with a password or through a provider that doesn't verify emails, and end up sharing the real owner's account. In that case the user signs in with the password and links the provider from the account page (0.1e).
@@ -84,7 +86,7 @@ Pages use `react-router`. Email links and the social-login return need real addr
 | Path | Page | Shown when |
 |---|---|---|
 | `/login` | Sign in: provider buttons, then email and password, "Forgot password?", "Create one" | Always (in `Accounts` mode). `?error=` shows the social-login error. |
-| `/register` | Create account: provider buttons, then email, password and password rules | `SignUp = Open` |
+| `/register` | Create account: provider buttons, then email, password and password rules, and the CAPTCHA when one is set | `SignUp = Open` |
 | `/check-inbox` | "We sent a link to …", with "Send again" | After registering, when SMTP is configured |
 | `/confirm-email` | "Your email is confirmed", with "Sign in" | From the email link |
 | `/forgot-password` | Email field. The answer never reveals whether an account exists. | SMTP configured |

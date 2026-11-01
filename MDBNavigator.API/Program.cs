@@ -2,10 +2,12 @@ using MDBNavigator.Application;
 using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.API.Auth;
+using MDBNavigator.API.Captcha;
 using MDBNavigator.API.Middleware;
 using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Infrastructure;
 using MDBNavigator.Infrastructure.Accounts;
+using MDBNavigator.Infrastructure.Captcha;
 using MDBNavigator.Infrastructure.Connection;
 using MDBNavigator.Infrastructure.PostgreSQL;
 using MDBNavigator.Infrastructure.SignalR;
@@ -22,6 +24,7 @@ builder.Services.AddSingleton(
 var rateLimitingOptions = builder.Configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()
     ?? new RateLimitingOptions();
 builder.Services.AddSingleton(rateLimitingOptions);
+var captchaOptions = builder.Configuration.GetSection(CaptchaOptions.SectionName).Get<CaptchaOptions>() ?? new CaptchaOptions();
 
 // Unless set, the connection guard follows who can get in: only with open sign-up can strangers use the server,
 // and then the server's own network (localhost, private ranges) is not theirs to reach. Otherwise the users are the
@@ -37,6 +40,7 @@ builder.Services.AddInfrastructureServices();
 builder.Services.AddPostgreSQLProvider();
 builder.Services.AddAuth(authOptions, builder.Configuration, builder.Environment);
 builder.Services.AddRateLimits(rateLimitingOptions);
+builder.Services.AddCaptcha(captchaOptions);
 
 // No CORS: the UI always comes from the API's own origin (production: wwwroot; development: the Vite dev server
 // proxies /api and /batchCommandResult), which the SameSite sign-in cookie needs anyway.
@@ -89,7 +93,8 @@ if (serveUi)
 }
 
 var controllers = app.MapControllers();
-app.MapAuthEndpoints(authOptions);
+app.MapAuthEndpoints(authOptions, captchaOptions);
+app.MapCaptchaEndpoints(captchaOptions);
 
 // With accounts, everything except the auth endpoints and the UI's files needs sign-in.
 if (authOptions.Mode == AuthMode.Accounts)

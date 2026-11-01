@@ -6,19 +6,23 @@ import Input from '../../ui/common/Input';
 import Button from '../../ui/common/Button';
 import { ButtonType } from '../../ui/common/ButtonType.enum';
 import { ConnectedResult } from '../../models/connect/connectedResult';
+import Captcha from '../captcha/Captcha';
 
 interface Props {
   initialConnectionSettings?: ConnectionSettings | ConnectedResult | null;
   // Error of the last connect attempt, shown in the dialog.
   error?: string | null;
   isConnecting?: boolean;
+  // The server asked for a CAPTCHA (after repeated failed connects): the dialog shows one, and Connect needs it solved.
+  captchaRequired?: boolean;
   // Shows a Cancel button when set.
   onCancel?: () => void;
-  onOk?: (connectionSettings: ConnectionSettings) => void;
+  // captchaToken: null unless captchaRequired.
+  onOk?: (connectionSettings: ConnectionSettings, captchaToken: string | null) => void;
 }
 
 // The dialog's visibility is controlled by the parent: it stays open while connecting and after a failed attempt.
-export default function ConnectToServer({ initialConnectionSettings = null, error = null, isConnecting = false, onCancel, onOk }: Props) {
+export default function ConnectToServer({ initialConnectionSettings = null, error = null, isConnecting = false, captchaRequired = false, onCancel, onOk }: Props) {
   const defaultConnectionSettings: ConnectionSettings = {
     serverType: ServerType.PostgreSQL,
     // Dev-only defaults from .env.development.local; production builds always start empty.
@@ -54,7 +58,12 @@ export default function ConnectToServer({ initialConnectionSettings = null, erro
     toConnectionSettings(initialConnectionSettings)
   );
 
-  const dataOk = connectionSettings?.serverName && connectionSettings?.userName && connectionSettings.password;
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // A token works once: a new key remounts the widget for a fresh one after every attempt.
+  const [captchaKey, setCaptchaKey] = useState(0);
+
+  const dataOk = connectionSettings?.serverName && connectionSettings?.userName && connectionSettings.password
+    && (!captchaRequired || captchaToken);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,7 +72,11 @@ export default function ConnectToServer({ initialConnectionSettings = null, erro
       return;
     }
 
-    onOk?.(connectionSettings);
+    onOk?.(connectionSettings, captchaRequired ? captchaToken : null);
+    if (captchaRequired) {
+      setCaptchaToken(null);
+      setCaptchaKey(k => k + 1);
+    }
   }
 
   return (
@@ -126,6 +139,12 @@ export default function ConnectToServer({ initialConnectionSettings = null, erro
         {error && (
           <div className="mb-4 max-w-sm text-sm text-red-600 break-words" role="alert">
             {error}
+          </div>
+        )}
+
+        {captchaRequired && (
+          <div className="mb-4">
+            <Captcha key={captchaKey} onToken={setCaptchaToken} />
           </div>
         )}
 

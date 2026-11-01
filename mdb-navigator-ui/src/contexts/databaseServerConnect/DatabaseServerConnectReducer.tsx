@@ -17,6 +17,9 @@ export type DatabaseConnectState = {
   reconnectDatabaseServer: boolean;
   reconnectDatabaseServerId: string | null;
   error: string | null;
+  // After repeated failed connects the server asks for a CAPTCHA (428). The open dialog then shows one for every
+  // further attempt, since each needs a new token while the server's wait lasts.
+  captchaRequired: boolean;
 
   databaseServerConnections: DatabaseServerConnection[];
 }
@@ -27,6 +30,7 @@ export const initialDatabaseConnectState: DatabaseConnectState = {
   reconnectDatabaseServer: false,
   reconnectDatabaseServerId: null,
   error: null,
+  captchaRequired: false,
   databaseServerConnections: []
 };
 
@@ -51,6 +55,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         connectNewDatabaseServer: false,
         reconnectDatabaseServer: false,
         reconnectDatabaseServerId: null,
+        captchaRequired: false,
         databaseServerConnections: [...state.databaseServerConnections, {
           isConnectedToDB: true,
           isConnecting: false,
@@ -78,6 +83,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         connectNewDatabaseServer: false,
         reconnectDatabaseServer: false,
         reconnectDatabaseServerId: null,
+        captchaRequired: false,
         databaseServerConnections: updatedConnections,
       };
     }
@@ -88,6 +94,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         connectNewDatabaseServer: true,
         reconnectDatabaseServer: false,
         reconnectDatabaseServerId: null,
+        captchaRequired: false,
       };
     case DatabaseServerConnectActionTypes.Disconnected:
       return {
@@ -105,6 +112,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         connectNewDatabaseServer: false,
         reconnectDatabaseServer: true,
         reconnectDatabaseServerId: action.payload,
+        captchaRequired: false,
       };
     case DatabaseServerConnectActionTypes.ConnectDialogCancelled:
       return {
@@ -113,13 +121,15 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         connectNewDatabaseServer: false,
         reconnectDatabaseServer: false,
         reconnectDatabaseServerId: null,
+        captchaRequired: false,
       };
     case DatabaseServerConnectActionTypes.Error:
       // An open connect/reconnect dialog stays open and shows the error.
       return {
         ...state,
         isConnecting: false,
-        error: action.payload
+        error: action.payload,
+        captchaRequired: state.captchaRequired || !!action.captchaRequired,
       };
       default:
         return state;

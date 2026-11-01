@@ -22,6 +22,7 @@ function App({ active }: Props) {
   const {
     isConnecting,
     error,
+    captchaRequired,
     connectNewDatabaseServer,
     databaseServerConnections,
     reconnectDatabaseServer,
@@ -52,8 +53,9 @@ function App({ active }: Props) {
           <ConnectToServer
             error={error}
             isConnecting={isConnecting}
+            captchaRequired={captchaRequired}
             onCancel={hasConnections ? cancelConnectDialog : undefined}
-            onOk={(connectionSettings) => connect(connectionSettings)}
+            onOk={(connectionSettings, captchaToken) => connect(connectionSettings, captchaToken)}
           />
         </ModalWindow>
       }
@@ -67,8 +69,9 @@ function App({ active }: Props) {
             }
             error={error}
             isConnecting={isConnecting}
+            captchaRequired={captchaRequired}
             onCancel={cancelConnectDialog}
-            onOk={(connectionSettings) => reconnect(reconnectedSettings.connectionId, connectionSettings)}
+            onOk={(connectionSettings, captchaToken) => reconnect(reconnectedSettings.connectionId, connectionSettings, captchaToken)}
           />
         </ModalWindow>
       }

@@ -48,6 +48,8 @@ export type DatabaseReconnectedAction = {
 export type DatabaseErrorAction = {
   type: DatabaseServerConnectActionTypes.Error;
   payload: string;
+  // The server answered 428: connecting needs a CAPTCHA from now on.
+  captchaRequired?: boolean;
 };
 
 export type DatabaseConnectActions = DatabaseConnectingAction

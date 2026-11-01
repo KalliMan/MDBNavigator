@@ -1,6 +1,8 @@
+using MDBNavigator.API.Captcha;
 using MDBNavigator.API.Core;
 using MDBNavigator.API.DTOs;
 using MDBNavigator.API.RateLimiting;
+using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Infrastructure.Accounts;
 using MDBNavigator.Infrastructure.Accounts.Email;
@@ -14,28 +16,32 @@ namespace MDBNavigator.API.Auth
     // reset, ...) are minimal APIs, and which endpoints exist depends on Auth:Mode.
     public static class AuthEndpoints
     {
-        public static void MapAuthEndpoints(this WebApplication app, AuthOptions options)
+        public static void MapAuthEndpoints(this WebApplication app, AuthOptions options, CaptchaOptions captchaOptions)
         {
             var auth = app.MapGroup("/api/auth");
+            // The site key is public (the widget needs it); the secret key never leaves the server.
+            var captchaProvider = captchaOptions.Provider.ToString();
+            var turnstileSiteKey = captchaOptions.Provider == CaptchaProvider.Turnstile ? captchaOptions.Turnstile.SiteKey : null;
 
             if (options.Mode != AuthMode.Accounts)
             {
-                auth.MapGet("settings", () => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), [], EmailEnabled: false));
+                // No accounts, but the CAPTCHA still applies to repeated failed connects.
+                auth.MapGet("settings", () => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), [], EmailEnabled: false,
+                    captchaProvider, turnstileSiteKey));
                 return;
             }
 
             auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email) =>
-                new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled));
+                new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled,
+                    captchaProvider, turnstileSiteKey));
 
             // Identity's endpoints: login (?useCookies=true for the web session), register, confirmEmail,
             // resendConfirmationEmail, forgotPassword, resetPassword, manage/info, ...
             app.MapGroup("/api/auth")
                 .RequireRateLimiting(RateLimitPolicies.Auth)
                 .AddEndpointFilter(async (context, next) =>
-                    options.SignUp == SignUpMode.Closed && IsRegister(context.HttpContext.Request)
-                        ? Results.Json(
-                            new ErrorResponse(StatusCodes.Status403Forbidden, "Creating accounts is switched off on this server."),
-                            statusCode: StatusCodes.Status403Forbidden)
+                    IsRegister(context.HttpContext.Request)
+                        ? await CheckRegisterAsync(context.HttpContext, options) ?? await next(context)
                         : await next(context))
                 .MapIdentityApi<ApplicationUser>();
 
@@ -161,6 +167,36 @@ namespace MDBNavigator.API.Auth
         private static string? SignInMethod(ClaimsPrincipal principal)
             => principal.FindFirstValue(ClaimTypes.AuthenticationMethod)
                 ?? (principal.HasClaim("amr", "pwd") ? "Password" : null);
+
+        // Identity's register endpoint can't be changed, so these checks run in front of it: null lets it run.
+        // The CAPTCHA is checked before Identity looks at the body, so a token is used up even when the email turns out
+        // to be taken; the UI asks for a new one after every attempt. Social sign-in asks for no CAPTCHA: the
+        // provider has already checked the person.
+        private static async Task<IResult?> CheckRegisterAsync(HttpContext http, AuthOptions options)
+        {
+            if (options.SignUp == SignUpMode.Closed)
+            {
+                return Error(StatusCodes.Status403Forbidden, "Creating accounts is switched off on this server.");
+            }
+
+            var captcha = http.RequestServices.GetRequiredService<ICaptchaVerifier>();
+            if (!captcha.Enabled)
+            {
+                return null;
+            }
+
+            string? token = http.Request.Headers[CaptchaEndpoints.TokenHeader];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Error(StatusCodes.Status428PreconditionRequired, "Please complete the CAPTCHA.");
+            }
+            return await captcha.VerifyAsync(token, http.RequestAborted)
+                ? null
+                : Error(StatusCodes.Status428PreconditionRequired, "The CAPTCHA check didn't pass. Please try it again.");
+        }
+
+        private static IResult Error(int statusCode, string message)
+            => Results.Json(new ErrorResponse(statusCode, message), statusCode: statusCode);
 
         private static bool IsRegister(HttpRequest request)
             => request.Path.Value?.EndsWith("/register", StringComparison.OrdinalIgnoreCase) == true;

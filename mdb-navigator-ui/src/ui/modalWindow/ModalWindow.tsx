@@ -33,8 +33,10 @@ export default function ModalWindow({ children, name, title, canClose = true, on
   }
 
   return createPortal (
-    <div className="fixed top-0 left-0 w-[100%] h-screen backdrop-blur-sm z-50 transition-all duration-200">
-      <div ref={ref} className="fixed top-[30%] left-[40%] bg-stone-100 rounded-lg shadow-lg transition-all duration-200">
+    // The backdrop scrolls and the dialog is centred with auto margins: a dialog taller than the window (an error
+    // message, a CAPTCHA) still has its buttons within reach, which a fixed top offset would push off the screen.
+    <div className="fixed inset-0 flex overflow-y-auto p-4 backdrop-blur-sm z-50 transition-all duration-200">
+      <div ref={ref} className="m-auto bg-stone-100 rounded-lg shadow-lg transition-all duration-200">
         <div className="flex mb-5 pl-5 bg-stone-300 rounded-lg">
           <div className="mt-1 text-stone-800 text-lg">
             {title}

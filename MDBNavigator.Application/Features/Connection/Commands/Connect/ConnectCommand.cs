@@ -4,6 +4,7 @@ using MDBNavigator.Domain.ValueObjects;
 
 namespace MDBNavigator.Application.Features.Connection.Commands.Connect
 {
-    public record ConnectCommand(string SessionId, ConnectionSettings ConnectionSettings)
+    // CaptchaToken: the Captcha-Token header, needed only during the failed-connect wait with a CAPTCHA configured.
+    public record ConnectCommand(string SessionId, ConnectionSettings ConnectionSettings, string? CaptchaToken = null)
         : ICommand<ConnectedResultDto>;
 }

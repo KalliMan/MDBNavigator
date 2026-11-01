@@ -24,7 +24,9 @@ const authApi = {
   login: (email: string, password: string) =>
     http.post('/auth/login', { email, password }, { params: { useCookies: true } }).then(() => undefined),
   logout: () => http.post('/auth/logout').then(() => undefined),
-  register: (email: string, password: string) => http.post('/auth/register', { email, password }).then(() => undefined),
+  // captchaToken: when the server asks for a CAPTCHA (AuthSettings.captchaProvider).
+  register: (email: string, password: string, captchaToken: string | null) =>
+    http.post('/auth/register', { email, password }, { headers: captchaHeaders(captchaToken) }).then(() => undefined),
 
   resendConfirmation: (email: string) => http.post('/auth/resendConfirmationEmail', { email }).then(() => undefined),
   // The query of the link in the confirmation email (userId, code, and changedEmail when the address changed).
@@ -42,6 +44,11 @@ const authApi = {
   // The password, or for an account without one, its email typed in as confirmation.
   deleteAccount: (proof: { password?: string; email?: string }) => http.post('/auth/account/delete', proof).then(() => undefined),
 };
+
+// A solved CAPTCHA travels in a header: Identity's register endpoint has a fixed body.
+export function captchaHeaders(captchaToken: string | null | undefined): Record<string, string> {
+  return captchaToken ? { 'Captcha-Token': captchaToken } : {};
+}
 
 // Linking a provider is a full-page navigation too; the browser comes back to /account.
 export function linkProviderUrl(provider: string) {

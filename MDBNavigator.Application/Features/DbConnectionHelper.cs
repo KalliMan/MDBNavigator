@@ -24,17 +24,17 @@ namespace MDBNavigator.Application.Features
             IConnectionCache cache,
             IDatabaseProviderFactory factory,
             IConnectAttemptLimiter limiter,
+            ICaptchaVerifier captcha,
             string sessionId,
             string connectionId,
             ConnectionSettings settings,
+            string? captchaToken,
             CancellationToken ct = default)
         {
             var userId = SessionKey.UserIdOf(sessionId);
             if (limiter.GetWait(userId) is { } wait)
             {
-                var minutes = (int)Math.Ceiling(wait.TotalMinutes);
-                throw new TooManyRequestsException(
-                    $"Too many failed connection attempts. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.", wait);
+                await RequireCaptchaOrWaitAsync(captcha, captchaToken, wait, ct);
             }
 
             try
@@ -58,6 +58,28 @@ namespace MDBNavigator.Application.Features
                 ServerType = settings.ServerType,
                 UserName = settings.UserName
             };
+        }
+
+        // With a CAPTCHA configured, it replaces the wait: every connect needs a newly solved one until the wait is over,
+        // so each further guess costs a person's attention (Turnstile) or seconds of computing (ALTCHA). A successful
+        // connect doesn't end the wait early, for the same reason it doesn't reset the failure count.
+        private static async Task RequireCaptchaOrWaitAsync(ICaptchaVerifier captcha, string? token, TimeSpan wait, CancellationToken ct)
+        {
+            if (!captcha.Enabled)
+            {
+                var minutes = (int)Math.Ceiling(wait.TotalMinutes);
+                throw new TooManyRequestsException(
+                    $"Too many failed connection attempts. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.", wait);
+            }
+
+            if (string.IsNullOrEmpty(token))
+            {
+                throw new CaptchaRequiredException("Too many failed connection attempts. Please complete the CAPTCHA to try again.");
+            }
+            if (!await captcha.VerifyAsync(token, ct))
+            {
+                throw new CaptchaRequiredException("The CAPTCHA check didn't pass. Please try it again.");
+            }
         }
 
         // Creates a scoped DB provider for the connection identified by sessionId + connectionId.

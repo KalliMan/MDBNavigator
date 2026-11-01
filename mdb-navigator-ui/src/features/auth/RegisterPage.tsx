@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Captcha from "../captcha/Captcha";
+import useCaptchaEnabled from "../captcha/useCaptchaEnabled";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import useAuth from "../../contexts/auth/useAuth";
 import authApi from "../../services/authApi";
@@ -20,6 +22,10 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<AuthErrors>({});
   const [busy, setBusy] = useState(false);
+  const captchaEnabled = useCaptchaEnabled();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // A token works once: a new key remounts the widget for a fresh one after every attempt.
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   if (status === 'signedIn') {
     return <Navigate to={returnTo} replace />;
@@ -31,6 +37,9 @@ export default function RegisterPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const found = validateAuthFields({ email, newPassword: password, confirmPassword });
+    if (captchaEnabled && !captchaToken) {
+      found.form ??= 'Please complete the CAPTCHA.';
+    }
     setErrors(found);
     if (hasErrors(found)) {
       return;
@@ -38,7 +47,7 @@ export default function RegisterPage() {
 
     setBusy(true);
     try {
-      await authApi.register(email.trim(), password);
+      await authApi.register(email.trim(), password, captchaToken);
       if (settings?.emailEnabled) {
         void navigate(`/check-inbox?email=${encodeURIComponent(email.trim())}`, { replace: true });
       } else if (await signIn(email.trim(), password)) {
@@ -47,6 +56,8 @@ export default function RegisterPage() {
     } catch (error) {
       setErrors(toAuthErrors(error));
       setBusy(false);
+      setCaptchaToken(null);
+      setCaptchaKey(k => k + 1);
     }
   }
 
@@ -61,6 +72,7 @@ export default function RegisterPage() {
           value={password} error={errors.password} onChange={setPassword} />
         <AuthField label="Repeat password" type="password" autoComplete="new-password"
           value={confirmPassword} error={errors.confirmPassword} onChange={setConfirmPassword} />
+        <Captcha key={captchaKey} onToken={setCaptchaToken} />
         <SubmitButton busy={busy}>Create account</SubmitButton>
       </form>
 

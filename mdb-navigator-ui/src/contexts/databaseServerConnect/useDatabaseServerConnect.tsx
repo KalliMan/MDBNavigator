@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import { DatabaseServerConnectContextType } from "./DatabaseServerConnectReducer";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 import { DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
-import agent from "../../services/apiAgent";
+import agent, { isCaptchaRequired } from "../../services/apiAgent";
 import { getErrorMessage } from "../../utils/errorMessage";
 
 export const DatabaseServerConnectContext = createContext<DatabaseServerConnectContextType | null>(null);
@@ -13,14 +13,15 @@ export default function useDatabaseServerConnectContext() {
     throw new Error('useDatabaseConnect must be used within a DatabaseServerConnectProvider');
   }
 
-  async function connect(connectionSettings: ConnectionSettings) {
+  // captchaToken: set once the server asked for a CAPTCHA (state.captchaRequired).
+  async function connect(connectionSettings: ConnectionSettings, captchaToken?: string | null) {
     context!.dispatch( {
       type: DatabaseServerConnectActionTypes.Connecting,
       payload: connectionSettings
     });
 
     try{
-      const result = await agent.databaseConnectionApi.connect(connectionSettings);
+      const result = await agent.databaseConnectionApi.connect(connectionSettings, captchaToken);
       if (result){
         context!.dispatch({
           type: DatabaseServerConnectActionTypes.Connected,
@@ -36,7 +37,8 @@ export default function useDatabaseServerConnectContext() {
       const errorMessage = getErrorMessage(error);
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Error,
-        payload: errorMessage
+        payload: errorMessage,
+        captchaRequired: isCaptchaRequired(error)
       });
     }
   }
@@ -49,14 +51,14 @@ export default function useDatabaseServerConnectContext() {
     });
   }
 
-  async function reconnect(connectionId: string, connectionSettings: ConnectionSettings) {
+  async function reconnect(connectionId: string, connectionSettings: ConnectionSettings, captchaToken?: string | null) {
     try {
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Connecting,
         payload: connectionSettings
       });
 
-      const result = await agent.databaseConnectionApi.reconnect(connectionId, connectionSettings);
+      const result = await agent.databaseConnectionApi.reconnect(connectionId, connectionSettings, captchaToken);
       if (result) {
         context!.dispatch({
           type: DatabaseServerConnectActionTypes.Reconnected,
@@ -72,7 +74,8 @@ export default function useDatabaseServerConnectContext() {
       const errorMessage = getErrorMessage(error);
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Error,
-        payload: errorMessage
+        payload: errorMessage,
+        captchaRequired: isCaptchaRequired(error)
       });
     }
   }
@@ -105,11 +108,12 @@ export default function useDatabaseServerConnectContext() {
     }
   }
 
-  const {isConnecting, error, connectNewDatabaseServer, databaseServerConnections, reconnectDatabaseServer, reconnectDatabaseServerId } = context.state;
+  const {isConnecting, error, captchaRequired, connectNewDatabaseServer, databaseServerConnections, reconnectDatabaseServer, reconnectDatabaseServerId } = context.state;
 
   return {
     isConnecting,
     error,
+    captchaRequired,
     connectNewDatabaseServer,
     databaseServerConnections,
     reconnectDatabaseServer,
