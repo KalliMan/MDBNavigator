@@ -27,7 +27,7 @@ function Menus({ children, clickedOutside, targetPosition }: React.PropsWithChil
 
   return createPortal(
     <div ref={ref} id="contextMenu" className="absolute z-40" style={styleCss}>
-      <ul className="menu flex flex-col rounded-md shadow-xl overflow-hidden">
+      <ul className="menu flex flex-col overflow-hidden rounded border border-line bg-canvas py-1 shadow-lg">
         {children}
       </ul>
     </div>,

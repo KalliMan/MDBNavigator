@@ -12,10 +12,10 @@ interface Props {
 }
 
 const hubStatusView: Record<HubStatus, { label: string; dotClass: string }> = {
-  connected: { label: 'Connected', dotClass: 'bg-green-400' },
-  connecting: { label: 'Connecting...', dotClass: 'bg-yellow-300' },
-  reconnecting: { label: 'Reconnecting...', dotClass: 'bg-yellow-300' },
-  disconnected: { label: 'Disconnected', dotClass: 'bg-red-500' },
+  connected: { label: 'Connected', dotClass: 'bg-success' },
+  connecting: { label: 'Connecting...', dotClass: 'bg-warning' },
+  reconnecting: { label: 'Reconnecting...', dotClass: 'bg-warning' },
+  disconnected: { label: 'Disconnected', dotClass: 'bg-danger' },
 };
 
 const formatTime = (ms: number): string => {
@@ -73,64 +73,64 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
   const hub = hubStatusView[hubStatus];
 
   return (
-    <div className="h-8 bg-blue-600 dark:bg-blue-800 text-white px-4 flex items-center justify-between gap-4 text-sm border-t border-stone-400">
+    <div className="flex h-7 flex-none items-center justify-between gap-4 border-t border-line bg-chrome px-3 text-xs text-fg-muted">
       <div className="flex items-center gap-4 min-w-0">
         {isExecuting ? (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span className="font-medium">Executing query...</span>
+              <div className="size-3 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
+              <span className="font-medium text-fg">Executing query...</span>
             </div>
-            <span className="text-blue-100">
+            <span className="text-fg-muted">
               Elapsed time: {formatTime(executionTime)}
             </span>
           </>
         ) : error ? (
           <>
             <div className="flex items-center gap-2 flex-none">
-              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-              <span className="font-medium">Query execution failed</span>
+              <div className="size-2 rounded-full bg-danger"></div>
+              <span className="font-medium text-danger">Query execution failed</span>
             </div>
-            <span className="text-red-200 truncate" title={error}>
+            <span className="truncate text-danger" title={error}>
               Error: {error}
             </span>
           </>
         ) : status === 'Cancelled' ? (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-300 rounded-full"></div>
-              <span className="font-medium">
+              <div className="size-2 rounded-full bg-warning"></div>
+              <span className="font-medium text-fg">
                 Query cancelled{stats && stats.rowCount > 0 ? ` after ${formatRows(stats)}` : ''}
               </span>
             </div>
-            <span className="text-blue-100">
+            <span className="text-fg-muted">
               Execution time: {finishedTime}
             </span>
           </>
         ) : status === 'Completed' ? (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-400 rounded-full"></div>
-              <span className="font-medium">Query executed successfully</span>
+              <div className="size-2 rounded-full bg-success"></div>
+              <span className="font-medium text-fg">Query executed successfully</span>
             </div>
             {stats?.truncated ? (
-              <span className="text-yellow-200" title="The server stops streaming at its row limit (QueryExecution:MaxRowsPerExecution)">
+              <span className="text-warning" title="The server stops streaming at its row limit (QueryExecution:MaxRowsPerExecution)">
                 Showing first {stats.rowCount} rows (row limit reached)
               </span>
             ) : (
-              rows && <span className="text-blue-100">{rows}</span>
+              rows && <span className="text-fg-muted">{rows}</span>
             )}
-            <span className="text-blue-100">
+            <span className="text-fg-muted">
               Execution time: {finishedTime}
             </span>
           </>
         ) : (
-          <span className="text-blue-100">Ready</span>
+          <span className="text-fg-muted">Ready</span>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-blue-100 text-xs flex-none" title="Result stream connection">
-        <div className={`w-2 h-2 rounded-full ${hub.dotClass}`}></div>
+      <div className="flex flex-none items-center gap-1.5 text-fg-muted" title="Result stream connection">
+        <div className={`size-2 rounded-full ${hub.dotClass}`}></div>
         {hub.label}
       </div>
     </div>

@@ -76,9 +76,9 @@ function App({ active }: Props) {
         </ModalWindow>
       }
 
-      <div className="w-screen h-screen flex flex-col border-2 border-stone-400 overflow-hidden">
+      <div className="flex h-screen w-screen flex-col overflow-hidden bg-canvas text-fg">
         <TopBar />
-        <div className="flex-1 min-h-0 grid grid-cols-[max-content_auto] gap-y-1 overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-cols-[max-content_auto] overflow-hidden">
           <VerticalSidebar>
             <NavBar />
           </VerticalSidebar>

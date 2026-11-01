@@ -1,10 +1,13 @@
 import { ConnectedResult } from "../../models/connect/connectedResult";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
 import { DatabaseConnectActions, DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
+import { pickConnectionColor } from "../../utils/connectionColor";
 
 export type DatabaseServerConnection = {
   isConnectedToDB: boolean;
   isConnecting: boolean;
+  // Set on connect and kept on reconnect: the tree and the query tabs show it, so it must not change while open.
+  color: string;
 
   connectionSettings: ConnectionSettings | null;
   connectedResult: ConnectedResult | null;
@@ -59,6 +62,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         databaseServerConnections: [...state.databaseServerConnections, {
           isConnectedToDB: true,
           isConnecting: false,
+          color: pickConnectionColor(action.payload, state.databaseServerConnections.map(conn => conn.color)),
           connectionSettings: null,
           error: null,
           connectedResult: action.payload,
@@ -70,6 +74,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
           ? {
               isConnectedToDB: true,
               isConnecting: false,
+              color: conn.color,
               connectionSettings: null,
               error: null,
               connectedResult: action.payload,

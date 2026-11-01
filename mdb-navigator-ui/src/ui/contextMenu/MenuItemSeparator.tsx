@@ -1,6 +1,3 @@
 export function MenuItemSeparator() {
-  return (<li>
-      <hr className="border-t border-gray-300 dark:border-gray-600" />
-    </li>
-  );
+  return <li role="separator" className="my-1 h-px bg-line" />;
 }

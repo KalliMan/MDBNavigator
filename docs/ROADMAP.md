@@ -68,15 +68,19 @@ Design: [specs/authentication.md](specs/authentication.md).
 
 What users expect from any SQL tool. The UI refresh comes first, so the grid work and everything after it is built on the new look.
 
+### First steps
+
+| Step | Contents | Size |
+|---|---|---|
+| **1.1** UI refresh | A compact IDE look: light and dark theme as Tailwind color tokens, system fonts, a restyled top bar, connection tree, query tabs that show their server and database, a query bar with Run and Stop, a denser result grid and status bar. Each server has its own color. Plan: [plans/1.1-ui-refresh.md](plans/1.1-ui-refresh.md). | M |
+| **1.2** Saved connections | Connections stored per user (name, host, port, database, user, color) and a connect dialog with the saved list. Optional "remember password", encrypted with a key from an environment variable and only offered when that key is set. Switching a tab's server or database from the query bar. Possibly read-only connections (to decide). | L |
+| **1.3** Result grid | Select and copy (TSV), column resize, a cell viewer, sort and filter on the loaded rows, CSV and JSON export, one tab per result set. | L |
+
+### Later
+
 | Feature | Size | Notes |
 |---|---|---|
-| **Modern UI refresh** | L | A consistent design system: color, spacing and typography as Tailwind theme tokens, one icon set, restyled nav bar, tree, tabs, toolbar, dialogs and status bar, plus empty and loading states. Includes **dark mode**, which the tokens make cheap. Approach to decide first: our own Tailwind components, or a copy-in component library such as shadcn/ui. MIT-licensed dependencies only. |
-| Grid: select and copy | M | Cells or rows, copied as TSV/CSV. |
-| Grid: column resize, cell viewer | M | The cell viewer shows long text and JSON in full. |
-| Grid: sort and filter | M | On the rows already loaded. |
-| Export results | M | CSV and JSON. Respects the row limit, or streams the export on the server. |
 | Error panel and error position | S–M | Long errors get their own panel. PostgreSQL reports where a query failed, so that spot is marked in the editor. |
-| One tab per result set | M | Several result sets are currently hard to read. |
 | Query history | S–M | Per connection. |
 | Saved queries / snippets | S–M | |
 | Autocomplete for table and column names | M–L | Uses the schema already loaded for the tree. |

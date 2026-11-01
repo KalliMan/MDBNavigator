@@ -137,7 +137,7 @@ export default function ConnectToServer({ initialConnectionSettings = null, erro
         </div>
 
         {error && (
-          <div className="mb-4 max-w-sm text-sm text-red-600 break-words" role="alert">
+          <div className="mb-4 max-w-sm text-sm text-danger break-words" role="alert">
             {error}
           </div>
         )}
@@ -148,7 +148,7 @@ export default function ConnectToServer({ initialConnectionSettings = null, erro
           </div>
         )}
 
-        <div className="space-x-1">
+        <div className="flex gap-2">
           <Button disabled={!dataOk || isConnecting} type={ButtonType.primary}>
             {isConnecting ? 'Connecting…' : 'Connect'}
           </Button>

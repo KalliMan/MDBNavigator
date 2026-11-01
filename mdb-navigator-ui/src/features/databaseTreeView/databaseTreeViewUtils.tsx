@@ -1,13 +1,7 @@
-import { FaHdd, FaServer } from "react-icons/fa";
 import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
-import { FcDatabase, FcFolder, FcOpenedFolder } from "react-icons/fc";
-import { MdErrorOutline } from "react-icons/md";
 import { NodeType } from "./NodeType";
-import { FaTable } from "react-icons/fa6";
-import { PiBracketsCurly, PiSelectionForegroundBold } from "react-icons/pi";
-import { LuSquareFunction } from "react-icons/lu";
+import { LuBraces, LuCircleAlert, LuColumns2, LuDatabase, LuEye, LuFolder, LuFolderOpen, LuList, LuServer, LuShieldCheck, LuSquareFunction, LuTable } from "react-icons/lu";
 import { findFirstParentOfType, findNodeOfType } from "../../ui/treeView/treeViewUtils";
-import { TbColumns1 } from "react-icons/tb";
 
 export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
@@ -28,8 +22,8 @@ export function createErrorNode(parentNode: TreeViewNodeData, message: string): 
     isExpanded: false,
     nodes: [],
     type: NodeType.Error,
-    className: "text-red-600 dark:text-red-400",
-    Icon: <MdErrorOutline />,
+    className: "text-danger",
+    Icon: <LuCircleAlert size={14} />,
     parentNode,
   };
 }
@@ -39,19 +33,21 @@ export function createServersNode(isExpanded: boolean): TreeViewNodeData {
     id: "servers-root",
     nodeName: 'Servers',
     isExpanded: isExpanded,
-    Icon: <FaServer />,
+    Icon: <LuServer size={14} />,
     nodes: [],
     type: NodeType.Servers,
   };
 }
 
-export function createServerNode(id: string, name: string, isExpanded: boolean): TreeViewNodeData {
+export function createServerNode(id: string, name: string, isExpanded: boolean, color: string): TreeViewNodeData {
   return {
     id: id,
     nodeName: name,
     nodeText: name,
+    nodeTextElement: <span className="font-semibold">{name}</span>,
     isExpanded: isExpanded,
-    Icon: <FaHdd />,
+    // The server's color, as on its query tabs (utils/connectionColor.ts).
+    Icon: <span className="inline-block size-2.5 rounded-[2px]" style={{ backgroundColor: color }} />,
     nodes: [],
     type: NodeType.Server,
   };
@@ -62,8 +58,8 @@ export function createDatabasesFolderNode(parentNode: TreeViewNodeData, isExpand
     id: `${parentNode.id}::databases`,
     nodeName: 'Databases',
     isExpanded: isExpanded,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.Databases,
     parentNode
@@ -76,8 +72,8 @@ export function createDatabaseNode(name: string, parentNode: TreeViewNodeData, i
     id: `${parentNode.id}::db::${name}`,
     nodeName: name,
     nodeText: name,
-    Icon: <FcDatabase />,
-    IconExpanded: <FcDatabase />,
+    Icon: <LuDatabase size={14} />,
+    IconExpanded: <LuDatabase size={14} />,
     isExpanded: isExpanded,
     nodes: [],
     type: NodeType.Database,
@@ -96,8 +92,8 @@ function createTableFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeData 
     id: `${parentNode.id}::tables`,
     nodeName: 'Tables',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.Tables,
     parentNode
@@ -113,7 +109,7 @@ export function createTableNode(databaseSchema: string, name: string, parentNode
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: false,
-    Icon: <FaTable />,
+    Icon: <LuTable size={14} />,
     nodes: [],
     type: NodeType.Table,
     metaData: databaseSchema,
@@ -132,8 +128,8 @@ export function createTableColumnsFolderNode(parentNode: TreeViewNodeData): Tree
     id: `${parentNode.id}::columns`,
     nodeName: 'Columns',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.TableColumns,
     parentNode
@@ -149,8 +145,8 @@ export function createTableColumnNode(columnName: string, dataType: string, maxL
     <>
       <strong>{columnName}</strong>
       {": "}
-      <span style={{ color: "blue" }}>{typeText}</span>
-      <span style={{ color: isNullable ? '#9ca3af' : '#64748b' }}>{nullText}</span>
+      <span className="text-accent-strong">{typeText}</span>
+      <span className={isNullable ? 'text-fg-faint' : 'text-fg-muted'}>{nullText}</span>
     </>
   );
 
@@ -160,7 +156,7 @@ export function createTableColumnNode(columnName: string, dataType: string, maxL
     nodeText: nodeText,
     nodeTextElement,
     isExpanded: false,
-    Icon: <TbColumns1 />,
+    Icon: <LuColumns2 size={14} />,
     nodes: [],
     type: NodeType.TableColumn,
     metaData: JSON.stringify(parentMetaData),
@@ -173,8 +169,8 @@ export function createTableIndexesFolderNode(parentNode: TreeViewNodeData): Tree
     id: `${parentNode.id}::indexes`,
     nodeName: 'Indexes',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.TableIndexes,
     parentNode
@@ -190,7 +186,7 @@ export function createTableIndexNode(indexName: string, isUnique: boolean, index
   const nodeTextElement = (
     <>
       <strong>{indexName}</strong>
-      {badge && <span style={{ color: "blue" }}>{` (${badge})`}</span>}
+      {badge && <span className="text-accent-strong">{` (${badge})`}</span>}
     </>
   );
 
@@ -200,7 +196,7 @@ export function createTableIndexNode(indexName: string, isUnique: boolean, index
     nodeText: undefined,
     nodeTextElement,
     isExpanded: false,
-    Icon: <TbColumns1 />,
+    Icon: <LuList size={14} />,
     nodes: [],
     type: NodeType.TableIndex,
     metaData: JSON.stringify(parentMetaData),
@@ -214,8 +210,8 @@ export function createTableConstraintsFolderNode(parentNode: TreeViewNodeData): 
     id: `${parentNode.id}::constraints`,
     nodeName: 'Constraints',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.TableConstraints,
     parentNode
@@ -223,19 +219,19 @@ export function createTableConstraintsFolderNode(parentNode: TreeViewNodeData): 
 }
 
 export function createTableConstraintNode(constraintName: string, constraintType: string, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
-  const typeColor =
-    constraintType === 'PRIMARY KEY' ? '#b45309' :  // amber-700
-    constraintType === 'FOREIGN KEY' ? '#1d4ed8' :  // blue-700
-    constraintType === 'UNIQUE'      ? '#7c3aed' :  // violet-700
-    constraintType === 'CHECK'       ? '#0369a1' :  // sky-700
-    constraintType === 'NOT NULL'    ? '#64748b' :  // slate-500
-    '#9ca3af';                                      // gray-400 for OTHER
+  const typeClass =
+    constraintType === 'PRIMARY KEY' ? 'text-warning' :
+    constraintType === 'FOREIGN KEY' ? 'text-accent-strong' :
+    constraintType === 'UNIQUE'      ? 'text-accent-strong' :
+    constraintType === 'CHECK'       ? 'text-fg-muted' :
+    constraintType === 'NOT NULL'    ? 'text-fg-muted' :
+    'text-fg-faint';
 
   const nodeTextElement = (
     <>
       <strong>{constraintName}</strong>
       {": "}
-      <span style={{ color: typeColor }}>{constraintType}</span>
+      <span className={typeClass}>{constraintType}</span>
     </>
   );
 
@@ -245,7 +241,7 @@ export function createTableConstraintNode(constraintName: string, constraintType
     nodeText: undefined,
     nodeTextElement,
     isExpanded: false,
-    Icon: <TbColumns1 />,
+    Icon: <LuShieldCheck size={14} />,
     nodes: [],
     type: NodeType.TableConstraint,
     metaData: JSON.stringify(parentMetaData),
@@ -258,8 +254,8 @@ export function createProgrammabilityFoldersNode(parentNode: TreeViewNodeData): 
     id: `${parentNode.id}::programmability`,
     nodeName: 'Programability',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.Programability,
     parentNode
@@ -276,8 +272,8 @@ function createStoredProceduresFoldersNode(parentNode: TreeViewNodeData): TreeVi
     id: `${parentNode.id}::stored-procedures`,
     nodeName: 'Stored Procedures',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.StoredProcedures,
     parentNode
@@ -293,7 +289,7 @@ export function createStoredProcedureNode(databaseSchema: string, name: string, 
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
-    Icon: <PiBracketsCurly />,
+    Icon: <LuBraces size={14} />,
     nodes: [],
     type: NodeType.StoredProcedure,
     metaData: databaseSchema,
@@ -306,8 +302,8 @@ function createFunctionsFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeD
     id: `${parentNode.id}::functions`,
     nodeName: 'Functions',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.Functions,
     parentNode
@@ -323,7 +319,7 @@ export function createFunctionNode(databaseSchema: string, name: string, parentN
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
-    Icon: <LuSquareFunction />,
+    Icon: <LuSquareFunction size={14} />,
     nodes: [],
     type: NodeType.Function,
     metaData: databaseSchema,
@@ -336,8 +332,8 @@ export function createViewsNode(parentNode: TreeViewNodeData): TreeViewNodeData 
     id: `${parentNode.id}::views`,
     nodeName: 'Views',
     isExpanded: false,
-    Icon: <FcFolder />,
-    IconExpanded: <FcOpenedFolder />,
+    Icon: <LuFolder size={14} />,
+    IconExpanded: <LuFolderOpen size={14} />,
     nodes: [],
     type: NodeType.Views,
     parentNode
@@ -352,7 +348,7 @@ export function createViewNode(databaseSchema: string, name: string, parentNode:
     nodeName: name,
     nodeText: `${databaseSchema}.${name}`,
     isExpanded: true,
-    Icon: <PiSelectionForegroundBold />,
+    Icon: <LuEye size={14} />,
     nodes: [],
     type: NodeType.View,
     metaData: databaseSchema,

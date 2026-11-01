@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
     return (
       <AuthLayout title="Choose a new password">
         <AuthNotice tone="error">This link is incomplete. Please use the link from the email, or ask for a new one.</AuthNotice>
-        <Link to="/forgot-password" className="text-center text-sm font-medium text-stone-800 hover:underline">Ask for a new link</Link>
+        <Link to="/forgot-password" className="text-center text-sm font-medium text-accent-strong hover:underline">Ask for a new link</Link>
       </AuthLayout>
     );
   }
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
         <AuthNotice tone="success">Your password is changed. You can sign in with it now.</AuthNotice>
       ) : (
         <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
-          <p className="text-sm text-stone-700">For <span className="font-semibold">{email}</span></p>
+          <p className="text-sm text-fg">For <span className="font-semibold">{email}</span></p>
           {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
           <AuthField label={`New password (at least ${PASSWORD_MIN_LENGTH} characters)`} type="password" autoComplete="new-password"
             autoFocus value={password} error={errors.password} onChange={setPassword} />
@@ -61,7 +61,7 @@ export default function ResetPasswordPage() {
           <SubmitButton busy={busy}>Change password</SubmitButton>
         </form>
       )}
-      <Link to="/login" className="text-center text-sm font-medium text-stone-800 hover:underline">Back to sign in</Link>
+      <Link to="/login" className="text-center text-sm font-medium text-accent-strong hover:underline">Back to sign in</Link>
     </AuthLayout>
   );
 }

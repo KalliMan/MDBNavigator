@@ -28,9 +28,9 @@ export default function useCommandQueryContext(){
     openQueryTab(connectionId, databaseName, `${schema}.${table}`, script, true);
   }
 
-  // No request involved: opens an editable query template.
+  // No request involved: opens an editable query template. No name: the tab is numbered ("Query 3").
   function queryForDatabase(connectionId: string, databaseName: string, schema: string) {
-    openQueryTab(connectionId, databaseName, `${schema}.*`, `SELECT * FROM ${schema || '{Schema}'}.{TableName}`);
+    openQueryTab(connectionId, databaseName, '', `SELECT * FROM ${schema || '{Schema}'}.{TableName}`);
   }
 
   async function queryCommandCreateNewTableScript(connectionId: string, databaseName: string, schema: string = 'public') {

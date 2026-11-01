@@ -47,7 +47,7 @@ export default function useDatabaseTreeState(
     }
 
     const { connectionId, serverName } = connectedResult;
-    const serverNode = createServerNode(connectionId, serverName, true);
+    const serverNode = createServerNode(connectionId, serverName, true, connection.color);
     serversRoot.nodes!.push(serverNode);
 
     const schema = databaseSchemas?.find(

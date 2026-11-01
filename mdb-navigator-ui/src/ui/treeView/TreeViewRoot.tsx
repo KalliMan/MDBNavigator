@@ -26,14 +26,26 @@ export function TreeViewRoot({root, settings, onNodeClick, onExpand}: Props) {
   }
 
   return (
-    <div className="w-fit text-left cursor-pointer">
-      <ul className="ml-5">
-        <TreeViewNode
-          node={state.nodeData}
-          settings={settings}
-          onNodeClick={onNodeClick}
-          onExpand={onExpand}
-        />
+    <div className="w-fit min-w-full py-1 text-left cursor-pointer">
+      <ul className="pl-1">
+        {settings.showRoot ? (
+          <TreeViewNode
+            node={state.nodeData}
+            settings={settings}
+            onNodeClick={onNodeClick}
+            onExpand={onExpand}
+          />
+        ) : (
+          state.nodeData.nodes?.map(childNode => (
+            <TreeViewNode
+              key={childNode.id}
+              node={childNode}
+              settings={settings}
+              onNodeClick={onNodeClick}
+              onExpand={onExpand}
+            />
+          ))
+        )}
       </ul>
     </div>
   );

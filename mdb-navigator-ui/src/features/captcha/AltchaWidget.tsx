@@ -50,6 +50,6 @@ export default function AltchaWidget({ onToken }: Props) {
   }, []);
 
   return failed
-    ? <p className="text-sm text-red-600">The CAPTCHA couldn't be loaded. Please reload the page.</p>
+    ? <p className="text-sm text-danger">The CAPTCHA couldn't be loaded. Please reload the page.</p>
     : <div ref={container} />;
 }

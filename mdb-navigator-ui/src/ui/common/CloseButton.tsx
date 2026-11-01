@@ -9,8 +9,9 @@ export default function CloseButton({
   return (
     <button
       type="button"
+      aria-label="Close"
       onClick={onClick}
-      className="bg-transparent rounded border-none p-2 border-r-8 transition-all duration-200 absolute right-0 hover:bg-stone-400"
+      className="ml-auto flex size-7 items-center justify-center rounded-[3px] text-fg-muted hover:bg-hover hover:text-fg cursor-pointer"
     >
       {children}
     </button>

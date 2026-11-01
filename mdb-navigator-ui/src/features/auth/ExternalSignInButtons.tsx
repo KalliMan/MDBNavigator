@@ -15,17 +15,17 @@ export default function ExternalSignInButtons({ providers, returnTo }: { provide
           <a
             key={provider}
             href={externalSignInUrl(provider, returnTo)}
-            className="flex items-center justify-center gap-3 rounded border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-stone-50"
+            className="flex items-center justify-center gap-3 rounded border border-line px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-hover"
           >
             <ProviderLogo provider={provider} />
             Continue with {provider}
           </a>
         ))}
       </div>
-      <div className="flex items-center gap-3 text-xs text-stone-400" aria-hidden="true">
-        <span className="h-px flex-1 bg-stone-200" />
+      <div className="flex items-center gap-3 text-xs text-fg-faint" aria-hidden="true">
+        <span className="h-px flex-1 bg-line" />
         or
-        <span className="h-px flex-1 bg-stone-200" />
+        <span className="h-px flex-1 bg-line" />
       </div>
     </>
   );

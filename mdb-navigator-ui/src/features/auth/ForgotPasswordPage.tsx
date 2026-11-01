@@ -46,13 +46,13 @@ export default function ForgotPasswordPage() {
         </AuthNotice>
       ) : (
         <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
-          <p className="text-sm text-stone-700">Enter your email and we'll send you a link to choose a new password.</p>
+          <p className="text-sm text-fg">Enter your email and we'll send you a link to choose a new password.</p>
           {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
           <AuthField label="Email" type="email" autoComplete="email" autoFocus value={email} error={errors.email} onChange={setEmail} />
           <SubmitButton busy={busy}>Send the link</SubmitButton>
         </form>
       )}
-      <Link to="/login" className="text-center text-sm font-medium text-stone-800 hover:underline">Back to sign in</Link>
+      <Link to="/login" className="text-center text-sm font-medium text-accent-strong hover:underline">Back to sign in</Link>
     </AuthLayout>
   );
 }

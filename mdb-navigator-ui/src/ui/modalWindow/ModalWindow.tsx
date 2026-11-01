@@ -1,6 +1,6 @@
 import { SyntheticEvent, cloneElement, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HiXMark } from 'react-icons/hi2';
+import { LuX } from 'react-icons/lu';
 
 import useOutsideClick from '../../common/sharedHooks/useOutsideClick';
 
@@ -35,19 +35,19 @@ export default function ModalWindow({ children, name, title, canClose = true, on
   return createPortal (
     // The backdrop scrolls and the dialog is centred with auto margins: a dialog taller than the window (an error
     // message, a CAPTCHA) still has its buttons within reach, which a fixed top offset would push off the screen.
-    <div className="fixed inset-0 flex overflow-y-auto p-4 backdrop-blur-sm z-50 transition-all duration-200">
-      <div ref={ref} className="m-auto bg-stone-100 rounded-lg shadow-lg transition-all duration-200">
-        <div className="flex mb-5 pl-5 bg-stone-300 rounded-lg">
-          <div className="mt-1 text-stone-800 text-lg">
+    <div className="fixed inset-0 z-50 flex overflow-y-auto bg-black/40 p-4">
+      <div ref={ref} className="m-auto rounded border border-line bg-canvas text-fg shadow-xl">
+        <div className="flex h-9 items-center gap-2 rounded-t border-b border-line bg-chrome pl-4 pr-1.5">
+          <div className="font-semibold">
             {title}
           </div>
           {canClose && (
             <CloseButton onClick={close}>
-              <HiXMark />
+              <LuX size={15} aria-hidden="true" />
             </CloseButton>
           )}
         </div>
-        <div className="pt-6">
+        <div className="pt-5">
           {cloneElement(children as React.ReactElement<any>, { onCloseModal: close }) }
         </div>
       </div>

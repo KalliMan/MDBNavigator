@@ -15,6 +15,7 @@ A web-based database navigator: connect to a database server, browse its databas
 - SQL editor (Monaco) with PostgreSQL highlighting, one tab per query, all tabs kept open in the background.
 - Streamed execution. Rows arrive over SignalR in batches while the query runs, and the grid shows them as they come. Multiple result sets, cancellation and a server-side row limit (100,000 rows by default) are supported.
 - Virtualized result grid: only visible rows are rendered, so large results stay responsive.
+- Light and dark theme, following the system setting until you pick one in the top bar. Each server has its own color in the tree, on its query tabs and in the query bar, so it is clear where a query runs.
 - Clear errors: PostgreSQL `DETAIL` and `HINT` are included, for example which objects block a `DROP`.
 
 ## Repository layout

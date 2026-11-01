@@ -23,7 +23,7 @@ export default function ConfirmEmailPage() {
 
   return (
     <AuthLayout title="Confirm your email">
-      {state === 'confirming' && <p className="text-sm text-stone-700">Confirming…</p>}
+      {state === 'confirming' && <p className="text-sm text-fg">Confirming…</p>}
       {state === 'confirmed' && <AuthNotice tone="success">Your email is confirmed. You can sign in now.</AuthNotice>}
       {state === 'failed' && (
         <AuthNotice tone="error">
@@ -31,7 +31,7 @@ export default function ConfirmEmailPage() {
         </AuthNotice>
       )}
       {state !== 'confirming' && (
-        <Link to="/login" className="text-center text-sm font-medium text-stone-800 hover:underline">Go to sign in</Link>
+        <Link to="/login" className="text-center text-sm font-medium text-accent-strong hover:underline">Go to sign in</Link>
       )}
     </AuthLayout>
   );

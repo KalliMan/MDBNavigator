@@ -46,12 +46,12 @@ function VerticalSidebar({children, initialWidth = 350}: React.PropsWithChildren
 
   return (
     <div className="flex h-full">
-      <div style={{ width: `${width / 16}rem`, minWidth: MIN_WIDTH, maxWidth: `${MAX_WIDTH_RATIO * 100}vw` }} className="">
+      <div style={{ width: `${width / 16}rem`, minWidth: MIN_WIDTH, maxWidth: `${MAX_WIDTH_RATIO * 100}vw` }} className="h-full">
         {children}
       </div>
 
       <div
-        className="w-1 cursor-col-resize bg-neutral-700 hover:bg-slate-400 touch-none"
+        className="w-1 flex-none cursor-col-resize touch-none border-l border-line bg-surface hover:bg-accent"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={stopResize}

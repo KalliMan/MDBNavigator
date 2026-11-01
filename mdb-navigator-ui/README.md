@@ -48,11 +48,11 @@ New variables must also be declared in `src/vite-env.d.ts`.
 |---|---|
 | `src/Root.tsx` | The routes: the sign-in pages, or the workspace (`App.tsx`) at `/`. |
 | `src/features` | Screens: sign-in pages (`auth/`), the CAPTCHA (`captcha/`), connect dialog, schema tree view with context menus, SQL editor with result view and status bar. |
-| `src/contexts` | App state: one React context per area. `auth/` holds who is signed in; the others (server connections, database schema, query tabs, command execution) use reducers. |
+| `src/contexts` | App state: one React context per area. `auth/` holds who is signed in, `theme/` light or dark; the others (server connections, database schema, query tabs, command execution) use reducers. |
 | `src/services` | `apiAgent.ts`: axios setup, the tab `id` header, error toasts, the session-ended handling, and all REST calls. `authApi.ts`: the sign-in calls, on their own axios instance without toasts. `commandResultHub.ts`: the single SignalR connection and its status. |
 | `src/models` | Types for what the API sends and receives. |
 | `src/ui` | Reusable components with no app knowledge: `DataGrid`, `TreeView`, tabs, sidebars and splitters, modal, context menu, inputs. |
-| `src/layout` | Top bar with the user menu, nav bar and main bar. |
+| `src/layout` | Top bar with the theme switch and the user menu, nav bar (the connections tree) and main bar (query tabs). |
 | `src/common/sharedHooks`, `src/utils` | Shared hooks and helpers, such as the per-tab id in `localSessionStorage.ts` and error message extraction. |
 
 ## Sign-in in the UI
@@ -79,3 +79,5 @@ New variables must also be declared in `src/vite-env.d.ts`.
 - **Lint is type-aware and strict.** `eslint.config.js` uses typescript-eslint's type-checked rules, and any warning fails `npm run check`.
 - **Monaco is bundled locally, not loaded from a CDN.** `vite.config.ts` points the bare `monaco-editor` import at the editor core. This keeps Monaco's basic languages, including a second competing `pgsql`, out of the bundle. `src/features/databaseCommand/monacoSetup.ts` registers the PostgreSQL language from `monaco-sql-languages`.
 - **Object names are query parameters.** Database, schema and table names go in `params` and are never put in the URL path, so names containing `/`, `?` or `#` are safe. Connection ids in the path go through `encodeURIComponent`.
+- **Colors come from theme tokens.** `src/index.css` defines each color once per theme (`:root` and `:root.dark`) and maps it to Tailwind names (`bg-canvas`, `text-fg`, `border-line`, ...). Use those, not palette classes like `stone-700` and not `dark:` variants, so both themes stay right. Server colors (`src/utils/connectionColor.ts`) are inline styles.
+- **Font stacks are in two places.** `--font-sans` and `--font-mono` in `src/index.css` must match `SANS_FONT` and `MONO_FONT` in `src/utils/fonts.ts`: the result grid measures column widths with the latter.

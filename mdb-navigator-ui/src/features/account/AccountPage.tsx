@@ -34,11 +34,11 @@ export default function AccountPage() {
   const providers = settings?.providers ?? [];
 
   return (
-    <div className="min-h-screen bg-stone-100 px-4 py-8">
+    <div className="min-h-screen bg-surface px-4 py-8">
       <main className="mx-auto grid max-w-xl gap-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-stone-800">Your account</h1>
-          <Link to="/" className="text-sm font-medium text-stone-800 hover:underline">Back to the workspace</Link>
+          <h1 className="text-xl font-semibold text-fg">Your account</h1>
+          <Link to="/" className="text-sm font-medium text-accent-strong hover:underline">Back to the workspace</Link>
         </div>
 
         {linked && <AuthNotice tone="success">{linked} is now linked to your account.</AuthNotice>}
@@ -48,9 +48,9 @@ export default function AccountPage() {
         {account && (
           <>
             <Section title="Email">
-              <p className="text-sm text-stone-700">{account.email}</p>
+              <p className="text-sm text-fg">{account.email}</p>
               {user?.signInMethod && (
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-fg-muted">
                   This session: {user.signInMethod === 'Password' ? 'signed in with a password' : `signed in with ${user.signInMethod}`}
                 </p>
               )}
@@ -72,8 +72,8 @@ export default function AccountPage() {
 
 function Section({ title, tone, children }: React.PropsWithChildren<{ title: string; tone?: 'danger' }>) {
   return (
-    <section className={`grid gap-3 rounded-lg border bg-white p-5 shadow-sm ${tone === 'danger' ? 'border-red-200' : 'border-stone-200'}`}>
-      <h2 className={`font-semibold ${tone === 'danger' ? 'text-red-700' : 'text-stone-800'}`}>{title}</h2>
+    <section className={`grid gap-3 rounded-lg border bg-canvas p-5 shadow-sm ${tone === 'danger' ? 'border-danger/30' : 'border-line'}`}>
+      <h2 className={`font-semibold ${tone === 'danger' ? 'text-danger' : 'text-fg'}`}>{title}</h2>
       {children}
     </section>
   );
@@ -118,7 +118,7 @@ function PasswordSection({ hasPassword, onChanged }: { hasPassword: boolean; onC
   return (
     <Section title={hasPassword ? 'Change password' : 'Set a password'}>
       {!hasPassword && (
-        <p className="text-sm text-stone-600">You sign in through a provider. A password lets you sign in without it, too.</p>
+        <p className="text-sm text-fg-muted">You sign in through a provider. A password lets you sign in without it, too.</p>
       )}
       <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
         {/* Identity re-checks other sessions against the account's security stamp every 30 minutes (its default). */}
@@ -165,19 +165,19 @@ function ProvidersSection({ account, providers, onChanged }: { account: AccountI
         {all.map(provider => {
           const isLinked = account.linkedProviders.includes(provider);
           return (
-            <li key={provider} className="flex items-center justify-between rounded border border-stone-200 px-3 py-2">
-              <span className="flex items-center gap-3 text-sm text-stone-800">
+            <li key={provider} className="flex items-center justify-between rounded border border-line px-3 py-2">
+              <span className="flex items-center gap-3 text-sm text-fg">
                 <ProviderLogo provider={provider} />
                 {provider}
-                {isLinked && <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">Linked</span>}
+                {isLinked && <span className="rounded bg-success-soft px-2 py-0.5 text-xs text-success">Linked</span>}
               </span>
               {isLinked ? (
                 <button type="button" disabled={busy !== null} onClick={() => void unlink(provider)}
-                  className="text-sm font-medium text-stone-600 hover:underline disabled:opacity-50 cursor-pointer">
+                  className="text-sm font-medium text-fg-muted hover:underline disabled:opacity-50 cursor-pointer">
                   Unlink
                 </button>
               ) : providers.includes(provider) && (
-                <a href={linkProviderUrl(provider)} className="text-sm font-medium text-stone-800 hover:underline">Link</a>
+                <a href={linkProviderUrl(provider)} className="text-sm font-medium text-accent-strong hover:underline">Link</a>
               )}
             </li>
           );
@@ -215,13 +215,13 @@ function DeleteSection({ account }: { account: AccountInfo }) {
 
   return (
     <Section title="Delete account" tone="danger">
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-fg-muted">
         Your account and its sign-in providers are deleted for good, and your open database connections are closed.
         Your databases themselves are not touched.
       </p>
       {!open ? (
         <button type="button" onClick={() => setOpen(true)}
-          className="justify-self-start rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 cursor-pointer">
+          className="justify-self-start rounded border border-danger/50 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger-soft cursor-pointer">
           Delete my account…
         </button>
       ) : (
@@ -236,11 +236,11 @@ function DeleteSection({ account }: { account: AccountInfo }) {
           )}
           <div className="flex gap-2">
             <button type="submit" disabled={busy}
-              className="rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60 cursor-pointer">
+              className="rounded bg-danger-solid px-4 py-2 text-sm font-semibold text-on-accent hover:opacity-90 disabled:opacity-60 cursor-pointer">
               {busy ? 'Please wait…' : 'Delete my account'}
             </button>
             <button type="button" disabled={busy} onClick={() => { setOpen(false); setProof(''); setErrors({}); }}
-              className="rounded border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer">
+              className="rounded border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-hover cursor-pointer">
               Cancel
             </button>
           </div>

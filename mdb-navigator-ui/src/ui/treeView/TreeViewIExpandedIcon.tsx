@@ -1,31 +1,26 @@
+import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+
 export interface Props {
   isExpanded?: boolean;
   onExpand: () => void;
 }
 
 export default function TreeViewIExpandedIcon({isExpanded, onExpand}: Props) {
-  const icon = isExpanded
-    ? 'm19.5 8.25-7.5 7.5-7.5-7.5'
-    : 'm8.25 4.5 7.5 7.5-7.5 7.5';
-
-  function onClickHandler(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+  function onClickHandler(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     e.preventDefault();
     onExpand();
   }
 
+  // tabIndex -1: a big tree would otherwise be hundreds of Tab stops.
   return (
-    <div onClick={onClickHandler}>
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className="w-6 h-6"
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={isExpanded ? 'Collapse' : 'Expand'}
+      onClick={onClickHandler}
+      className="flex size-4 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
     >
-      <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
-    </svg>
-  </div>
-  )
+      {isExpanded ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
+    </button>
+  );
 }
-

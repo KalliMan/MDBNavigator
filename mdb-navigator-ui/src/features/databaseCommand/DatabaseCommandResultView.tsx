@@ -12,7 +12,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
   if (resultSets.length === 0) {
     // Statements without a result set (INSERT/UPDATE/DDL) only report affected records.
     if (!isExecuting && status === 'Completed' && stats && stats.recordsAffected >= 0) {
-      return <div className="p-2 text-sm">{stats.recordsAffected} records affected</div>;
+      return <div className="p-2 text-fg-muted">{stats.recordsAffected} records affected</div>;
     }
     return null;
   }
@@ -27,10 +27,10 @@ export function DatabaseCommandResultView({ databaseCommandQueryId }: Props) {
   }
 
   return (
-    <div className="rounded-scrollbar h-full overflow-y-auto p-2 space-y-3 bg-neutral-100 dark:bg-neutral-800">
+    <div className="rounded-scrollbar h-full overflow-y-auto p-2 space-y-3 bg-surface">
       {/* Each stacked grid gets its own frame so its edges and scrollbars are clearly bounded. */}
       {resultSets.map(resultSet => (
-        <div key={resultSet.id} className="h-[30vh] border border-neutral-400 dark:border-neutral-600 overflow-hidden">
+        <div key={resultSet.id} className="h-[30vh] border border-line overflow-hidden">
           <DatabaseCommandSingleResultView resultSet={resultSet} />
         </div>
       ))}

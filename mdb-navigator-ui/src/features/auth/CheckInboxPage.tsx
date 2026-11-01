@@ -26,7 +26,7 @@ export default function CheckInboxPage() {
 
   return (
     <AuthLayout title="Check your inbox">
-      <p className="text-sm text-stone-700">
+      <p className="text-sm text-fg">
         We sent a link to <span className="font-semibold">{email || 'your email address'}</span>.
         Open it to confirm your email, then sign in.
       </p>
@@ -34,12 +34,12 @@ export default function CheckInboxPage() {
       {state === 'sent' && <AuthNotice tone="success">We sent a new link.</AuthNotice>}
       <div className="flex items-center justify-between text-sm">
         {email && (
-          <button type="button" className="font-medium text-stone-800 hover:underline disabled:opacity-50 cursor-pointer"
+          <button type="button" className="font-medium text-accent-strong hover:underline disabled:opacity-50 cursor-pointer"
             disabled={state !== 'idle'} onClick={() => void resend()}>
             Send the link again
           </button>
         )}
-        <Link to="/login" className="font-medium text-stone-800 hover:underline">Back to sign in</Link>
+        <Link to="/login" className="font-medium text-accent-strong hover:underline">Back to sign in</Link>
       </div>
     </AuthLayout>
   );

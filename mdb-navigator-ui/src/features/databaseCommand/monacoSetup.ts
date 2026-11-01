@@ -16,4 +16,35 @@ self.MonacoEnvironment = {
   },
 };
 
+// Our own editor themes, so the editor's background matches the app's (--canvas in src/index.css).
+export const MONACO_THEMES = { light: 'mdbnavigator-light', dark: 'mdbnavigator-dark' } as const;
+
+monaco.editor.defineTheme(MONACO_THEMES.light, {
+  base: 'vs',
+  inherit: true,
+  rules: [],
+  colors: {
+    'editor.background': '#ffffff',
+    'editorGutter.background': '#ffffff',
+    'editorLineNumber.foreground': '#8b929c',
+    'editorLineNumber.activeForeground': '#1f2328',
+    'editor.lineHighlightBackground': '#f5f8ff',
+    'editor.lineHighlightBorder': '#00000000',
+  },
+});
+
+monaco.editor.defineTheme(MONACO_THEMES.dark, {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [],
+  colors: {
+    'editor.background': '#1e1f22',
+    'editorGutter.background': '#1e1f22',
+    'editorLineNumber.foreground': '#6f737a',
+    'editorLineNumber.activeForeground': '#dfe1e5',
+    'editor.lineHighlightBackground': '#26282b',
+    'editor.lineHighlightBorder': '#00000000',
+  },
+});
+
 loader.config({ monaco });

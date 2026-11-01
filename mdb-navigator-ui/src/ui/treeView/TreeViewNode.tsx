@@ -16,7 +16,7 @@ export interface Props {
 export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
   const {dispatch} = useTreeViewContext();
 
-  function handleOnClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+  function handleOnClick(e: React.MouseEvent<HTMLSpanElement, MouseEvent>) {
     e.preventDefault();
     onNodeClick(node, {
       x: e.pageX,
@@ -53,23 +53,23 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
   return (
     <li>
       <div
-        className={`flex hover:bg-sky-200 ${node.className ?? ''} ${node.isSelected ? 'bg-sky-300' : ''}`}
+        className={`flex h-6 items-center gap-1 pr-3 ${node.isSelected ? 'bg-selected text-on-selected' : 'hover:bg-hover'} ${node.className ?? ''}`}
       >
-        {hasChildNodes && (
+        {hasChildNodes ? (
           <TreeViewIExpandedIcon
             isExpanded={node.isExpanded}
             onExpand={handleSetIsExpanded}
           />
+        ) : (
+          // Same width as the chevron, so leaves line up with their siblings.
+          <span className="w-4 flex-none" aria-hidden="true" />
         )}
-        <div className="flex select-none w-fit pl-2 pr-3">
-          <div className="mt-1">
-            {icon ?? (<span>{icon}</span>)}
-          </div>
-
-          <span className="ml-1" style={{ whiteSpace: 'nowrap' }} onClick={handleOnClick}>
-            {node.nodeTextElement ?? node.nodeText ?? node.nodeName}
-          </span>
-        </div>
+        <span className={`flex flex-none items-center ${node.isSelected ? '' : 'text-fg-muted'}`}>
+          {icon}
+        </span>
+        <span className="ml-1 whitespace-nowrap select-none" onClick={handleOnClick}>
+          {node.nodeTextElement ?? node.nodeText ?? node.nodeName}
+        </span>
       </div>
 
       <div
@@ -78,7 +78,7 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
         } transition-all ease-in-out delay-150 duration-150`}
       >
         {hasChildNodes && (
-          <ul className="ml-5">
+          <ul className="pl-4">
             {node.nodes?.map((childNode) => (
               <TreeViewNode
                 key={childNode.id}

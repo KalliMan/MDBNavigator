@@ -8,15 +8,15 @@ interface Props {
 
 export default function Input({ label, type, initialValue, placeholder, onChange }: Props) {
   return (
-    <div className=" grid grid-cols-[1fr_2fr]">
-      <label className="">{label}</label>
+    <div className="grid grid-cols-[1fr_2fr] items-center">
+      <label className="text-fg">{label}</label>
       <input
         type={type}
         placeholder={placeholder}
         value={initialValue}
         autoComplete="on"
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value)}
-        className="input w-72 ml-8 right-5 rounded border border-stone-200 px-4 py-2 text-sm "
+        className="w-72 ml-8 h-8 rounded-[3px] border border-line bg-canvas px-2 text-fg outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </div>
   );

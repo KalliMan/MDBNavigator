@@ -31,10 +31,10 @@ export default function Root() {
   }
   if (status === 'unavailable') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-stone-100 text-stone-700">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-surface text-fg">
         <p>Cannot reach the MDBNavigator server.</p>
         <button type="button" onClick={() => void reload()}
-          className="rounded bg-stone-800 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-700 cursor-pointer">
+          className="rounded bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover cursor-pointer">
           Try again
         </button>
       </div>

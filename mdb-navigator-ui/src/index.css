@@ -1,5 +1,100 @@
 @import "tailwindcss";
 
+/* `dark:` utilities follow the .dark class on <html> (contexts/theme/theme.ts), not only the system setting.
+   The app itself uses the tokens below instead of `dark:`; this keeps any future `dark:` consistent with them. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Colors by role, once per theme. Components use the Tailwind names from @theme below (bg-canvas, text-fg,
+   border-line, ...), never palette classes like stone-700, so both themes stay right. */
+:root {
+  color-scheme: light;
+  --canvas: #ffffff;
+  --surface: #f8f9fb;
+  --chrome: #f3f4f6;
+  --line: #d9dce1;
+  --line-subtle: #eceef1;
+  --fg: #1f2328;
+  --fg-muted: #5b6470;
+  --fg-faint: #8b929c;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-strong: #1d4ed8;
+  --on-accent: #ffffff;
+  --selected: #dbe6fd;
+  --on-selected: #1e3a8a;
+  --hover: #eef1f5;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --danger-solid: #b91c1c;
+  --warning: #b45309;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --canvas: #1e1f22;
+  --surface: #26282b;
+  --chrome: #2b2d30;
+  --line: #393b40;
+  --line-subtle: #2f3136;
+  --fg: #dfe1e5;
+  --fg-muted: #9ca0a8;
+  --fg-faint: #6f737a;
+  --accent: #2f6fde;
+  --accent-hover: #3d7ce8;
+  --accent-strong: #8ab4ff;
+  --on-accent: #ffffff;
+  --selected: #2d4a7a;
+  --on-selected: #e6eeff;
+  --hover: #2e3034;
+  --success: #5fcf80;
+  --success-soft: #1d3326;
+  --danger: #f87171;
+  --danger-soft: #3a2224;
+  --danger-solid: #dc2626;
+  --warning: #e8a96b;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-chrome: var(--chrome);
+  --color-line: var(--line);
+  --color-line-subtle: var(--line-subtle);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-selected: var(--selected);
+  --color-on-selected: var(--on-selected);
+  --color-hover: var(--hover);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-solid: var(--danger-solid);
+  --color-warning: var(--warning);
+}
+
+/* System fonts: no font files to ship. Keep in sync with src/utils/fonts.ts (the result grid measures with them). */
+@theme {
+  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: Consolas, "Cascadia Mono", "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--canvas);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+  }
+}
+
 /* Set on <body> while a splitter is dragged (ui/sidebar/dragSelection.ts). */
 body.is-resizing-col,
 body.is-resizing-col * {
@@ -24,27 +119,27 @@ body.is-resizing-row * {
     background: transparent;
   }
   .rounded-scrollbar::-webkit-scrollbar-thumb {
-    background-color: theme(colors.neutral.400);
+    background-color: var(--fg-faint);
     border-radius: 9999px;
     /* transparent border + content-box clip = thumb inset from the edges */
     border: 3px solid transparent;
     background-clip: content-box;
   }
   .rounded-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: theme(colors.neutral.500);
+    background-color: var(--fg-muted);
   }
   /* Firefox can't round the thumb; use its thin standard scrollbar instead. */
   @supports not selector(::-webkit-scrollbar) {
     .rounded-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: theme(colors.neutral.400) transparent;
+      scrollbar-color: var(--fg-faint) transparent;
     }
   }
 
   .loader {
     width: 45px;
     aspect-ratio: 0.75;
-    --c: no-repeat linear-gradient(theme(colors.stone.800) 0 0);
+    --c: no-repeat linear-gradient(var(--fg) 0 0);
     background: var(--c) 0% 50%, var(--c) 50% 50%, var(--c) 100% 50%;
     background-size: 20% 50%;
     animation: loading 1s infinite linear;

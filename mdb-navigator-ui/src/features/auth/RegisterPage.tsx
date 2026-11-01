@@ -76,9 +76,9 @@ export default function RegisterPage() {
         <SubmitButton busy={busy}>Create account</SubmitButton>
       </form>
 
-      <p className="text-center text-sm text-stone-500">
+      <p className="text-center text-sm text-fg-muted">
         Already have an account?{' '}
-        <Link to={returnTo === '/' ? '/login' : `/login?returnTo=${encodeURIComponent(returnTo)}`} className="font-medium text-stone-800 hover:underline">
+        <Link to={returnTo === '/' ? '/login' : `/login?returnTo=${encodeURIComponent(returnTo)}`} className="font-medium text-accent-strong hover:underline">
           Sign in
         </Link>
       </p>

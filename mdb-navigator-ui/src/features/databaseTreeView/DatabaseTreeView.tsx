@@ -26,7 +26,8 @@ export default function DatabaseTreeView() {
     <>
       <TreeView root={root}
         settings={{
-          allowKeepSelectedNode: true
+          allowKeepSelectedNode: true,
+          showRoot: false
         }}
         onNodeClick={handlers.handleOnNodeClick}
         onExpand={handlers.handleExpand}

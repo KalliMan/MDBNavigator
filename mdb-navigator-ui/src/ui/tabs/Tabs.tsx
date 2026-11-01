@@ -1,6 +1,6 @@
 import { Children, isValidElement, ReactElement, useEffect, useRef } from 'react';
 import Tab, { TabProps } from './Tab';
-import { HiXMark } from 'react-icons/hi2';
+import { LuChevronLeft, LuChevronRight, LuX } from 'react-icons/lu';
 
 type TabElement = ReactElement<React.PropsWithChildren<TabProps>>;
 
@@ -50,52 +50,64 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
   return (
     // Fills exactly the parent's height (no h-screen: that overflowed the app frame and caused a second scrollbar).
     <div className="h-full flex flex-col">
-      <div className="flex flex-none h-12 w-full border-b border-gray-300 items-center">
+      <div className="flex h-10 w-full flex-none items-stretch border-b border-line bg-chrome">
         <button
           type="button"
-          className="px-2 text-gray-500 hover:text-gray-800 disabled:opacity-40"
+          aria-label="Scroll tabs left"
+          className="flex w-6 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
           onClick={() => scrollTabs('left')}
         >
-          &#8249;
+          <LuChevronLeft size={14} aria-hidden="true" />
         </button>
         <div
           ref={scrollContainerRef}
+          role="tablist"
           className="flex flex-1 overflow-x-auto scrollbar-thin"
         >
-          {childrenProps.map(child => (
-            <div
-              className={`${
-                activeId === child.props.id
-                  ? 'flex border-b-2 border-purple-500 py-1'
-                  : 'py-1'
-              } flex text-gray-700 font-medium w-fit pr-1 pl-2 flex-none`}
-              key={child.props.id}
-              data-tab-id={child.props.id}
-            >
-              <button
-                className="cursor-pointer hover:bg-gray-200 pl-2 pr-2 rounded-t-md"
-                onClick={e => handleClick(e, child.props.id)}
+          {childrenProps.map(child => {
+            const isActive = activeId === child.props.id;
+            return (
+              <div
+                key={child.props.id}
+                data-tab-id={child.props.id}
+                className={`flex flex-none items-stretch border-r border-line ${isActive ? 'bg-canvas' : 'hover:bg-hover'}`}
+                style={child.props.color ? { boxShadow: `inset 0 3px 0 ${child.props.color}` } : undefined}
               >
-                {child.props.label}
-              </button>
-              <button
-                className="m-1 transition-all duration-100 hover:border-1 h-5"
-                onClick={() => onClose?.(child.props.id)}
-              >
-                <HiXMark />
-              </button>
-            </div>
-          ))}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  title={child.props.title}
+                  className="flex flex-col justify-center gap-px pl-3 pr-1 text-left cursor-pointer"
+                  onClick={e => handleClick(e, child.props.id)}
+                >
+                  <span className={`leading-4 ${isActive ? 'font-medium text-fg' : 'text-fg-muted'}`}>{child.props.label}</span>
+                  {child.props.sublabel && (
+                    <span className="text-xs leading-4 text-fg-muted">{child.props.sublabel}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Close ${child.props.label}`}
+                  className="mr-1 flex size-5 self-center items-center justify-center rounded-[3px] text-fg-muted hover:bg-hover hover:text-fg cursor-pointer"
+                  onClick={() => onClose?.(child.props.id)}
+                >
+                  <LuX size={12} aria-hidden="true" />
+                </button>
+              </div>
+            );
+          })}
         </div>
         <button
           type="button"
-          className="px-2 text-gray-500 hover:text-gray-800 disabled:opacity-40"
+          aria-label="Scroll tabs right"
+          className="flex w-6 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
           onClick={() => scrollTabs('right')}
         >
-          &#8250;
+          <LuChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
-      <div className="flex-1 min-h-0 pt-2">
+      <div className="flex-1 min-h-0">
         {/* All tabs stay mounted (inactive ones hidden), so editor text, results and scroll survive tab switches. */}
         {childrenProps.map((child) => (
           <div className={child.props.id === activeId ? 'h-full' : 'hidden'} key={child.props.id}>

@@ -1,25 +1,29 @@
 import Editor, { OnMount } from "@monaco-editor/react";
-import "./monacoSetup";
+import { MONACO_THEMES } from "./monacoSetup";
 import { KeyCode, KeyMod } from "monaco-editor";
 import { LanguageIdEnum } from "monaco-sql-languages";
 
 import { useEffect, useRef, useState } from "react";
-import Button from "../../ui/common/Button";
-import { ButtonType } from "../../ui/common/ButtonType.enum";
+import { LuChevronRight, LuDatabase, LuPlay, LuSquare } from "react-icons/lu";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
 import useDatabaseCommandSelector from "../../contexts/databaseCommand/useDatabaseCommandSelector";
 import useDatabaseServerConnectContext from "../../contexts/databaseServerConnect/useDatabaseServerConnect";
+import { QueryTarget } from "../../models/databaseCommand/query/queryTarget";
+import useTheme from "../../contexts/theme/useTheme";
+import { MONO_FONT } from "../../utils/fonts";
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
+  target: QueryTarget;
   execute?(query: string): void;
 }
 
-export default function DatabaseCommand({ databaseCommandQuery }: Props) {
+export default function DatabaseCommand({ databaseCommandQuery, target }: Props) {
   const { executeDatabaseSQLCommand, cancelDatabaseSQLCommand } = useDatabaseCommandContext();
   const { isExecuting, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
   const { databaseServerConnections } = useDatabaseServerConnectContext();
+  const { theme } = useTheme();
   // A tab of a disconnected server stays open (its SQL is kept) but can't run.
   const isServerConnected = databaseServerConnections.some(
     c => c.connectedResult?.connectionId === databaseCommandQuery.connectionId
@@ -28,7 +32,7 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
   const isHubBusy = hubStatus === 'connecting' || hubStatus === 'reconnecting';
   const canExecute = !isExecuting && !isHubBusy && isServerConnected;
   const executeDisabledReason = !isServerConnected
-    ? 'Disconnected — connect to the server again to run this query'
+    ? 'Disconnected. Connect to the server again to run this query.'
     : isHubBusy ? 'Connecting to the server...' : undefined;
   // The editor's Ctrl+Enter command is bound once on mount, so it reads the current values through a ref
   // (otherwise it would keep calling the execute function and state of the first render).
@@ -77,42 +81,67 @@ export default function DatabaseCommand({ databaseCommandQuery }: Props) {
   };
 
   return (
-    <div className="border h-full flex flex-col">
-      <div className="px-2 py-1 text-xs text-stone-600 border-b border-stone-300 flex justify-between">
-        <span>{databaseCommandQuery.name}</span>
-        <span>{databaseCommandQuery.databaseName}</span>
+    <div className="flex h-full flex-col">
+      <div className="flex h-9 flex-none items-center gap-1.5 border-b border-line-subtle px-2">
+        {/* The span carries the tooltip: a disabled button shows none in some browsers. */}
+        <span className="flex" title={executeDisabledReason ?? 'Run (Ctrl+Enter)'}>
+          <button
+            type="button"
+            onClick={handleExecute}
+            disabled={!canExecute}
+            className="flex h-7 items-center gap-1.5 rounded-[3px] px-2 font-medium text-success hover:bg-hover disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent cursor-pointer"
+          >
+            <LuPlay size={14} aria-hidden="true" />
+            Run
+          </button>
+        </span>
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={!isExecuting}
+          aria-label="Stop"
+          title="Stop the running query"
+          className="flex size-7 items-center justify-center rounded-[3px] text-danger hover:bg-hover disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent cursor-pointer"
+        >
+          <LuSquare size={13} aria-hidden="true" />
+        </button>
+        <span className="mx-1 h-[18px] w-px bg-line" aria-hidden="true" />
+        <span className="flex h-7 items-center gap-1.5 rounded-[3px] border border-line px-2 text-fg" title={target.address || undefined}>
+          <span className="size-2.5 rounded-[2px]" style={{ backgroundColor: target.color }} aria-hidden="true" />
+          {target.serverName}
+        </span>
+        <LuChevronRight size={12} className="text-fg-faint" aria-hidden="true" />
+        <span className="flex h-7 items-center gap-1.5 rounded-[3px] border border-line px-2 text-fg">
+          <LuDatabase size={13} className="text-fg-muted" aria-hidden="true" />
+          {databaseCommandQuery.databaseName}
+        </span>
+        <span className="flex-1" />
+        {isServerConnected ? (
+          <span className="truncate text-xs text-fg-muted">{target.address}</span>
+        ) : (
+          <span className="truncate text-xs text-danger">Disconnected. Connect to the server again to run this query.</span>
+        )}
       </div>
-      <div className="flex-1 border-stone-400 border-b-2 min-h-0 p-t-2">
+      <div className="min-h-0 flex-1">
         <Editor
           defaultLanguage={LanguageIdEnum.PG}
           language={LanguageIdEnum.PG}
           defaultValue="-- Put your query here"
           value={sqlQuery}
           onChange={handleEditorChange}
+          theme={theme === 'dark' ? MONACO_THEMES.dark : MONACO_THEMES.light}
           options={{
-            minimap: { enabled: true },
+            minimap: { enabled: false },
             fontSize: 14,
+            lineHeight: 21,
+            fontFamily: MONO_FONT,
             wordWrap: "off",
             automaticLayout: true,
+            scrollBeyondLastLine: false,
+            padding: { top: 6 },
           }}
           onMount={handleEditorMount}
         />
-      </div>
-      <div className="min-h-10 flex items-center px-2 flex-none">
-        {isExecuting ? (
-          <Button type={ButtonType.primary} onClick={handleCancel}>
-            Cancel
-          </Button>
-        ) : (
-          <span title={executeDisabledReason} className="flex items-center gap-2">
-            <Button type={ButtonType.primary} onClick={handleExecute} disabled={!canExecute}>
-              Execute (Ctrl+Enter)
-            </Button>
-            {!isServerConnected && (
-              <span className="text-xs text-red-600">Disconnected — connect to the server again to run this query</span>
-            )}
-          </span>
-        )}
       </div>
     </div>
   );

@@ -91,16 +91,16 @@ export default function LoginPage() {
           error={errors.password}
           onChange={setPassword}
           labelAside={emailEnabled && (
-            <Link to="/forgot-password" className="text-sm text-stone-500 hover:underline">Forgot password?</Link>
+            <Link to="/forgot-password" className="text-sm text-fg-muted hover:underline">Forgot password?</Link>
           )}
         />
         <SubmitButton busy={busy}>Sign in</SubmitButton>
       </form>
 
       {settings?.signUp === 'Open' && (
-        <p className="text-center text-sm text-stone-500">
+        <p className="text-center text-sm text-fg-muted">
           No account?{' '}
-          <Link to={returnTo === '/' ? '/register' : `/register?returnTo=${encodeURIComponent(returnTo)}`} className="font-medium text-stone-800 hover:underline">
+          <Link to={returnTo === '/' ? '/register' : `/register?returnTo=${encodeURIComponent(returnTo)}`} className="font-medium text-accent-strong hover:underline">
             Create one
           </Link>
         </p>

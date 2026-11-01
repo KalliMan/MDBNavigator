@@ -4,12 +4,14 @@ import HorisontalSidebar from '../../ui/sidebar/HorisontalSidebar';
 import { DatabaseSQLCommandQuery } from '../../models/databaseCommand/query/databaseSQLCommandQuery';
 import { DatabaseCommandStatusBar } from './DatabaseCommandStatusBar';
 import useDatabaseCommandSelector from '../../contexts/databaseCommand/useDatabaseCommandSelector';
+import { QueryTarget } from '../../models/databaseCommand/query/queryTarget';
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
+  target: QueryTarget;
 }
 
-export default function DatabaseCommandAndResult({ databaseCommandQuery }: Props) {
+export default function DatabaseCommandAndResult({ databaseCommandQuery, target }: Props) {
 const { isExecuting, error, status, stats, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
 
   if (!databaseCommandQuery) {
@@ -17,10 +19,10 @@ const { isExecuting, error, status, stats, hubStatus } = useDatabaseCommandSelec
   }
 
   return (
-    <div className="border-2 border-stone-400 flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <HorisontalSidebar>
         <div className="h-full">
-          <DatabaseCommand databaseCommandQuery={databaseCommandQuery} />
+          <DatabaseCommand databaseCommandQuery={databaseCommandQuery} target={target} />
         </div>
       </HorisontalSidebar>
       {/* min-h-0: the result grid scrolls itself instead of growing the page */}

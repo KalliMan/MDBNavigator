@@ -84,6 +84,6 @@ export default function TurnstileWidget({ siteKey, onToken }: Props) {
   }, [siteKey]);
 
   return failed
-    ? <p className="text-sm text-red-600">The CAPTCHA couldn't be loaded. Please check your connection and reload the page.</p>
+    ? <p className="text-sm text-danger">The CAPTCHA couldn't be loaded. Please check your connection and reload the page.</p>
     : <div ref={container} />;
 }

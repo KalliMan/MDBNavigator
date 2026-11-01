@@ -57,7 +57,7 @@ function HorisontalSidebar({children, initialHeight = 580}: React.PropsWithChild
       </div>
 
       <div
-        className="h-1 cursor-row-resize bg-neutral-700 hover:bg-slate-400 touch-none"
+        className="h-1 flex-none cursor-row-resize touch-none border-t border-line bg-chrome hover:bg-accent"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={stopResize}
