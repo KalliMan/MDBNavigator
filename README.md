@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet. Picking it in the connect dialog fails with "No provider registered".
 
-> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Rate limits and security headers come next ([roadmap](docs/ROADMAP.md), 0.2).
+> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Connecting and running queries are [rate limited](#rate-limits) per user. An optional CAPTCHA and security headers come next ([roadmap](docs/ROADMAP.md), 0.2).
 
 ## Features
 
@@ -98,6 +98,10 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Sign-in with that provider, switched on when both are set (user secrets or environment variables). The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
 | `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:AppBaseUrl` (the app's address for links), and for SMTP `Email:FromAddress` and `Email:Smtp:Host`, `Port`, `Username`, `Password`. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
 | `RateLimiting:AuthRequestsPerMinute` | `10` | Sign-in, register and password requests per minute and IP address. |
+| `RateLimiting:ConnectsPerMinute` | `10` | Connect and reconnect requests per minute and user. |
+| `RateLimiting:QueriesPerMinute` | `60` | Query runs started per minute and user. |
+| `RateLimiting:MaxRunningQueriesPerUser` | `3` | Query runs one user may have running or waiting for a worker at once, across all their tabs. |
+| `RateLimiting:FailedConnectsBeforeWait`, `FailedConnectWaitMinutes` | `5`, `10` | After this many failed connects within the minutes, connecting is refused for the minutes. See [rate limits](#rate-limits). |
 | `ConnectionGuard:Mode` | from `Auth` | Which database hosts users may connect to: `Public`, `AllowList` or `Off`. When not set: `Public` with `Auth:Mode = Accounts` and `Auth:SignUp = Open`, otherwise `Off`. See [connection guardrails](#connection-guardrails). |
 | `ConnectionGuard:Allow` | | Host names, IP addresses or ranges (`10.20.0.0/16`) allowed in addition (`Public`) or exclusively (`AllowList`). Development allows `localhost`. |
 
@@ -128,6 +132,16 @@ The server opens database connections itself, so on an instance where strangers 
 - An invalid `Allow` entry stops the app at startup, and the mode in effect is logged.
 - In Docker, `localhost` is the container itself: allow the database's service name or `host.docker.internal` instead.
 
+### Rate limits
+
+The server opens database connections and runs queries for its users, so without limits one user could use it to guess database passwords, scan hosts and ports, or keep every query worker busy. A refused request gets `429` with a message and, where the wait is known, a `Retry-After` header. Every `RateLimiting` value can be set to `0` to switch that limit off.
+
+- **Per user:** the limits count per signed-in user, so people behind one shared address (an office, a VPN) don't share them. Sign-in requests count per IP address, since there is no user yet. With `Auth:Mode = None` there is no user either, and the address stands in.
+- **Requests per minute:** connects, query runs and sign-in requests, in fixed one-minute windows.
+- **Running queries:** the `QueryExecution:MaxConcurrentQueries` workers are shared by everyone, so one user may have only `MaxRunningQueriesPerUser` runs going at once. Runs still waiting in the queue count too, otherwise the queue itself could be filled. A cancelled or finished run frees its place.
+- **Failed connects:** after `FailedConnectsBeforeWait` failures within `FailedConnectWaitMinutes`, connects are refused for `FailedConnectWaitMinutes` ("try again in N minutes"), without trying the connection. Every failure counts: a wrong password, a host that doesn't answer, a host the [connection guardrails](#connection-guardrails) refuse. A successful connect doesn't reset the count, or a script could connect to a database of its own between guesses.
+- The counts are kept in memory, per server instance, and start over on a restart. That is enough for one instance; several instances behind a load balancer would need a shared store.
+
 **How connection credentials are kept.** Connection settings are held in server memory only, per browser tab and connection. The password is encrypted with a key that exists only in the running process. A restart drops every connection, and users reconnect.
 
 ## API
@@ -142,7 +156,7 @@ Errors are returned as JSON:
 { "statusCode": 400, "message": "Connection failed: password authentication failed for user \"admin\"", "details": null }
 ```
 
-`details` contains the stack trace in Development only. Database and validation errors are `400`, a missing object is `404`, and anything else is `500`.
+`details` contains the stack trace in Development only. Database and validation errors are `400`, a missing object is `404`, a [rate limit](#rate-limits) is `429`, and anything else is `500`.
 
 | Method and path | Purpose |
 |---|---|

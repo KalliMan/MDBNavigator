@@ -29,8 +29,9 @@ Design: [specs/authentication.md](specs/authentication.md).
 | Step | Contents | Size |
 |---|---|---|
 | **0.2a** Connection guardrails | Configurable: a public instance blocks private, loopback and cloud metadata addresses; self-hosted installs reach their private-network databases (off, or an allow-list). | M |
-| **0.2b** Rate limiting | Limits on connecting and running queries, per user. | S |
-| **0.2c** Security headers | Content Security Policy, HSTS and the usual headers. | S |
+| **0.2b** Rate limiting | Limits on connecting and running queries, per user, including how many queries one user may run at once. Repeated failed connects lead to a short wait. | S–M |
+| **0.2c** CAPTCHA | Optional, off by default: Cloudflare Turnstile or self-hosted ALTCHA (`Captcha:Provider`), on creating an account and after repeated failed connects. | M |
+| **0.2d** Security headers | Content Security Policy (allowing Turnstile when it's used), HSTS and the usual headers. | S |
 
 ### 0.3 Tests
 

@@ -1,4 +1,5 @@
 using MDBNavigator.API.DTOs;
+using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Application.Features.DatabaseCommand.Commands.CancelQuery;
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery;
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.GetCreateFunctionScript;
@@ -15,6 +16,7 @@ using MDBNavigator.Application.Features.DatabaseCommand.Queries.GetTopNTableReco
 using MDBNavigator.Application.Features.DatabaseCommand.Queries.GetViewDefinition;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MDBNavigator.API.Controllers
 {
@@ -26,6 +28,7 @@ namespace MDBNavigator.API.Controllers
 
         // Starts a streamed execution: 202 at once, results and the outcome arrive via SignalR.
         [HttpPost]
+        [EnableRateLimiting(RateLimitPolicies.Query)]
         public async Task<IActionResult> Execute([FromBody] DatabaseSQLCommandQuery value, CancellationToken cancellationToken)
             => Accepted(await _mediator.Send(
                 new ExecuteQueryQuery(SessionId, value.ConnectionId, value.ExecutionId, value.DatabaseName, value.CmdQuery), cancellationToken));

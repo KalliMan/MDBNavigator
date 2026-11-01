@@ -3,6 +3,7 @@ using MDBNavigator.Infrastructure.BackgroundQueue;
 using MDBNavigator.Infrastructure.Connection;
 using MDBNavigator.Infrastructure.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Text.Json.Serialization;
 
 namespace MDBNavigator.Infrastructure
@@ -13,6 +14,8 @@ namespace MDBNavigator.Infrastructure
         {
             services.AddSingleton<IConnectionCache, ConnectionCache>();
             services.AddSingleton<IConnectionGuard, ConnectionGuard>();
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddSingleton<IConnectAttemptLimiter, ConnectAttemptLimiter>();
             services.AddScoped<IDatabaseProviderFactory, DatabaseProviderFactory>();
             services.AddScoped<IBatchNotifier, BatchNotifier>();
             services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();

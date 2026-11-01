@@ -19,18 +19,23 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
         private readonly IBackgroundTaskQueue _taskQueue;
         private readonly ICommandExecutionRegistry _registry;
         private readonly QueryExecutionOptions _options;
+        private readonly RateLimitingOptions _rateLimits;
 
-        public ExecuteQueryHandler(IBackgroundTaskQueue taskQueue, ICommandExecutionRegistry registry, QueryExecutionOptions options)
+        public ExecuteQueryHandler(IBackgroundTaskQueue taskQueue, ICommandExecutionRegistry registry, QueryExecutionOptions options, RateLimitingOptions rateLimits)
         {
             _taskQueue = taskQueue;
             _registry = registry;
             _options = options;
+            _rateLimits = rateLimits;
         }
 
         public Task<CommandAcknowledgedDto> Handle(ExecuteQueryQuery request, CancellationToken cancellationToken)
         {
             // Registered before enqueueing so the run can be cancelled while it still waits for a worker.
-            var executionCts = _registry.Register(request.SessionId, request.ConnectionId, request.ExecutionId);
+            var maxRunning = _rateLimits.MaxRunningQueriesPerUser;
+            var executionCts = _registry.TryRegister(request.SessionId, request.ConnectionId, request.ExecutionId, maxRunning)
+                ?? throw new TooManyRequestsException(
+                    $"You already have {(maxRunning == 1 ? "a query" : $"{maxRunning} queries")} running. Wait for one to finish, or cancel one, then try again.");
             var registry = _registry;
             var options = _options;
 

@@ -33,7 +33,7 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 | `Auth:SignUp` | `Open` (default), `Closed` | `Closed`: nobody can create an account through the UI or the API. |
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if no admin exists. Needed with `SignUp = Closed`. |
 | `ConnectionStrings:AppDb` | | The app database. Default: `Data Source=data/mdbnavigator.db`. A relative path is taken from the app's folder. Not used with `Auth:Mode = None`. |
-| `RateLimiting:AuthRequestsPerMinute` | default `10` | Requests per minute and IP address to the sign-in, register, password and email endpoints. |
+| `RateLimiting:AuthRequestsPerMinute` | default `10` | Requests per minute and IP address to the sign-in, register, password and email endpoints. `0` switches the limit off. The other rate limits (connects, queries) are in the [README](../README.md#rate-limits). |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Each provider is switched on only when both values are set. The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
 | `Email:Delivery` | `None` (default), `Smtp`, `Log` | Email confirmation and password reset are on with `Smtp`, or with `Log` (Development only: emails go to the log). |
 | `Email:AppBaseUrl` | | The app's address for links in emails, e.g. `https://mdbnavigator.example.com`. Required when email is on. |

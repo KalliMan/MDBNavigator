@@ -9,21 +9,35 @@ namespace MDBNavigator.Infrastructure.BackgroundQueue
         private sealed record Execution(string SessionId, string ConnectionId, CancellationTokenSource Cts);
 
         private readonly ConcurrentDictionary<string, Execution> _executions = new();
+        // Makes counting a user's runs and adding one a single step, so two requests at once can't both get the
+        // last free place. Only registering takes it; removing a run can only lower the count.
+        private readonly Lock _registerLock = new();
 
         private static string GetKey(string sessionId, string executionId) => $"{sessionId}_{executionId}";
 
-        public CancellationTokenSource Register(string sessionId, string connectionId, string executionId)
+        public CancellationTokenSource? TryRegister(string sessionId, string connectionId, string executionId, int maxPerUser)
         {
-            var execution = new Execution(sessionId, connectionId, new CancellationTokenSource());
             var key = GetKey(sessionId, executionId);
+            var prefix = SessionKey.UserPrefix(SessionKey.UserIdOf(sessionId));
 
-            _executions.AddOrUpdate(key, execution, (_, previous) =>
+            lock (_registerLock)
             {
-                TryCancel(previous.Cts);
-                return execution;
-            });
+                // A run registered again under the same id replaces the old one, so the old one doesn't count.
+                if (maxPerUser > 0
+                    && _executions.Count(e => e.Key != key && e.Value.SessionId.StartsWith(prefix, StringComparison.Ordinal)) >= maxPerUser)
+                {
+                    return null;
+                }
 
-            return execution.Cts;
+                var execution = new Execution(sessionId, connectionId, new CancellationTokenSource());
+                _executions.AddOrUpdate(key, execution, (_, previous) =>
+                {
+                    TryCancel(previous.Cts);
+                    return execution;
+                });
+
+                return execution.Cts;
+            }
         }
 
         public void Cancel(string sessionId, string executionId)

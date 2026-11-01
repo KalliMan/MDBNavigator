@@ -3,6 +3,7 @@ using MDBNavigator.API.Core;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Domain.Exceptions;
 using System.Data.Common;
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 
@@ -57,6 +58,11 @@ namespace MDBNavigator.API.Middleware
 
                 context.Response.ContentType = "application/json";
                 context.Response.StatusCode = statusCode;
+                if (ex is TooManyRequestsException { RetryAfter: { } retryAfter })
+                {
+                    context.Response.Headers.RetryAfter =
+                        Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+                }
 
                 var response = _env.IsDevelopment()
                     ? new ErrorResponse(statusCode, message, ex.StackTrace?.ToString() ?? string.Empty)
@@ -77,6 +83,7 @@ namespace MDBNavigator.API.Middleware
         private (int StatusCode, string Message) MapException(Exception ex, IDatabaseErrorDescriber? errorDescriber) => ex switch
         {
             ObjectNotFoundException => ((int)HttpStatusCode.NotFound, ex.Message),
+            TooManyRequestsException => ((int)HttpStatusCode.TooManyRequests, ex.Message),
             DbException => ((int)HttpStatusCode.BadRequest, errorDescriber?.Describe(ex) ?? ex.Message),
             ValidationException
                 or NotConnectedException

@@ -1,5 +1,6 @@
 using MDBNavigator.API.Core;
 using MDBNavigator.API.DTOs;
+using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Infrastructure.Accounts;
 using MDBNavigator.Infrastructure.Accounts.Email;
@@ -29,7 +30,7 @@ namespace MDBNavigator.API.Auth
             // Identity's endpoints: login (?useCookies=true for the web session), register, confirmEmail,
             // resendConfirmationEmail, forgotPassword, resetPassword, manage/info, ...
             app.MapGroup("/api/auth")
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy)
+                .RequireRateLimiting(RateLimitPolicies.Auth)
                 .AddEndpointFilter(async (context, next) =>
                     options.SignUp == SignUpMode.Closed && IsRegister(context.HttpContext.Request)
                         ? Results.Json(
@@ -66,14 +67,14 @@ namespace MDBNavigator.API.Auth
 
             account.MapPost("password", async (SetPasswordRequest request, ClaimsPrincipal principal, AccountManagement accounts) =>
                     ToResult(await accounts.SetPasswordAsync(principal, request.CurrentPassword, request.NewPassword)))
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+                .RequireRateLimiting(RateLimitPolicies.Auth);
 
             // Linking is a browser navigation like provider sign-in, but back to the account page.
             account.MapGet("link/{provider}", async (string provider, ClaimsPrincipal principal, ExternalLogins logins, AccountManagement accounts) =>
                     await logins.FindProviderAsync(provider) is { } scheme
                         ? Results.Challenge(accounts.CreateLinkChallenge(scheme, "/api/auth/account/link/callback", principal), [scheme])
                         : Results.Redirect("/account?error=link-failed"))
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+                .RequireRateLimiting(RateLimitPolicies.Auth);
 
             account.MapGet("link/callback", async (ClaimsPrincipal principal, AccountManagement accounts) =>
                 {
@@ -84,7 +85,7 @@ namespace MDBNavigator.API.Auth
                             ? "/account?error=link-in-use"
                             : "/account?error=link-failed");
                 })
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+                .RequireRateLimiting(RateLimitPolicies.Auth);
 
             account.MapDelete("logins/{provider}", async (string provider, ClaimsPrincipal principal, AccountManagement accounts) =>
                 ToResult(await accounts.UnlinkAsync(principal, provider)));
@@ -104,7 +105,7 @@ namespace MDBNavigator.API.Auth
                     }
                     return ToResult(result);
                 })
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+                .RequireRateLimiting(RateLimitPolicies.Auth);
         }
 
         // Errors in the shape of Identity's own endpoints: a validation problem keyed by error code.
@@ -131,7 +132,7 @@ namespace MDBNavigator.API.Auth
                     var callback = $"/api/auth/external/callback?returnTo={Uri.EscapeDataString(ReturnUrl.Sanitize(returnTo))}";
                     return Results.Challenge(logins.CreateChallenge(scheme, callback), [scheme]);
                 })
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+                .RequireRateLimiting(RateLimitPolicies.Auth);
 
             auth.MapGet("external/callback", async (string? returnTo, ExternalLogins logins) =>
                 {
@@ -141,7 +142,7 @@ namespace MDBNavigator.API.Auth
                         ? ReturnUrl.Sanitize(returnTo)
                         : LoginPage(ErrorCode(result), returnTo));
                 })
-                .RequireRateLimiting(AuthServiceExtensions.AuthRateLimitPolicy);
+                .RequireRateLimiting(RateLimitPolicies.Auth);
         }
 
         private static string LoginPage(string error, string? returnTo)

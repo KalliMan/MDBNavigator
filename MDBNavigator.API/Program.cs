@@ -3,6 +3,7 @@ using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.API.Auth;
 using MDBNavigator.API.Middleware;
+using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Infrastructure;
 using MDBNavigator.Infrastructure.Accounts;
 using MDBNavigator.Infrastructure.Connection;
@@ -18,6 +19,9 @@ builder.Services.AddSingleton(
     builder.Configuration.GetSection(QueryExecutionOptions.SectionName).Get<QueryExecutionOptions>() ?? new QueryExecutionOptions());
 builder.Services.AddSingleton(
     builder.Configuration.GetSection(ConnectionCacheOptions.SectionName).Get<ConnectionCacheOptions>() ?? new ConnectionCacheOptions());
+var rateLimitingOptions = builder.Configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()
+    ?? new RateLimitingOptions();
+builder.Services.AddSingleton(rateLimitingOptions);
 
 // Unless set, the connection guard follows who can get in: only with open sign-up can strangers use the server,
 // and then the server's own network (localhost, private ranges) is not theirs to reach. Otherwise the users are the
@@ -32,6 +36,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices();
 builder.Services.AddPostgreSQLProvider();
 builder.Services.AddAuth(authOptions, builder.Configuration, builder.Environment);
+builder.Services.AddRateLimits(rateLimitingOptions);
 
 // No CORS: the UI always comes from the API's own origin (production: wwwroot; development: the Vite dev server
 // proxies /api and /batchCommandResult), which the SameSite sign-in cookie needs anyway.

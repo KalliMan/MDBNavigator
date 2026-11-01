@@ -1,4 +1,5 @@
 using MDBNavigator.API.DTOs;
+using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Application.Features.Connection.Commands.Connect;
 using MDBNavigator.Application.Features.Connection.Commands.Disconnect;
 using MDBNavigator.Application.Features.Connection.Commands.Reconnect;
@@ -6,6 +7,7 @@ using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.ValueObjects;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MDBNavigator.API.Controllers
 {
@@ -16,10 +18,12 @@ namespace MDBNavigator.API.Controllers
         public DatabaseConnectionController(IMediator mediator) => _mediator = mediator;
 
         [HttpPost("connect")]
+        [EnableRateLimiting(RateLimitPolicies.Connect)]
         public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value, CancellationToken cancellationToken)
             => Ok(await _mediator.Send(new ConnectCommand(SessionId, MapToSettings(value)), cancellationToken));
 
         [HttpPost("reconnect/{connectionId}")]
+        [EnableRateLimiting(RateLimitPolicies.Connect)]
         public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value, CancellationToken cancellationToken)
             => Ok(await _mediator.Send(new ReconnectCommand(SessionId, connectionId, MapToSettings(value)), cancellationToken));
 

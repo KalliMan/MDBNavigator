@@ -11,5 +11,8 @@ namespace MDBNavigator.Application.Common
 
         // Every session of this user starts with it (all their browser tabs).
         public static string UserPrefix(string userId) => $"{userId}:";
+
+        // User ids (GUIDs, or LocalUserId) contain no ':', so the first one ends the user id.
+        public static string UserIdOf(string sessionId) => sessionId[..sessionId.IndexOf(':')];
     }
 }

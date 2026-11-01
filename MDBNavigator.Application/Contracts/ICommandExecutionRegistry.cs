@@ -4,7 +4,9 @@ namespace MDBNavigator.Application.Contracts
     // by the user or when their connection is disconnected.
     public interface ICommandExecutionRegistry
     {
-        CancellationTokenSource Register(string sessionId, string connectionId, string executionId);
+        // Null when the user (all their browser tabs) already has maxPerUser runs registered; 0 means no limit.
+        // A run counts from here until Complete, so runs still waiting for a worker count too.
+        CancellationTokenSource? TryRegister(string sessionId, string connectionId, string executionId, int maxPerUser);
 
         void Cancel(string sessionId, string executionId);
 
