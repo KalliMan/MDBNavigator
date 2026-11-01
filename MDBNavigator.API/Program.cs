@@ -15,6 +15,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// The Server header only tells an attacker which web server to look up exploits for.
+builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
+
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
 
 builder.Services.AddSingleton(
@@ -42,6 +45,10 @@ builder.Services.AddAuth(authOptions, builder.Configuration, builder.Environment
 builder.Services.AddRateLimits(rateLimitingOptions);
 builder.Services.AddCaptcha(captchaOptions);
 
+// A year of HTTPS-only. No includeSubDomains or preload: other services on sibling subdomains may still use HTTP,
+// and a preload entry is hard to take back.
+builder.Services.AddHsts(hsts => hsts.MaxAge = TimeSpan.FromDays(365));
+
 // No CORS: the UI always comes from the API's own origin (production: wwwroot; development: the Vite dev server
 // proxies /api and /batchCommandResult), which the SameSite sign-in cookie needs anyway.
 builder.Services.AddControllers();
@@ -63,10 +70,18 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
 });
 
+// First, so error responses carry the headers too.
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 if (authOptions.Mode == AuthMode.None)
 {
     app.UseMiddleware<LocalRequestsOnlyMiddleware>();
+}
+
+// Separate from the redirect below: behind a TLS-terminating proxy ASPNETCORE_HTTPS_PORT is unset, and HSTS still applies.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
 }
 
 // Not in Development: the Vite dev server proxies to the HTTP port (same origin as the page, http://localhost:3000),

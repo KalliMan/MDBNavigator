@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet. Picking it in the connect dialog fails with "No provider registered".
 
-> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Connecting and running queries are [rate limited](#rate-limits-and-captcha) per user, and an optional CAPTCHA can be asked on sign-up and after repeated failed connects. Security headers come next ([roadmap](docs/ROADMAP.md), 0.2d).
+> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Connecting and running queries are [rate limited](#rate-limits-and-captcha) per user, and an optional CAPTCHA can be asked on sign-up and after repeated failed connects. Responses carry [security headers](#security-headers), including a Content Security Policy.
 
 ## Features
 
@@ -157,6 +157,28 @@ The browser sends the solved token in a `Captcha-Token` header. A request withou
 | `Altcha` | Self-hosted proof of work: the browser solves a challenge from `GET /api/captcha/challenge`, which takes it a few seconds of computing, and the server checks the answer itself. | No account and nothing leaves the server. A bot can still solve it, but each attempt costs it the same seconds. Challenges expire after 10 minutes and are signed with a key made at startup, so a restart only means the widget fetches a new one. Needs HTTPS (or `localhost`): the widget uses the browser's Web Crypto. |
 
 To try Turnstile locally, Cloudflare's test keys work on any host: site key `1x00000000000000000000AA` with secret `1x0000000000000000000000000000000AA` always passes, and secret `2x0000000000000000000000000000000AA` always fails.
+
+### Security headers
+
+Every response carries headers that tell the browser to be strict with this site. They are set in `SecurityHeadersMiddleware`; Kestrel's `Server` header is removed.
+
+| Header | Value | Why |
+|---|---|---|
+| `Content-Security-Policy` | see below | Only the app's own scripts run, so injected script can't, even if a bug lets some in. |
+| `Strict-Transport-Security` | `max-age=31536000` | Browsers use only HTTPS for a year. Sent only over HTTPS, not in Development and not for `localhost`. No `includeSubDomains` or `preload`: other services on sibling subdomains may still use HTTP, and a preload entry is hard to take back. |
+| `X-Content-Type-Options` | `nosniff` | The browser keeps to the declared content type, so a JSON or text answer is never run as a script. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Other sites see only the origin, never paths or query strings (which may hold email confirmation codes). |
+| `Cross-Origin-Opener-Policy` | `same-origin` | A page of another site that this app opens, or that opens it, can't reach its window. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Browser features the app never uses stay off. |
+
+The Content Security Policy:
+
+- `default-src`, `connect-src` (the API and the SignalR WebSocket) and `worker-src` are `'self'`. Monaco's and ALTCHA's workers are bundled files, never `blob:` URLs. Images and fonts may also be `data:` URLs.
+- `script-src 'self'`: no inline scripts and no `eval`. With `Captcha:Provider = Turnstile`, Cloudflare's `https://challenges.cloudflare.com` is allowed for its script and its iframe (`frame-src`, otherwise `'none'`).
+- `style-src 'self' 'unsafe-inline'`: Monaco and the notifications set inline styles. Inline styles can't run code, so this is a small concession.
+- `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, and `frame-ancestors 'none'`, so no other site can show the app inside a frame (against clickjacking).
+
+In development the UI comes from the Vite dev server, which needs inline scripts for hot reload, so the policy only covers the UI when the API serves the built files. A reverse proxy in front of the app shouldn't add these headers a second time.
 
 **How connection credentials are kept.** Connection settings are held in server memory only, per browser tab and connection. The password is encrypted with a key that exists only in the running process. A restart drops every connection, and users reconnect.
 
