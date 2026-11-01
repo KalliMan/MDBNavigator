@@ -1,0 +1,22 @@
+<!-- The MDBNavigator icon. icon.png is a 256 px render of this file, for places that take no SVG. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset=".5" stop-color="#2563eb"/><stop offset="1" stop-color="#14b8a6"/></linearGradient>
+    <linearGradient id="db" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e0e7ff"/></linearGradient>
+  </defs>
+  <path d="M32 4 56 18v28L32 60 8 46V18z" fill="url(#g)" stroke="url(#g)" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M32 4 56 18v9C44 21 20 21 8 27v-9z" fill="#fff" opacity=".12"/>
+  <path d="M32 9.5 51.5 20.8v22.4L32 54.5 12.5 43.2V20.8z" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5" stroke-linejoin="round"/>
+  <g opacity=".55">
+    <path d="M27 18v20a10 4 0 0 0 20 0V18z" fill="#fff"/>
+    <ellipse cx="37" cy="18" rx="10" ry="4" fill="#fff"/>
+  </g>
+  <g fill="none" stroke="#4f46e5" stroke-opacity=".6" stroke-width="1.8" stroke-linecap="round">
+    <path d="M27 18a10 4 0 0 0 20 0"/><path d="M27 25a10 4 0 0 0 20 0"/>
+  </g>
+  <path d="M15 28v18a11 4.5 0 0 0 22 0V28z" fill="url(#db)"/>
+  <ellipse cx="26" cy="28" rx="11" ry="4.5" fill="#fff"/>
+  <g fill="none" stroke="#3b5bdb" stroke-width="2.2" stroke-linecap="round">
+    <path d="M15 28a11 4.5 0 0 0 22 0"/><path d="M15 34.5a11 4.5 0 0 0 22 0"/><path d="M15 41a11 4.5 0 0 0 22 0"/>
+  </g>
+</svg>

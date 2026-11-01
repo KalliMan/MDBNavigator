@@ -13,7 +13,7 @@ export default function TopBar() {
   return (
     <header className="relative z-[60] flex h-9 flex-none items-center gap-2 border-b border-line bg-chrome px-2">
       <div className="flex items-center gap-2 pl-1 pr-2">
-        <img src="/icon.png" alt="" className="h-5 w-5" />
+        <img src="/icon.svg" alt="" className="h-5 w-5" />
         <span className="font-semibold">MDBNavigator</span>
       </div>
       <div className="flex-1" />
