@@ -8,6 +8,8 @@ import * as monaco from 'monaco-editor/esm/vs/editor/edcore.main';
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import PgSQLWorker from 'monaco-sql-languages/esm/languages/pgsql/pgsql.worker?worker';
 import 'monaco-sql-languages/esm/languages/pgsql/pgsql.contribution';
+// Monaco's own adapter for the old worker options (moduleId, label, createData); its JSON language uses it.
+import { createWebWorker as createLegacyWebWorker } from 'monaco-editor/esm/vs/common/workers.js';
 
 self.MonacoEnvironment = {
   // monaco-sql-languages requests its worker with the language id as label.
@@ -15,6 +17,16 @@ self.MonacoEnvironment = {
     return label === 'pgsql' ? new PgSQLWorker() : new EditorWorker();
   },
 };
+
+// monaco-sql-languages (up to 1.3.1) still calls editor.createWebWorker with the old options. Since Monaco 0.53
+// that function wants a ready `worker` instead; without one it silently fell back to a plain editor worker on the
+// main thread, so validation and completion failed ("Missing requestHandler or method: doValidation" /
+// "doCompletionWithEntities") and the pgsql worker never started. Calls without `worker` go through Monaco's
+// adapter, which creates the worker via MonacoEnvironment.getWorker and sends createData the way the pgsql worker
+// expects; calls that already pass a worker (the adapter's own) go straight through.
+const createWebWorker = monaco.editor.createWebWorker;
+monaco.editor.createWebWorker = ((opts: Parameters<typeof createWebWorker>[0] | LegacyWebWorkerOptions) =>
+  'worker' in opts ? createWebWorker(opts) : createLegacyWebWorker(opts)) as typeof createWebWorker;
 
 // Our own editor themes, so the editor's background matches the app's (--canvas in src/index.css).
 export const MONACO_THEMES = { light: 'mdbnavigator-light', dark: 'mdbnavigator-dark' } as const;

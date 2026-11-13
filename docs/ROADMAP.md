@@ -103,7 +103,10 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | Server activity view | M | Running sessions, cancel or kill a query, locks, table sizes (`pg_stat_activity` and related views). |
 | AI assistant | M | Plain language to SQL, explain a query. Opt-in, using the user's own API key, because it sends the schema to a third party. |
 | Import CSV into a table | M | |
+| Copy a table between PostgreSQL databases | M | One table, to another server or database, started from a dialog. Rows go server to server with a bulk write, with progress and cancel. No type mapping needed, so it comes before the MS SQL provider. |
 | MS SQL Server provider | L | A second provider behind `IDbServerFactory`. |
+| Copy a table across database types | M–L | SQL Server to PostgreSQL and back. Maps column types and shows the target table for review before anything is written. Needs the MS SQL provider. |
+| Two-pane transfer view | M | A separate view with a connection tree on each side, to copy several tables from one side to the other. Not available in the read-only live demo. |
 
 ## Phase 3: Team edition
 
