@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import DatabaseCommand from './DatabaseCommand';
 import { DatabaseCommandResultView } from './DatabaseCommandResultView';
 import HorisontalSidebar from '../../ui/sidebar/HorisontalSidebar';
@@ -7,6 +8,7 @@ import useDatabaseCommandSelector from '../../contexts/databaseCommand/useDataba
 import { QueryTarget } from '../../models/databaseCommand/query/queryTarget';
 import useDatabaseServerConnectContext from '../../contexts/databaseServerConnect/useDatabaseServerConnect';
 import { findConnection } from './queryTargets';
+import { SelectionSize } from '../../ui/dataGrid/selection';
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
@@ -15,8 +17,31 @@ interface Props {
 }
 
 export default function DatabaseCommandAndResult({ databaseCommandQuery, target, onTargetChange }: Props) {
-  const { command, isExecuting, error, status, stats, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
+  const { command, isExecuting, error, status, stats, hubStatus, resultSets } = useDatabaseCommandSelector(databaseCommandQuery.id);
   const { databaseServerConnections } = useDatabaseServerConnectContext();
+
+  // The result tab on screen; null until one is picked (the first result then shows). A new run replaces the
+  // result sets, so an id that is gone falls back to the first.
+  const [activeResultId, setActiveResultId] = useState<string | null>(null);
+
+  // The size of the grid selection of each result set, so each tab shows its own in the status bar. Entries of
+  // result sets from earlier runs are never read again (their ids are gone); they are a few numbers each.
+  const [selections, setSelections] = useState<Record<string, SelectionSize>>({});
+
+  function handleSelectionChange(resultSetId: string, size: SelectionSize | null) {
+    setSelections(previous => {
+      const next = { ...previous };
+      if (size) {
+        next[resultSetId] = size;
+      } else {
+        delete next[resultSetId];
+      }
+      return next;
+    });
+  }
+
+  const activeResult = resultSets.find(rs => rs.id === activeResultId) ?? resultSets[0];
+  const selectionSize = (activeResult && selections[activeResult.id]) || null;
 
   // Only runs that produced results get a label; a failed run shows its error instead.
   const ranOn = command?.ranOn;
@@ -40,7 +65,12 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery, target,
       </HorisontalSidebar>
       {/* min-h-0: the result grid scrolls itself instead of growing the page */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        <DatabaseCommandResultView databaseCommandQueryId={databaseCommandQuery.id}/>
+        <DatabaseCommandResultView
+          databaseCommandQueryId={databaseCommandQuery.id}
+          activeResultId={activeResultId}
+          onActiveResultChange={setActiveResultId}
+          onSelectionChange={handleSelectionChange}
+        />
       </div>
       <DatabaseCommandStatusBar 
         isExecuting={isExecuting}
@@ -49,6 +79,8 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery, target,
         stats={stats}
         hubStatus={hubStatus}
         resultsFrom={resultsFrom}
+        selection={selectionSize}
+        resultSetCount={resultSets.length}
       />
     </div>
   );

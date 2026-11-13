@@ -1,6 +1,8 @@
 using Dapper;
+using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs.Command;
+using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.Schema.Database;
 using MDBNavigator.Domain.Schema.Procedure;
 using MDBNavigator.Domain.Schema.Table;
@@ -312,10 +314,11 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
                 }
 
                 var columns = Enumerable.Range(0, reader.FieldCount)
-                    .Select(i => new ColumnInfo(
-                        reader.GetName(i),
-                        reader.GetFieldType(i).Name,
-                        reader.GetFieldType(i).FullName ?? reader.GetFieldType(i).Name))
+                    .Select(i =>
+                    {
+                        var dataTypeName = reader.GetDataTypeName(i);
+                        return new ColumnInfo(reader.GetName(i), CategoryOf(reader.GetFieldType(i), dataTypeName), dataTypeName);
+                    })
                     .ToArray();
 
                 var batchRows = new List<object?[]>(batchSize);
@@ -377,6 +380,10 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
 
             if (stats != null) stats.RecordsAffected = reader.RecordsAffected;
         }
+
+        // json and jsonb arrive as strings, so the .NET type alone would call them Text.
+        private static DbTypeCategory CategoryOf(Type clrType, string dataTypeName) =>
+            dataTypeName is "json" or "jsonb" ? DbTypeCategory.Json : DbTypeCategories.FromClrType(clrType);
 
         // Dapper command carrying the request's cancellation token.
         private static CommandDefinition Command(string sql, object? parameters = null, CancellationToken ct = default)

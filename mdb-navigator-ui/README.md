@@ -22,7 +22,8 @@ The dev server runs on http://localhost:3000 with a fixed port. It proxies `/api
 |---|---|
 | `npm run dev` | Vite dev server with hot reload. |
 | `npm run build` | Type check (`tsc -b`), then a production build into `dist/`. |
-| `npm run check` | Type check plus ESLint with `--max-warnings 0`. Run it, and `npm run build`, before committing. |
+| `npm run check` | Type check plus ESLint with `--max-warnings 0`. Run it, `npm test` and `npm run build` before committing. |
+| `npm test` | Unit tests (Vitest), once. Test files sit next to the code as `*.test.ts`. |
 | `npm run lint` / `npm run lint:fix` | ESLint only, or with auto-fix. |
 | `npm run typecheck` | `tsc -b` only. |
 | `npm run preview` | Serves `dist/` on port 3000. |
@@ -73,11 +74,12 @@ New variables must also be declared in `src/vite-env.d.ts`.
 
 A tab's target (`QueryTarget`: connection, database, server name, color) lives in `MainBar` next to the tab's query, and the query bar's menus (`QueryTargetPicker`) change it. A run sends the target's connection and database. The tab's query object never changes, so the editor keeps its text. Each run records where it went (`ranOn`). The status bar compares that with the current target, and results are freed when the server they came from is disconnected.
 
-`DataGrid` virtualizes rows with `@tanstack/react-virtual`, and `formatCell` turns each `CellValue` into display text. Query tabs stay mounted when hidden, so switching tabs keeps the editor and results as they were.
+`DataGrid` virtualizes rows and columns with `@tanstack/react-virtual`, and `formatCell` turns each `CellValue` into display text. Column widths are measured once from the first rows and can be dragged afterwards (`ui/dataGrid/columnWidths.ts`). `CellViewer` shows one value in full; `cellViewerText.ts` indents JSON without parsing its numbers, so nothing is rounded. Sorting and filtering never copy rows: `ui/dataGrid/rowView.ts` builds a list of row indexes (a view), the feature component owns it, and the grid, the copy and (in 1.3d) the export all read rows through it. Values compare by their column's `category`. Both are switched on once the rows have stopped arriving. The grid keeps a selection (`ui/dataGrid/selection.ts`: one rectangle between an anchor and a focus cell) and hands the copied text to its caller, which owns the clipboard. Its logic lives in pure modules with unit tests (`selection.ts`, `clipboardText.ts`, `gridGeometry.ts`, `cellViewerText.ts`, `rowView.ts`). Query tabs stay mounted when hidden, so switching tabs keeps the editor and results as they were. Each result set has its own tab and keeps its own filter, sort and column widths; hidden results stay mounted. `features/databaseCommand/resultExport.ts` writes the rows in view as CSV or JSON (pure functions with unit tests), `ResultCsvView` shows the CSV in a read-only Monaco editor, and `utils/download.ts` saves a file from the browser.
 
 ## Conventions
 
 - **`CellValue` has a server counterpart.** `src/models/databaseCommand/result/cellValue.ts` describes exactly what `MDBNavigator.Infrastructure.PostgreSQL/JsonCellValue.cs` produces. A change to one must be made in the other.
+- **`DbTypeCategory` has a server counterpart.** `src/models/databaseCommand/result/dbTypeCategory.ts` lists the values of `MDBNavigator.Domain/Enums/DbTypeCategory.cs`. Grid behavior (sorting, formatting) reads a column's `category` only, never its `dataTypeName`.
 - **Lint is type-aware and strict.** `eslint.config.js` uses typescript-eslint's type-checked rules, and any warning fails `npm run check`.
 - **Monaco is bundled locally, not loaded from a CDN.** `vite.config.ts` points the bare `monaco-editor` import at the editor core. This keeps Monaco's basic languages, including a second competing `pgsql`, out of the bundle. `src/features/databaseCommand/monacoSetup.ts` registers the PostgreSQL language from `monaco-sql-languages`.
 - **Object names are query parameters.** Database, schema and table names go in `params` and are never put in the URL path, so names containing `/`, `?` or `#` are safe. Connection ids in the path go through `encodeURIComponent`.

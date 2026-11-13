@@ -8,24 +8,32 @@ export interface FormattedCell {
   isNull: boolean;
 }
 
+// The full text of a value, as copied, exported and filtered. NULL (and a missing cell) is the empty string.
+// Never cut: only formatCell shortens text, and only for display.
+export function cellToText(value: CellValue | undefined): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value.toString();
+  }
+  // PostgreSQL arrays arrive as arrays, hstore as an object
+  return JSON.stringify(value);
+}
+
 // undefined: the row has fewer values than there are columns (shown like NULL).
 export function formatCell(value: CellValue | undefined): FormattedCell {
   if (value === null || value === undefined) {
     return { text: 'NULL', isNull: true };
   }
 
-  let text: string;
-  if (typeof value === 'boolean') {
-    text = value ? 'true' : 'false';
-  } else if (typeof value === 'string') {
-    text = value;
-  } else if (typeof value === 'number') {
-    text = value.toString();
-  } else {
-    // PostgreSQL arrays arrive as arrays, hstore as an object
-    text = JSON.stringify(value);
-  }
-
+  const text = cellToText(value);
   return {
     text: text.length > MAX_DISPLAY_LENGTH ? text.slice(0, MAX_DISPLAY_LENGTH) + '…' : text,
     isNull: false

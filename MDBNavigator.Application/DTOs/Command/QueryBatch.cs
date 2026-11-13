@@ -1,6 +1,9 @@
+using MDBNavigator.Domain.Enums;
+
 namespace MDBNavigator.Application.DTOs.Command
 {
-    public record ColumnInfo(string Name, string TypeName, string FullTypeName);
+    // DataTypeName: what the database calls the type ("jsonb", "numeric(10, 2)"). For display only.
+    public record ColumnInfo(string Name, DbTypeCategory Category, string DataTypeName);
 
     public class QueryBatch
     {

@@ -124,8 +124,8 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                 {
                     Index = i,
                     FieldName = c.Name,
-                    FieldType = c.TypeName,
-                    FieldDataTypeName = c.FullTypeName
+                    Category = c.Category,
+                    DataTypeName = c.DataTypeName
                 })
                 : null,
             Rows = batch.Rows

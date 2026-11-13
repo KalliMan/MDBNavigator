@@ -37,7 +37,7 @@ Design: [specs/authentication.md](specs/authentication.md).
 
 | Step | Contents | Size |
 |---|---|---|
-| **0.3a** UI unit tests (Vitest) | Reducers, `batchBuffer`, `formatCell`, the auth context. | S–M |
+| **0.3a** UI unit tests (Vitest) | Reducers, `batchBuffer`, `formatCell`, the auth context. Started in 1.3a (Vitest, the grid's pure functions). | S–M |
 | **0.3b** Provider tests (xUnit) | PostgreSQL identifier quoting, generated scripts, `JsonCellValue`. | M |
 | **0.3c** API tests (xUnit) | Handlers and the auth flows against a real Postgres. | M |
 
@@ -77,7 +77,10 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | **1.2b** Saved connections: connect dialog | The saved list in the connect dialog: save, edit, delete, connect from a saved entry (password typed each time), a color picker. Plan: [plans/1.2b-saved-connections-dialog.md](plans/1.2b-saved-connections-dialog.md). | M |
 | **1.2c** Remember password | Optional, encrypted with AES-GCM and a key from `SavedConnections:PasswordKey` (environment variable or user secrets). Only offered when the key is set. Plan: [plans/1.2c-remember-password.md](plans/1.2c-remember-password.md). | M |
 | **1.2d** Switch server or database | Change a query tab's server or database from the query bar: menus with the connected servers and their databases. The editor text is kept, and the status bar says where the results came from. Plan: [plans/1.2d-switch-server-database.md](plans/1.2d-switch-server-database.md). | M |
-| **1.3** Result grid | Select and copy (TSV), column resize, a cell viewer, sort and filter on the loaded rows, CSV and JSON export, one tab per result set. | L |
+| **1.3a** Result grid: select and copy | Select a range of cells, rows or columns (mouse and keyboard) and copy it as tab-separated text. Result columns carry a database-neutral type (`category`, `dataTypeName`). First unit tests (Vitest). Plan: [plans/1.3a-select-copy.md](plans/1.3a-select-copy.md). | M |
+| **1.3b** Result grid: resize and cell viewer | Drag a header edge to resize a column, double-click it to fit; columns are virtualized too. Double-click a cell to see its full value, JSON formatted. Plan: [plans/1.3b-resize-cell-viewer.md](plans/1.3b-resize-cell-viewer.md). | M |
+| **1.3c** Result grid: sort and filter | Sort by a column and filter across all columns, on the loaded rows. Plan: [plans/1.3c-sort-filter.md](plans/1.3c-sort-filter.md). | M |
+| **1.3d** Result grid: tabs and export | One tab per result set, a Table or CSV view, and CSV and JSON download. Plan: [plans/1.3d-tabs-export.md](plans/1.3d-tabs-export.md). | M |
 
 ### Later
 

@@ -22,6 +22,7 @@
   --on-accent: #ffffff;
   --selected: #dbe6fd;
   --on-selected: #1e3a8a;
+  --match: #fde68a;
   --hover: #eef1f5;
   --success: #15803d;
   --success-soft: #dcfce7;
@@ -47,6 +48,7 @@
   --on-accent: #ffffff;
   --selected: #2d4a7a;
   --on-selected: #e6eeff;
+  --match: #6b5a17;
   --hover: #2e3034;
   --success: #5fcf80;
   --success-soft: #1d3326;
@@ -71,6 +73,7 @@
   --color-on-accent: var(--on-accent);
   --color-selected: var(--selected);
   --color-on-selected: var(--on-selected);
+  --color-match: var(--match);
   --color-hover: var(--hover);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);

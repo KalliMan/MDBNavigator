@@ -14,7 +14,8 @@ A web-based database navigator: connect to a database server, browse its databas
 - Script generation: select the first N rows, `CREATE`, `INSERT` and `DROP` for tables, plus definitions and `CREATE`/`DROP` scripts for views, functions and procedures.
 - SQL editor (Monaco) with PostgreSQL highlighting, one tab per query, all tabs kept open in the background.
 - Streamed execution. Rows arrive over SignalR in batches while the query runs, and the grid shows them as they come. Multiple result sets, cancellation and a server-side row limit (100,000 rows by default) are supported.
-- Virtualized result grid: only visible rows are rendered, so large results stay responsive.
+- Virtualized result grid: only visible rows and columns are rendered, so large and wide results stay responsive. Select a range of cells, rows or columns with the mouse or the keyboard and copy it as tab-separated text, with or without a header row. Drag a header edge to resize a column, or double-click it to fit the content. Double-click a cell to see its full value, with JSON formatted for reading. Sort by a column and filter across all columns; both work on the loaded rows, mark the matches, and keep each row's original number.
+- One tab per result set when a run returns several. A switch shows the active result as a table or as CSV text, and Export downloads it as CSV or JSON: the loaded rows, with the current sort and filter. CSV writes NULL as an empty field and an empty string as `""`; JSON keeps `bigint` and `numeric` as strings, so no digit is lost.
 - Light and dark theme, following the system setting until you pick one in the top bar. Each server has its own color in the tree, on its query tabs and in the query bar, so it is clear where a query runs. The server and database in the query bar are menus: pick another connected server or database and the tab's SQL runs there next time, with the editor text kept. The status bar says which server and database the results on screen came from.
 - Saved connections: the connect dialog lists the connections you saved (name, server, port, default database, user and color, and whether a password is remembered; never the password itself). Tick "Save this connection" to save one when it connects. The name starts as server:port (while nothing is saved) and can be changed. The dialog opens with the connection you used last (in this browser), or the first saved one. The default database is the one opened on connect and expanded in the tree. With a key configured, a saved connection can also remember its password, encrypted on the server; the password is then used without being sent back to the browser, and only for the same server and user.
 - Clear errors: PostgreSQL `DETAIL` and `HINT` are included, for example which objects block a `DROP`.
@@ -259,7 +260,7 @@ The response is `202 Accepted` with `{ "id": "{executionId}" }`. The run is queu
   "index": 0,                               // batch number within the result set
   "isFirstBatch": true,
   "isLastBatch": false,
-  "fields": [ { "index": 0, "fieldName": "order_id", "fieldType": "Int32", "fieldDataTypeName": "System.Int32" } ],
+  "fields": [ { "index": 0, "fieldName": "order_id", "category": "Number", "dataTypeName": "integer" } ],
   "rows": [ [1, "2024-01-15T00:00:00", "199.90", null] ]
 }
 ```
@@ -268,6 +269,8 @@ The response is `202 Accepted` with `{ "id": "{executionId}" }`. The run is queu
 - Every result set that returns columns ends with exactly one batch where `isLastBatch` is `true`. That batch can have no rows, which is how an empty result still delivers its columns. A result set can be a single batch that is both first and last.
 - Statements that return no columns (`INSERT`, `UPDATE`, DDL) send no batches but still use up a `resultSetIndex`, so indexes can skip numbers.
 - Batches of one run arrive in order.
+
+**Column types** are the same for every database server. `category` is one of `Number`, `Text`, `Boolean`, `DateTime`, `Json`, `Binary` and `Other`, and decides how the UI sorts and formats the column. `dataTypeName` is what the database calls the type (`jsonb`, `numeric(10, 2)`); the UI shows it and never interprets it. A shared mapper (`DbTypeCategories`) derives the category from the .NET type, and a provider corrects only what its database knows better (PostgreSQL: `json` and `jsonb` arrive as strings). The enum is `DbTypeCategory.cs`, and the UI type is `dbTypeCategory.ts`. Change them together.
 
 **Cell values** are JSON values chosen so nothing is lost in JavaScript:
 
@@ -308,7 +311,7 @@ The server side is `JsonCellValue.cs` and the client type is `CellValue` in `mdb
 
 - Backend: `dotnet build MDBNavigator.sln`.
 - UI: `npm run check` (type check plus type-aware ESLint with zero warnings allowed) and `npm run build` in `mdb-navigator-ui`.
-- There are no automated tests yet. xUnit tests for the backend and Vitest tests for the UI are planned.
+- Tests: `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions: selection, clipboard text, geometry, JSON layout, sort and filter, and the CSV and JSON export). xUnit tests for the backend are planned.
 
 ### Docker
 

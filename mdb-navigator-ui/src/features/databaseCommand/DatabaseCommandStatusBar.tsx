@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CommandExecutionStatus } from '../../models/databaseCommand/result/commandFinishedResult';
 import { DatabaseCommandStats } from '../../contexts/databaseCommand/DatabaseCommandReducer';
 import { HubStatus } from '../../services/commandResultHub';
+import { SelectionSize } from '../../ui/dataGrid/selection';
 
 interface Props {
   isExecuting: boolean;
@@ -11,6 +12,10 @@ interface Props {
   hubStatus: HubStatus;
   // Where the results on screen came from; stale once the tab points somewhere else (1.2d). null: no results to describe.
   resultsFrom: { label: string; stale: boolean } | null;
+  // The size of the grid selection; null when nothing is selected.
+  selection: SelectionSize | null;
+  // How many result sets the run has; more than one is said next to the row count.
+  resultSetCount: number;
 }
 
 const hubStatusView: Record<HubStatus, { label: string; dotClass: string }> = {
@@ -29,20 +34,21 @@ const formatTime = (ms: number): string => {
   return `${seconds}s ${milliseconds}ms`;
 };
 
-function formatRows(stats: DatabaseCommandStats | null): string | null {
+function formatRows(stats: DatabaseCommandStats | null, resultSetCount: number): string | null {
   if (!stats) {
     return null;
   }
   if (stats.rowCount > 0) {
-    return `${stats.rowCount} ${stats.rowCount === 1 ? 'row' : 'rows'}`;
+    const rows = `${stats.rowCount.toLocaleString('en-US')} ${stats.rowCount === 1 ? 'row' : 'rows'}`;
+    return resultSetCount > 1 ? `${rows} in ${resultSetCount} results` : rows;
   }
   if (stats.recordsAffected >= 0) {
-    return `${stats.recordsAffected} records affected`;
+    return `${stats.recordsAffected.toLocaleString('en-US')} records affected`;
   }
   return null;
 }
 
-export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, resultsFrom }: Props) {
+export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, resultsFrom, selection, resultSetCount }: Props) {
   const [executionTime, setExecutionTime] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -71,7 +77,7 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
 
   // Prefer the server-measured time once the execution has finished.
   const finishedTime = formatTime(stats?.elapsedMs ?? executionTime);
-  const rows = formatRows(stats);
+  const rows = formatRows(stats, resultSetCount);
   const hub = hubStatusView[hubStatus];
 
   return (
@@ -102,7 +108,7 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
             <div className="flex items-center gap-2">
               <div className="size-2 rounded-full bg-warning"></div>
               <span className="font-medium text-fg">
-                Query cancelled{stats && stats.rowCount > 0 ? ` after ${formatRows(stats)}` : ''}
+                Query cancelled{stats && stats.rowCount > 0 ? ` after ${formatRows(stats, resultSetCount)}` : ''}
               </span>
             </div>
             <span className="text-fg-muted">
@@ -117,7 +123,7 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
             </div>
             {stats?.truncated ? (
               <span className="text-warning" title="The server stops streaming at its row limit (QueryExecution:MaxRowsPerExecution)">
-                Showing first {stats.rowCount} rows (row limit reached)
+                Showing first {stats.rowCount.toLocaleString('en-US')} rows (row limit reached). Sort and filter cover these rows only.
               </span>
             ) : (
               rows && <span className="text-fg-muted">{rows}</span>
@@ -132,6 +138,11 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
       </div>
 
       <div className="flex min-w-0 flex-none items-center gap-4">
+        {selection && selection.rows * selection.columns > 1 && (
+          <span className="flex-none text-fg">
+            {selection.rows} {selection.rows === 1 ? 'row' : 'rows'} × {selection.columns} {selection.columns === 1 ? 'column' : 'columns'} selected
+          </span>
+        )}
         {resultsFrom && (
           resultsFrom.stale ? (
             <span className="truncate text-warning">Results are from {resultsFrom.label}. Run to refresh.</span>
