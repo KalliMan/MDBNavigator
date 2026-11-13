@@ -37,7 +37,11 @@ export default function useDatabaseCommandContext(){
     const executionId = uuidv4();
     context!.dispatch({
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: cmdQuery.id, executionId }
+      payload: {
+        commandId: cmdQuery.id,
+        executionId,
+        ranOn: { connectionId: cmdQuery.connectionId, databaseName: cmdQuery.databaseName },
+      }
     });
 
     try {

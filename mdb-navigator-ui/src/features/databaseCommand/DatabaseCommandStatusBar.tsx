@@ -9,6 +9,8 @@ interface Props {
   status: CommandExecutionStatus | null;
   stats: DatabaseCommandStats | null;
   hubStatus: HubStatus;
+  // Where the results on screen came from; stale once the tab points somewhere else (1.2d). null: no results to describe.
+  resultsFrom: { label: string; stale: boolean } | null;
 }
 
 const hubStatusView: Record<HubStatus, { label: string; dotClass: string }> = {
@@ -40,7 +42,7 @@ function formatRows(stats: DatabaseCommandStats | null): string | null {
   return null;
 }
 
-export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus }: Props) {
+export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, resultsFrom }: Props) {
   const [executionTime, setExecutionTime] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -129,9 +131,18 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
         )}
       </div>
 
-      <div className="flex flex-none items-center gap-1.5 text-fg-muted" title="Result stream connection">
-        <div className={`size-2 rounded-full ${hub.dotClass}`}></div>
-        {hub.label}
+      <div className="flex min-w-0 flex-none items-center gap-4">
+        {resultsFrom && (
+          resultsFrom.stale ? (
+            <span className="truncate text-warning">Results are from {resultsFrom.label}. Run to refresh.</span>
+          ) : (
+            <span className="truncate">Results from {resultsFrom.label}</span>
+          )
+        )}
+        <div className="flex flex-none items-center gap-1.5" title="Result stream connection">
+          <div className={`size-2 rounded-full ${hub.dotClass}`}></div>
+          {hub.label}
+        </div>
       </div>
     </div>
   );

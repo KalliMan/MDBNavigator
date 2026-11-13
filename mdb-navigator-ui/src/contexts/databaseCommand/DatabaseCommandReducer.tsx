@@ -14,6 +14,13 @@ export type DatabaseCommandStats = {
   truncated: boolean;
 }
 
+// Where a run was sent. The status bar compares it with the tab's current target, and MainBar frees results
+// whose server was disconnected.
+export type RanOn = {
+  connectionId: string;
+  databaseName: string;
+};
+
 export type DatabaseCommand = {
   id: string;
   isExecuting: boolean;
@@ -22,6 +29,7 @@ export type DatabaseCommand = {
   executionId: string | null;
   status: CommandExecutionStatus | null;
   stats: DatabaseCommandStats | null;
+  ranOn: RanOn | null;
 
   query: DatabaseSQLCommandQuery | null;
   resultSets: ResultSet[];
@@ -53,6 +61,7 @@ function createCommand(id: string): DatabaseCommand {
     executionId: null,
     status: null,
     stats: null,
+    ranOn: null,
     query: null,
     resultSets: []
   };
@@ -99,12 +108,13 @@ function appendBatches(resultSets: ResultSet[], batches: DatabaseCommandBatchRes
 export function databaseCommandReducer(state: DatabaseCommandState, action: DatabaseCommandActions): DatabaseCommandState {
   switch(action.type) {
     case DatabaseCommandActionTypes.Executing: {
-      const { commandId, executionId } = action.payload;
+      const { commandId, executionId, ranOn } = action.payload;
       const running: Partial<DatabaseCommand> = {
         isExecuting: true,
         executionId,
         status: null,
         stats: null,
+        ranOn,
         resultSets: [],
         error: null
       };

@@ -2,6 +2,7 @@ import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/data
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus } from "../../services/commandResultHub";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import type { RanOn } from "./DatabaseCommandReducer";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
@@ -15,7 +16,8 @@ export enum DatabaseCommandActionTypes {
 
 export type ExecutingAction = {
   type: DatabaseCommandActionTypes.Executing;
-  payload: { commandId: string; executionId: string };
+  // ranOn: where this run goes. The tab's target can change afterwards (1.2d), so the run keeps its own copy.
+  payload: { commandId: string; executionId: string; ranOn: RanOn };
 };
 
 export type CommandQueriedAction = {

@@ -16,6 +16,7 @@ export enum DatabaseSchemaErrorScope {
 
 export enum DatabaseSchemaActionTypes {
   Loading = 'schema/loading',
+  DatabasesLoading = 'schema/databasesLoading',
   AddedSchema = 'schema/addedSchema',
   RemovedSchema = 'schema/removedSchema',
   FetchedDatabases = 'schema/fetchedDatabases',
@@ -35,6 +36,12 @@ export enum DatabaseSchemaActionTypes {
 
 export type LoadingAction = {
   type: DatabaseSchemaActionTypes.Loading;
+};
+
+// payload: connectionId. Marks one connection's database list as loading (the query bar's database menu shows it).
+export type DatabasesLoadingAction = {
+  type: DatabaseSchemaActionTypes.DatabasesLoading;
+  payload: string;
 };
 
 export type AddedSchemaAction = {
@@ -123,6 +130,7 @@ export type ErrorDatabaseSchemaActionAction = {
 };
 
 export type DatabaseSchemaActions = LoadingAction
+  | DatabasesLoadingAction
   | AddedSchemaAction
   | RemovedSchemaAction
   | FetchedDatabasesAction

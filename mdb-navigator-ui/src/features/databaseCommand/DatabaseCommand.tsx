@@ -4,7 +4,7 @@ import { KeyCode, KeyMod } from "monaco-editor";
 import { LanguageIdEnum } from "monaco-sql-languages";
 
 import { useEffect, useRef, useState } from "react";
-import { LuChevronRight, LuDatabase, LuPlay, LuSquare } from "react-icons/lu";
+import { LuPlay, LuSquare } from "react-icons/lu";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
 import useDatabaseCommandSelector from "../../contexts/databaseCommand/useDatabaseCommandSelector";
@@ -12,33 +12,41 @@ import useDatabaseServerConnectContext from "../../contexts/databaseServerConnec
 import { QueryTarget } from "../../models/databaseCommand/query/queryTarget";
 import useTheme from "../../contexts/theme/useTheme";
 import { MONO_FONT } from "../../utils/fonts";
+import QueryTargetPicker from "./QueryTargetPicker";
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
   target: QueryTarget;
+  onTargetChange: (target: QueryTarget) => void;
   execute?(query: string): void;
 }
 
-export default function DatabaseCommand({ databaseCommandQuery, target }: Props) {
+export default function DatabaseCommand({ databaseCommandQuery, target, onTargetChange }: Props) {
   const { executeDatabaseSQLCommand, cancelDatabaseSQLCommand } = useDatabaseCommandContext();
   const { isExecuting, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
   const { databaseServerConnections } = useDatabaseServerConnectContext();
   const { theme } = useTheme();
   // A tab of a disconnected server stays open (its SQL is kept) but can't run.
   const isServerConnected = databaseServerConnections.some(
-    c => c.connectedResult?.connectionId === databaseCommandQuery.connectionId
+    c => c.connectedResult?.connectionId === target.connectionId
   );
+  const anyServerConnected = databaseServerConnections.some(c => c.connectedResult);
+  const disconnectedMessage = anyServerConnected
+    ? 'Disconnected. Pick a connected server to run this query.'
+    : 'Disconnected. Connect to a server to run this query.';
+  // Set when the database changed without the user picking it; it replaces the address until the next action.
+  const [targetNote, setTargetNote] = useState<string | null>(null);
   // While the hub is (re)connecting, results could not be delivered; when disconnected, Execute reconnects first.
   const isHubBusy = hubStatus === 'connecting' || hubStatus === 'reconnecting';
   const canExecute = !isExecuting && !isHubBusy && isServerConnected;
   const executeDisabledReason = !isServerConnected
-    ? 'Disconnected. Connect to the server again to run this query.'
+    ? disconnectedMessage
     : isHubBusy ? 'Connecting to the server...' : undefined;
   // The editor's Ctrl+Enter command is bound once on mount, so it reads the current values through a ref
   // (otherwise it would keep calling the execute function and state of the first render).
-  const latest = useRef({ canExecute, query: databaseCommandQuery, execute: executeDatabaseSQLCommand });
+  const latest = useRef({ canExecute, query: databaseCommandQuery, target, execute: executeDatabaseSQLCommand });
   useEffect(() => {
-    latest.current = { canExecute, query: databaseCommandQuery, execute: executeDatabaseSQLCommand };
+    latest.current = { canExecute, query: databaseCommandQuery, target, execute: executeDatabaseSQLCommand };
   });
   const [sqlQuery, setSqlQuery] = useState<string>(databaseCommandQuery.cmdQuery);
   // Queries opened with executeImmediately (e.g. "Select Top 100") run once when their tab opens.
@@ -60,9 +68,11 @@ export default function DatabaseCommand({ databaseCommandQuery, target }: Props)
     setSqlQuery(value || "");
   }
 
-  // Runs the editor text; the query object in context state is never modified.
+  // Runs the editor text where the tab now points (1.2d); the query object in context state is never modified.
   function run(cmdQuery: string) {
-    void latest.current.execute({ ...latest.current.query, cmdQuery });
+    const { query, target: where, execute } = latest.current;
+    setTargetNote(null);
+    void execute({ ...query, connectionId: where.connectionId, databaseName: where.databaseName, cmdQuery });
   }
 
   function handleExecute() {
@@ -106,20 +116,19 @@ export default function DatabaseCommand({ databaseCommandQuery, target }: Props)
           <LuSquare size={13} aria-hidden="true" />
         </button>
         <span className="mx-1 h-[18px] w-px bg-line" aria-hidden="true" />
-        <span className="flex h-7 items-center gap-1.5 rounded-[3px] border border-line px-2 text-fg" title={target.address || undefined}>
-          <span className="size-2.5 rounded-[2px]" style={{ backgroundColor: target.color }} aria-hidden="true" />
-          {target.serverName}
-        </span>
-        <LuChevronRight size={12} className="text-fg-faint" aria-hidden="true" />
-        <span className="flex h-7 items-center gap-1.5 rounded-[3px] border border-line px-2 text-fg">
-          <LuDatabase size={13} className="text-fg-muted" aria-hidden="true" />
-          {databaseCommandQuery.databaseName}
-        </span>
+        <QueryTargetPicker
+          target={target}
+          locked={isExecuting}
+          onChange={(next, note) => { setTargetNote(note); onTargetChange(next); }}
+          onMenuOpen={() => setTargetNote(null)}
+        />
         <span className="flex-1" />
-        {isServerConnected ? (
-          <span className="truncate text-xs text-fg-muted">{target.address}</span>
+        {!isServerConnected ? (
+          <span className="truncate text-xs text-danger">{disconnectedMessage}</span>
+        ) : targetNote ? (
+          <span role="status" className="truncate text-xs text-warning">{targetNote}</span>
         ) : (
-          <span className="truncate text-xs text-danger">Disconnected. Connect to the server again to run this query.</span>
+          <span className="truncate text-xs text-fg-muted">{target.address}</span>
         )}
       </div>
       <div className="min-h-0 flex-1">

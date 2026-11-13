@@ -8,8 +8,7 @@ import useCommandQueryContext from '../contexts/commandQuery/useCommandQueryCont
 import useDatabaseCommandContext from '../contexts/databaseCommand/useDatabaseCommandContext';
 import useDatabaseServerConnectContext from '../contexts/databaseServerConnect/useDatabaseServerConnect';
 import { QueryTarget } from '../models/databaseCommand/query/queryTarget';
-import { DatabaseServerConnection } from '../contexts/databaseServerConnect/DatabaseServerConnectReducer';
-import { connectionAddress, UNKNOWN_CONNECTION_COLOR } from '../utils/connectionColor';
+import { queryTargetFor } from '../features/databaseCommand/queryTargets';
 
 interface TabData {
   id: string;
@@ -17,21 +16,6 @@ interface TabData {
   target: QueryTarget;
 
   databaseCommandQuery: DatabaseSQLCommandQuery;
-}
-
-// Captured when the tab opens: a disconnect removes the connection, but the tab keeps showing where it ran.
-function queryTarget(query: DatabaseSQLCommandQuery, connections: DatabaseServerConnection[]): QueryTarget {
-  const match = connections.find(c => c.connectedResult?.connectionId === query.connectionId);
-  const connection = match?.connectedResult;
-  if (!match || !connection) {
-    return { serverName: 'Unknown server', databaseName: query.databaseName, address: '', color: UNKNOWN_CONNECTION_COLOR };
-  }
-  return {
-    serverName: match.name,
-    databaseName: query.databaseName,
-    address: connectionAddress(connection),
-    color: match.color,
-  };
 }
 
 function Mainbar() {
@@ -62,7 +46,8 @@ function Mainbar() {
         id: uuidv4(),
         // Untitled queries ("New Query for this database") are numbered; generated ones keep their name.
         title: query.name || `Query ${tabCounter.current}`,
-        target: queryTarget(query, databaseServerConnections),
+        // Captured when the tab opens; the query bar can change it.
+        target: queryTargetFor(query.connectionId, query.databaseName, databaseServerConnections),
         databaseCommandQuery: query
       };
     });
@@ -71,14 +56,19 @@ function Mainbar() {
     setActiveTabId(newTabs[newTabs.length - 1].id);
   }, [databaseCommandQueries, databaseServerConnections]);
 
-  // Tabs of a disconnected server stay open (read-only), but their results are freed.
+  // Results are freed once the server they came from is disconnected. After a switch (1.2d) that can be another
+  // server than the tab's current one, so the run's own connection (ranOn) decides. The tabs stay open.
   useEffect(() => {
     const connectedIds = new Set(databaseServerConnections.map(c => c.connectedResult?.connectionId));
-    tabsData
-      .filter(t => !connectedIds.has(t.databaseCommandQuery.connectionId))
-      .filter(t => commands.some(c => c.id === t.databaseCommandQuery.id))
-      .forEach(t => removeDatabaseSQLCommand(t.databaseCommandQuery.id));
-  }, [databaseServerConnections, tabsData, commands, removeDatabaseSQLCommand]);
+    commands
+      .filter(c => c.ranOn && !connectedIds.has(c.ranOn.connectionId))
+      .forEach(c => removeDatabaseSQLCommand(c.id));
+  }, [databaseServerConnections, commands, removeDatabaseSQLCommand]);
+
+  // The query bar changed where this tab runs (1.2d). The tab's query object stays as it is, so its editor text is kept.
+  function handleTargetChange(tabId: string, target: QueryTarget) {
+    setTabsData(prev => prev.map(t => (t.id === tabId ? { ...t, target } : t)));
+  }
 
   function handleCloseTab (id: string): void {
     const index = tabsData.findIndex(t => t.id === id);
@@ -114,7 +104,12 @@ function Mainbar() {
               color={t.target.color}
               title={`${t.title}\n${t.target.address || t.target.serverName} · ${t.target.databaseName}`}
             >
-              <DatabaseCommandAndResult databaseCommandQuery={t.databaseCommandQuery} target={t.target} key={t.id} />
+              <DatabaseCommandAndResult
+                databaseCommandQuery={t.databaseCommandQuery}
+                target={t.target}
+                onTargetChange={target => handleTargetChange(t.id, target)}
+                key={t.id}
+              />
             </Tabs.Tab>
           ))}
         </Tabs>

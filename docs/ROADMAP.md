@@ -76,7 +76,7 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | **1.2a** Saved connections: storage | Saved connections per user in the app database (name, server, port, default database, user, color), a CRUD API under `/api/savedConnections`. With `Auth:Mode = None` they belong to the local user. Plan: [plans/1.2a-saved-connections-storage.md](plans/1.2a-saved-connections-storage.md). | M |
 | **1.2b** Saved connections: connect dialog | The saved list in the connect dialog: save, edit, delete, connect from a saved entry (password typed each time), a color picker. Plan: [plans/1.2b-saved-connections-dialog.md](plans/1.2b-saved-connections-dialog.md). | M |
 | **1.2c** Remember password | Optional, encrypted with AES-GCM and a key from `SavedConnections:PasswordKey` (environment variable or user secrets). Only offered when the key is set. Plan: [plans/1.2c-remember-password.md](plans/1.2c-remember-password.md). | M |
-| **1.2d** Switch server or database | Change a query tab's server or database from the query bar. | M |
+| **1.2d** Switch server or database | Change a query tab's server or database from the query bar: menus with the connected servers and their databases. The editor text is kept, and the status bar says where the results came from. Plan: [plans/1.2d-switch-server-database.md](plans/1.2d-switch-server-database.md). | M |
 | **1.3** Result grid | Select and copy (TSV), column resize, a cell viewer, sort and filter on the loaded rows, CSV and JSON export, one tab per result set. | L |
 
 ### Later

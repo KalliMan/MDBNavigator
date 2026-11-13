@@ -8,7 +8,8 @@ export const DatabaseSchemaContext = createContext<DatabaseConnectContextType | 
 // Loads the database list of a connection; used by the provider for new connections and by fetchDatabases.
 export async function loadDatabases(dispatch: React.Dispatch<DatabaseSchemaActions>, connectionId: string) {
   dispatch({
-    type: DatabaseSchemaActionTypes.Loading,
+    type: DatabaseSchemaActionTypes.DatabasesLoading,
+    payload: connectionId,
   });
 
   try {

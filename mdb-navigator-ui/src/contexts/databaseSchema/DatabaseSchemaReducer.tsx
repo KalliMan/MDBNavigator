@@ -44,6 +44,16 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         draft.isLoading = true;
         break;
 
+      case DatabaseSchemaActionTypes.DatabasesLoading: {
+        draft.isLoading = true;
+        const schema = findSchema(draft, action.payload);
+        if (schema) {
+          schema.isLoading = true;
+          schema.error = null;
+        }
+        break;
+      }
+
       case DatabaseSchemaActionTypes.AddedSchema:
         // Idempotent: a connection never gets a second schema entry.
         if (!findSchema(draft, action.payload.connectionId)) {
@@ -112,12 +122,20 @@ export function databaseSchemaReducer(state: DatabaseSchemaState, action: Databa
         const { message, connectionId, databaseName, scope } = action.payload;
 
         const schema = connectionId && scope ? findSchema(draft, connectionId) : undefined;
+        // A failed database list belongs to its connection, even before a first list arrived: the query bar's database
+        // menu shows it with a Retry. A failed refresh keeps the list it had.
+        if (schema && scope === DatabaseSchemaErrorScope.Databases) {
+          schema.isLoading = false;
+          schema.error = message;
+          break;
+        }
+
         if (!schema || !schema.databasesDetails) {
           draft.error = message;
           break;
         }
 
-        if (scope === DatabaseSchemaErrorScope.Databases || !databaseName) {
+        if (!databaseName) {
           schema.error = message;
           break;
         }

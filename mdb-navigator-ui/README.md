@@ -51,7 +51,7 @@ New variables must also be declared in `src/vite-env.d.ts`.
 | `src/contexts` | App state: one React context per area. `auth/` holds who is signed in, `theme/` light or dark; the others (server connections, database schema, query tabs, command execution) use reducers. |
 | `src/services` | `apiAgent.ts`: axios setup, the tab `id` header, error toasts, the session-ended handling, and all REST calls. `authApi.ts`: the sign-in calls, on their own axios instance without toasts. `commandResultHub.ts`: the single SignalR connection and its status. |
 | `src/models` | Types for what the API sends and receives. |
-| `src/ui` | Reusable components with no app knowledge: `DataGrid`, `TreeView`, tabs, sidebars and splitters, modal, context menu, inputs. |
+| `src/ui` | Reusable components with no app knowledge: `DataGrid`, `TreeView`, tabs, sidebars and splitters, modal, context menu, dropdown menu, inputs. |
 | `src/layout` | Top bar with the theme switch and the user menu, nav bar (the connections tree) and main bar (query tabs). |
 | `src/common/sharedHooks`, `src/utils` | Shared hooks and helpers, such as the per-tab id in `localSessionStorage.ts` and error message extraction. |
 
@@ -70,6 +70,8 @@ New variables must also be declared in `src/vite-env.d.ts`.
 3. The reducer appends a batch only to the tab whose current `executionId` matches it. Late batches from a cancelled or replaced run are ignored.
 4. `CommandFinished` first flushes the buffer, then sets the tab's status (`Completed`, `Failed` or `Cancelled`) and the stats shown in the status bar: row count, records affected, elapsed time, and whether the row limit was hit.
 5. If the hub disconnects or starts reconnecting, running tabs are marked failed, because batches sent in the meantime are lost.
+
+A tab's target (`QueryTarget`: connection, database, server name, color) lives in `MainBar` next to the tab's query, and the query bar's menus (`QueryTargetPicker`) change it. A run sends the target's connection and database. The tab's query object never changes, so the editor keeps its text. Each run records where it went (`ranOn`). The status bar compares that with the current target, and results are freed when the server they came from is disconnected.
 
 `DataGrid` virtualizes rows with `@tanstack/react-virtual`, and `formatCell` turns each `CellValue` into display text. Query tabs stay mounted when hidden, so switching tabs keeps the editor and results as they were.
 
