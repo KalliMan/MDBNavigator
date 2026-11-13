@@ -60,6 +60,9 @@ var app = builder.Build();
 // and the mode in effect is logged.
 app.Services.GetRequiredService<IConnectionGuard>();
 
+// Created now, so the log says whether remembered passwords are on.
+app.Services.GetRequiredService<ISavedPasswordProtector>();
+
 // Both auth modes use the app database (accounts, saved connections); seeding happens only with accounts.
 await app.Services.InitializeAppDatabaseAsync();
 

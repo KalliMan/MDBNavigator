@@ -2,6 +2,7 @@ using MDBNavigator.API.DTOs;
 using MDBNavigator.Application.Features.SavedConnections;
 using MDBNavigator.Application.Features.SavedConnections.Commands.CreateSavedConnection;
 using MDBNavigator.Application.Features.SavedConnections.Commands.DeleteSavedConnection;
+using MDBNavigator.Application.Features.SavedConnections.Commands.ForgetSavedPassword;
 using MDBNavigator.Application.Features.SavedConnections.Commands.UpdateSavedConnection;
 using MDBNavigator.Application.Features.SavedConnections.Queries.GetSavedConnection;
 using MDBNavigator.Application.Features.SavedConnections.Queries.GetSavedConnections;
@@ -45,10 +46,18 @@ namespace MDBNavigator.API.Controllers
             return NoContent();
         }
 
+        // Forgets the remembered password; the saved connection stays. 204, or 404.
+        [HttpDelete("{id:guid}/password")]
+        public async Task<IActionResult> ForgetPassword([FromRoute] Guid id, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new ForgetSavedPasswordCommand(UserId, id), cancellationToken);
+            return NoContent();
+        }
+
         // An unknown server type name becomes ServerType.None, which the validator rejects (as in DatabaseConnectionController).
         private static SavedConnectionInput MapToInput(SavedConnectionRequest r) => new(
             r.Name,
             ServerTypes.TryParse(r.ServerType, out var serverType) ? serverType : ServerType.None,
-            r.ServerName, r.Port, r.DatabaseName, r.UserName, r.Color);
+            r.ServerName, r.Port, r.DatabaseName, r.UserName, r.Color, r.RememberPassword, r.Password);
     }
 }

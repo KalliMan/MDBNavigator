@@ -15,10 +15,13 @@ namespace MDBNavigator.API.DTOs
 
         public required string Password { get; set; }
 
+        // With an empty Password: use this saved connection's remembered password (same server and user only).
+        public Guid? SavedConnectionId { get; set; }
+
         // Keeps the password out of ToString() (logs, exception messages, debugger output).
         protected virtual bool PrintMembers(StringBuilder builder)
         {
-            builder.Append($"ServerType = {ServerType}, ServerName = {ServerName}, Port = {Port}, UserName = {UserName}, DatabaseName = {DatabaseName}, Password = ***");
+            builder.Append($"ServerType = {ServerType}, ServerName = {ServerName}, Port = {Port}, UserName = {UserName}, DatabaseName = {DatabaseName}, Password = ***, SavedConnectionId = {SavedConnectionId}");
             return true;
         }
     }

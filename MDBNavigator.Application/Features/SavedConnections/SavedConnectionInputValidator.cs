@@ -37,6 +37,11 @@ namespace MDBNavigator.Application.Features.SavedConnections
             RuleFor(x => x.Color).Must(c => HexColor.IsMatch(c!))
                 .When(x => !string.IsNullOrEmpty(x.Color))
                 .WithMessage("Color must be a hex color like #16a34a.");
+
+            // Not trimmed: passwords are used exactly as typed.
+            RuleFor(x => x.Password).Must(p => p!.Length <= SavedConnectionLimits.PasswordMaxLength)
+                .When(x => !string.IsNullOrEmpty(x.Password))
+                .WithMessage($"Password must be at most {SavedConnectionLimits.PasswordMaxLength} characters.");
         }
     }
 }

@@ -11,6 +11,8 @@ export default function useSavedConnections(enabled: boolean): {
   loadFailed: boolean;
   // True when deleted; on failure the toast already explains it.
   remove: (id: string) => Promise<boolean>;
+  // True when forgotten (the entry then shows hasPassword false); on failure the toast already explains it.
+  forgetPassword: (id: string) => Promise<boolean>;
 } {
   const [saved, setSaved] = useState<SavedConnection[]>([]);
   const [isLoading, setIsLoading] = useState(enabled);
@@ -57,5 +59,15 @@ export default function useSavedConnections(enabled: boolean): {
     }
   }, []);
 
-  return { saved, isLoading, loadFailed, remove };
+  const forgetPassword = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      await agent.savedConnectionsApi.forgetPassword(id);
+      setSaved(list => list.map(s => s.id === id ? { ...s, hasPassword: false } : s));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  return { saved, isLoading, loadFailed, remove, forgetPassword };
 }

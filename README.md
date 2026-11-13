@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet, so the connect dialog doesn't offer it.
 
-> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Connecting and running queries are [rate limited](#rate-limits-and-captcha) per user, and an optional CAPTCHA can be asked on sign-up and after repeated failed connects. Responses carry [security headers](#security-headers), including a Content Security Policy.
+> **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Saved connections remember passwords only when a key is configured; they are encrypted with AES-GCM and never sent back to the browser ([remembered passwords](#remembered-passwords)). Connecting and running queries are [rate limited](#rate-limits-and-captcha) per user, and an optional CAPTCHA can be asked on sign-up and after repeated failed connects. Responses carry [security headers](#security-headers), including a Content Security Policy.
 
 ## Features
 
@@ -16,7 +16,7 @@ A web-based database navigator: connect to a database server, browse its databas
 - Streamed execution. Rows arrive over SignalR in batches while the query runs, and the grid shows them as they come. Multiple result sets, cancellation and a server-side row limit (100,000 rows by default) are supported.
 - Virtualized result grid: only visible rows are rendered, so large results stay responsive.
 - Light and dark theme, following the system setting until you pick one in the top bar. Each server has its own color in the tree, on its query tabs and in the query bar, so it is clear where a query runs.
-- Saved connections: the connect dialog lists the connections you saved (name, server, port, default database, user and color; never the password). Tick "Save this connection" to save one when it connects. The name starts as server:port (while nothing is saved) and can be changed. The dialog opens with the connection you used last (in this browser), or the first saved one. The default database is the one opened on connect and expanded in the tree.
+- Saved connections: the connect dialog lists the connections you saved (name, server, port, default database, user and color, and whether a password is remembered; never the password itself). Tick "Save this connection" to save one when it connects. The name starts as server:port (while nothing is saved) and can be changed. The dialog opens with the connection you used last (in this browser), or the first saved one. The default database is the one opened on connect and expanded in the tree. With a key configured, a saved connection can also remember its password, encrypted on the server; the password is then used without being sent back to the browser, and only for the same server and user.
 - Clear errors: PostgreSQL `DETAIL` and `HINT` are included, for example which objects block a `DROP`.
 
 ## Repository layout
@@ -97,6 +97,7 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `Auth:SignUp` | `Open` | `Closed`: nobody can create an account; the first admin comes from `Auth:Admin`. |
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if it doesn't exist. Put them in user secrets or environment variables. |
 | `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts, saved connections; used in both auth modes). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
+| `SavedConnections:PasswordKey` | | 32 random bytes in base64 (`openssl rand -base64 32`). When set, saved connections can remember passwords. A secret: user secrets or an environment variable. See [remembered passwords](#remembered-passwords). |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Sign-in with that provider, switched on when both are set (user secrets or environment variables). The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
 | `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:AppBaseUrl` (the app's address for links), and for SMTP `Email:FromAddress`, `Email:Smtp:Username` and `Email:Smtp:Password`. `Email:Smtp:Host` and `Port` default to Brevo (`smtp-relay.brevo.com`, 587); set them only for another mail server. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
 | `RateLimiting:AuthRequestsPerMinute` | `10` | Sign-in, register and password requests per minute and IP address. |
@@ -184,6 +185,20 @@ In development the UI comes from the Vite dev server, which needs inline scripts
 
 **How connection credentials are kept.** Connection settings are held in server memory only, per browser tab and connection. The password is encrypted with a key that exists only in the running process. A restart drops every connection, and users reconnect.
 
+### Remembered passwords
+
+Off unless `SavedConnections:PasswordKey` is set. Then the connect dialog offers "Remember password" for a saved connection, and the server keeps that password encrypted with AES-GCM in the app database.
+
+- The password never comes back to the browser. To connect with it, the UI sends the saved connection's id with an empty password, and the server decrypts it for that connect only.
+- It is used and kept only for the server, port, server type and user name it was typed for. Changing any of them in the saved connection forgets it, so a saved entry can't be pointed at another server to collect the password.
+- Each value is bound to its saved connection and its owner, and the key is not in the database. A copy of the database file alone doesn't reveal the passwords; keep backups of the key apart from backups of the database.
+- Changing or removing the key makes every remembered password unusable (users are asked for it again, and saving replaces it). There is no re-encryption.
+- A wrong key (not base64, or not 32 bytes) stops startup.
+
+Generate a key with `openssl rand -base64 32` (PowerShell: `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`) and set it with `dotnet user-secrets set SavedConnections:PasswordKey <key> --project MDBNavigator.API`, or as the environment variable `SavedConnections__PasswordKey`.
+
+On an instance with open sign-up, setting the key means the server holds strangers' database passwords. Leave it unset there unless that is intended.
+
 ## API
 
 All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](MDBNavigator.API/MDBNavigator.API.http) has sample requests.
@@ -200,14 +215,15 @@ Errors are returned as JSON:
 
 | Method and path | Purpose |
 |---|---|
-| `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password, databaseName? }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName, databaseName }`. `databaseName` is opened whenever a request names no database (the connect test, the database list); without it, the server's default (PostgreSQL: the database named like the user). After repeated failed connects, needs a `Captcha-Token` header when a CAPTCHA is set. |
+| `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password, databaseName?, savedConnectionId? }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName, databaseName, savedConnectionId }`. `databaseName` is opened whenever a request names no database (the connect test, the database list); without it, the server's default (PostgreSQL: the database named like the user). With an empty `password` and a `savedConnectionId`, the saved connection's [remembered password](#remembered-passwords) is used (same server, port and user only; otherwise `400`); the result then carries that `savedConnectionId`, so a reconnect can send it again. After repeated failed connects, needs a `Captcha-Token` header when a CAPTCHA is set. |
 | `POST databaseConnection/reconnect/{connectionId}` | Same body. Replaces the settings for an existing connection id. |
 | `POST databaseConnection/disconnect/{connectionId}` | Forgets the connection and cancels its running queries. |
-| `GET savedConnections` | The user's saved connections, by name: `[{ id, name, serverType, serverName, port, databaseName, userName, color }]`. No passwords. |
+| `GET savedConnections` | The user's saved connections, by name: `[{ id, name, serverType, serverName, port, databaseName, userName, color, hasPassword }]`. Never a password: `hasPassword` says whether one is remembered. |
 | `GET savedConnections/{id}` | One saved connection. `404` if it doesn't exist or belongs to someone else. |
-| `POST savedConnections` | Body: `{ name, serverType, serverName, port, databaseName?, userName, color? }` (`color`: `#rrggbb`, or null for automatic). `201` with the saved connection. `409` when the name is taken (ignoring case) or the user already has 100. |
-| `PUT savedConnections/{id}` | Same body; replaces all fields. `200` with the result, `404`, or `409` for a taken name. |
+| `POST savedConnections` | Body: `{ name, serverType, serverName, port, databaseName?, userName, color?, rememberPassword, password? }` (`color`: `#rrggbb`, or null for automatic). `rememberPassword` is required: `true` with `password` remembers it (`400` when no key is configured). `201` with the saved connection. `409` when the name is taken (ignoring case) or the user already has 100. |
+| `PUT savedConnections/{id}` | Same body; replaces all fields. `rememberPassword: false` forgets the password; `true` without `password` keeps it, unless the server, port, server type or user name changed. `200` with the result, `404`, or `409` for a taken name. |
 | `DELETE savedConnections/{id}` | `204`, or `404`. Deleting an account deletes its saved connections. |
+| `DELETE savedConnections/{id}/password` | Forgets the remembered password; the saved connection stays. `204`, or `404`. |
 | `GET databaseSchema/{databases\|tables\|storedProcedures\|functions\|views}/{connectionId}` | Schema objects. All except `databases` take `?database=`. |
 | `GET databaseSchema/tableDefinition/{connectionId}?database=&schema=&table=` | Columns, indexes and constraints of a table. |
 | `GET databaseCommand/{script}/{connectionId}?database=&schema=&...` | Generated SQL text: `tableRecordsScript`, `createTableScript`, `insertTableScript`, `procedureDefinition`, `viewDefinition`, and so on. Object names are always query parameters, never path segments. |

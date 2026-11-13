@@ -100,6 +100,7 @@ const savedConnectionsApi = {
   update: (id: string, input: SavedConnectionInput): Promise<SavedConnection> =>
     requests.put<SavedConnection>(`/savedConnections/${encodeURIComponent(id)}`, input),
   remove: (id: string): Promise<void> => requests.del(`/savedConnections/${encodeURIComponent(id)}`),
+  forgetPassword: (id: string): Promise<void> => requests.del(`/savedConnections/${encodeURIComponent(id)}/password`),
 };
 
 const databaseSchemaApi = {

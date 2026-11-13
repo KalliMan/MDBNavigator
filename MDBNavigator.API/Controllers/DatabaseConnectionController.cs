@@ -24,13 +24,13 @@ namespace MDBNavigator.API.Controllers
         [EnableRateLimiting(RateLimitPolicies.Connect)]
         public async Task<IActionResult> Connect([FromBody] ConnectionSettingsQuery value,
             [FromHeader(Name = CaptchaEndpoints.TokenHeader)] string? captchaToken, CancellationToken cancellationToken)
-            => Ok(await _mediator.Send(new ConnectCommand(SessionId, MapToSettings(value), captchaToken), cancellationToken));
+            => Ok(await _mediator.Send(new ConnectCommand(SessionId, MapToSettings(value), captchaToken, value.SavedConnectionId), cancellationToken));
 
         [HttpPost("reconnect/{connectionId}")]
         [EnableRateLimiting(RateLimitPolicies.Connect)]
         public async Task<IActionResult> Reconnect([FromRoute] string connectionId, [FromBody] ConnectionSettingsQuery value,
             [FromHeader(Name = CaptchaEndpoints.TokenHeader)] string? captchaToken, CancellationToken cancellationToken)
-            => Ok(await _mediator.Send(new ReconnectCommand(SessionId, connectionId, MapToSettings(value), captchaToken), cancellationToken));
+            => Ok(await _mediator.Send(new ReconnectCommand(SessionId, connectionId, MapToSettings(value), captchaToken, value.SavedConnectionId), cancellationToken));
 
         [HttpPost("disconnect/{connectionId}")]
         public async Task<IActionResult> Disconnect([FromRoute] string connectionId, CancellationToken cancellationToken)

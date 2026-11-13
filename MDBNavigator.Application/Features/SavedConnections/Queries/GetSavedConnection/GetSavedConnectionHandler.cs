@@ -11,10 +11,12 @@ namespace MDBNavigator.Application.Features.SavedConnections.Queries.GetSavedCon
     public class GetSavedConnectionHandler : IRequestHandler<GetSavedConnectionQuery, SavedConnectionDto>
     {
         private readonly ISavedConnectionStore _store;
+        private readonly ISavedPasswordProtector _passwords;
 
-        public GetSavedConnectionHandler(ISavedConnectionStore store)
+        public GetSavedConnectionHandler(ISavedConnectionStore store, ISavedPasswordProtector passwords)
         {
             _store = store;
+            _passwords = passwords;
         }
 
         public async Task<SavedConnectionDto> Handle(GetSavedConnectionQuery request, CancellationToken cancellationToken)
@@ -22,7 +24,7 @@ namespace MDBNavigator.Application.Features.SavedConnections.Queries.GetSavedCon
             // Not found and "belongs to someone else" look the same, so ids don't reveal that a row exists.
             var connection = await _store.FindAsync(request.UserId, request.Id, cancellationToken)
                 ?? throw new ObjectNotFoundException("Saved connection not found.");
-            return SavedConnectionMapping.ToDto(connection);
+            return SavedConnectionMapping.ToDto(connection, _passwords);
         }
     }
 }

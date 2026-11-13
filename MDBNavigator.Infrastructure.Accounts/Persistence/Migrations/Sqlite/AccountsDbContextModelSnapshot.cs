@@ -60,6 +60,10 @@ namespace MDBNavigator.Infrastructure.Accounts.Persistence.Migrations.Sqlite
                         .HasColumnType("INTEGER")
                         .HasColumnName("port");
 
+                    b.Property<byte[]>("ProtectedPassword")
+                        .HasColumnType("BLOB")
+                        .HasColumnName("protected_password");
+
                     b.Property<string>("ServerName")
                         .IsRequired()
                         .HasMaxLength(253)

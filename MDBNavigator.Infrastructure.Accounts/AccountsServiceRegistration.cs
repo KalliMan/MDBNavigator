@@ -1,6 +1,7 @@
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Infrastructure.Accounts.Email;
 using MDBNavigator.Infrastructure.Accounts.Identity;
+using MDBNavigator.Infrastructure.Accounts.Passwords;
 using MDBNavigator.Infrastructure.Accounts.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace MDBNavigator.Infrastructure.Accounts
 {
@@ -31,6 +33,13 @@ namespace MDBNavigator.Infrastructure.Accounts
 
             services.AddDbContext<AccountsDbContext>(options => AccountsDbContext.Configure(options, connectionString));
             services.AddScoped<ISavedConnectionStore, SavedConnectionStore>();
+
+            // Parsed here, so a bad key stops startup. Registered in both auth modes, like the saved connections themselves.
+            var savedConnections = configuration.GetSection(SavedConnectionOptions.SectionName).Get<SavedConnectionOptions>()
+                ?? new SavedConnectionOptions();
+            var passwordKey = SavedConnectionOptions.ParseKey(savedConnections.PasswordKey);
+            services.AddSingleton<ISavedPasswordProtector>(sp =>
+                new AesGcmSavedPasswordProtector(passwordKey, sp.GetRequiredService<ILogger<AesGcmSavedPasswordProtector>>()));
 
             return services;
         }

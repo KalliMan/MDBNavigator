@@ -12,5 +12,7 @@ namespace MDBNavigator.Application.Features.SavedConnections
         // PostgreSQL identifiers are at most 63 bytes, SQL Server's 128 characters: 128 covers both.
         public const int DatabaseNameMaxLength = 128;
         public const int UserNameMaxLength = 128;
+        // Generous for a database password; caps what one row can make the server encrypt and store.
+        public const int PasswordMaxLength = 1024;
     }
 }

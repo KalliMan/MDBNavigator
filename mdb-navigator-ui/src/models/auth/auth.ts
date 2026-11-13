@@ -11,6 +11,9 @@ export interface AuthSettings {
   captchaProvider: 'None' | 'Turnstile' | 'Altcha';
   // Set with 'Turnstile': the public key the widget is rendered with.
   turnstileSiteKey: string | null;
+  // Saved connections can remember passwords (the server has SavedConnections:PasswordKey). Only shows the option:
+  // the server refuses to remember one without the key anyway.
+  rememberPasswords: boolean;
 }
 
 // GET /api/auth/account: the signed-in user's own account.

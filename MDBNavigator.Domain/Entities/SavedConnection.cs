@@ -2,8 +2,8 @@ using MDBNavigator.Domain.Enums;
 
 namespace MDBNavigator.Domain.Entities
 {
-    // A connection a user keeps for later: everything needed to connect except the password (1.2c may add an
-    // encrypted one). OwnerId is the user id from the session key: the account's GUID, or "local" with Auth:Mode None.
+    // A connection a user keeps for later: everything needed to connect, and optionally the password (encrypted, 1.2c).
+    // OwnerId is the user id from the session key: the account's GUID, or "local" with Auth:Mode None.
     public class SavedConnection
     {
         public Guid Id { get; set; } = Guid.CreateVersion7();
@@ -16,11 +16,14 @@ namespace MDBNavigator.Domain.Entities
         public ServerType ServerType { get; set; }
         public string ServerName { get; set; } = string.Empty;
         public int Port { get; set; }
-        // Optional; how the UI uses it is decided in 1.2b.
+        // Optional: opened on connect when a request names no database.
         public string? DatabaseName { get; set; }
         public string UserName { get; set; } = string.Empty;
         // "#rrggbb" in lower case, or null: the UI then picks a color from the server's address.
         public string? Color { get; set; }
+        // The remembered password, encrypted by ISavedPasswordProtector; null when none is remembered. Never leaves the
+        // server: the DTO only says whether there is one.
+        public byte[]? ProtectedPassword { get; set; }
 
         public DateTime CreatedAtUtc { get; set; }
         public DateTime UpdatedAtUtc { get; set; }

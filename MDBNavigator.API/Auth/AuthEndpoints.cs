@@ -26,14 +26,14 @@ namespace MDBNavigator.API.Auth
             if (options.Mode != AuthMode.Accounts)
             {
                 // No accounts, but the CAPTCHA still applies to repeated failed connects.
-                auth.MapGet("settings", () => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), [], EmailEnabled: false,
-                    captchaProvider, turnstileSiteKey));
+                auth.MapGet("settings", (ISavedPasswordProtector passwords) => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), [],
+                    EmailEnabled: false, captchaProvider, turnstileSiteKey, passwords.Enabled));
                 return;
             }
 
-            auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email) =>
+            auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email, ISavedPasswordProtector passwords) =>
                 new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled,
-                    captchaProvider, turnstileSiteKey));
+                    captchaProvider, turnstileSiteKey, passwords.Enabled));
 
             // Identity's endpoints: login (?useCookies=true for the web session), register, confirmEmail,
             // resendConfirmationEmail, forgotPassword, resetPassword, manage/info, ...

@@ -1,3 +1,4 @@
+using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs;
 using MDBNavigator.Domain.Entities;
 using MDBNavigator.Domain.Enums;
@@ -10,7 +11,8 @@ namespace MDBNavigator.Application.Features.SavedConnections
     {
         public static string NormalizeName(string name) => name.Trim().ToUpperInvariant();
 
-        // Sets everything the user controls and UpdatedAtUtc. Id, OwnerId and CreatedAtUtc are left alone.
+        // Sets everything the user controls and UpdatedAtUtc. Id, OwnerId and CreatedAtUtc are left alone, and so is
+        // ProtectedPassword: the create and update handlers decide what happens to it.
         public static void Apply(SavedConnectionInput input, SavedConnection target, DateTime nowUtc)
         {
             target.Name = input.Name.Trim();
@@ -24,7 +26,10 @@ namespace MDBNavigator.Application.Features.SavedConnections
             target.UpdatedAtUtc = nowUtc;
         }
 
-        public static SavedConnectionDto ToDto(SavedConnection c) => new(c.Id, c.Name, ServerTypes.NameOf(c.ServerType),
-            c.ServerName, c.Port, c.DatabaseName, c.UserName, c.Color);
+        // HasPassword: remembered and written with the current key. A value from another key is reported as none, the
+        // same way connect treats it.
+        public static SavedConnectionDto ToDto(SavedConnection c, ISavedPasswordProtector passwords) => new(c.Id, c.Name,
+            ServerTypes.NameOf(c.ServerType), c.ServerName, c.Port, c.DatabaseName, c.UserName, c.Color,
+            HasPassword: c.ProtectedPassword is { } p && passwords.IsCurrent(p));
     }
 }

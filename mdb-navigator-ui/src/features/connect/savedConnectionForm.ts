@@ -1,4 +1,5 @@
 import { ConnectedResult } from '../../models/connect/connectedResult';
+import { ConnectionBase } from '../../models/connect/connectionBase';
 import { ConnectionSettings } from '../../models/connect/connectionSettings';
 import { SavedConnection, SavedConnectionInput } from '../../models/connect/savedConnection';
 import { SAVED_CONNECTION_NAME_MAX_LENGTH, SAVED_CONNECTIONS_MAX } from '../../models/connect/savedConnectionLimits';
@@ -15,6 +16,8 @@ export interface ConnectForm {
   userName: string;
   password: string;
   color: string | null;
+  // "Remember password": applies only when the connection is saved.
+  rememberPassword: boolean;
 }
 
 // "New connection": dev defaults from .env.development.local, as today, and empty name, database and color.
@@ -29,10 +32,11 @@ export function newConnectForm(): ConnectForm {
     userName: import.meta.env.DEV ? import.meta.env.VITE_DEV_DB_USER ?? '' : '',
     password: import.meta.env.DEV ? import.meta.env.VITE_DEV_DB_PASSWORD ?? '' : '',
     color: null,
+    rememberPassword: false,
   };
 }
 
-// A saved entry in the form; password empty (typed each time).
+// A saved entry in the form; password empty (typed each time, or the remembered one is used by id).
 export function formFromSaved(saved: SavedConnection): ConnectForm {
   return {
     name: saved.name,
@@ -43,6 +47,7 @@ export function formFromSaved(saved: SavedConnection): ConnectForm {
     userName: saved.userName,
     password: '',
     color: saved.color,
+    rememberPassword: saved.hasPassword,
   };
 }
 
@@ -57,6 +62,7 @@ export function formFromConnected(connected: ConnectedResult): ConnectForm {
     userName: connected.userName,
     password: '',
     color: null,
+    rememberPassword: false,
   };
 }
 
@@ -79,9 +85,28 @@ function effectiveName(form: ConnectForm): string {
   return form.name.trim() || defaultName(form);
 }
 
+// Mirrors RememberedPassword.SameTarget on the server: a remembered password is used, and kept, only for the server
+// and user it was typed for. Host names ignore case; user names don't (PostgreSQL's are case-sensitive).
+export function sameTarget(form: ConnectForm, target: ConnectionBase): boolean {
+  return form.serverType === target.serverType
+    && form.serverName.trim().toLowerCase() === target.serverName.trim().toLowerCase()
+    && form.port === (target.port ?? 5432)
+    && form.userName.trim() === target.userName.trim();
+}
+
+// The saved connection whose remembered password a connect with an empty password field would use, or null when the
+// password must be typed. Reconnect: the id the open connection came with. Connect: the selected entry, if it has one.
+export function rememberedPasswordId(form: ConnectForm, selected: SavedConnection | null, reconnecting: ConnectedResult | null): string | null {
+  if (reconnecting) {
+    return reconnecting.savedConnectionId && sameTarget(form, reconnecting) ? reconnecting.savedConnectionId : null;
+  }
+  return selected?.hasPassword && sameTarget(form, selected) ? selected.id : null;
+}
+
 // What connect/reconnect send: databaseName trimmed, empty -> null; serverName and userName as typed (the server
 // trims nothing today; keep it so).
-export function toConnectionSettings(form: ConnectForm): ConnectionSettings {
+// rememberedId: from rememberedPasswordId; sent only when the password field is empty.
+export function toConnectionSettings(form: ConnectForm, rememberedId: string | null): ConnectionSettings {
   return {
     serverType: form.serverType,
     serverName: form.serverName,
@@ -89,12 +114,15 @@ export function toConnectionSettings(form: ConnectForm): ConnectionSettings {
     userName: form.userName,
     password: form.password,
     databaseName: emptyToNull(form.databaseName),
+    // A typed password always wins.
+    savedConnectionId: form.password ? null : rememberedId,
   };
 }
 
 // What POST/PUT send: name, serverName, userName and databaseName trimmed; empty database -> null.
-// Built field by field, never by spreading the form: the password must not reach this request.
-export function toSavedInput(form: ConnectForm): SavedConnectionInput {
+// remember: the "Remember password" box applies (it is ticked and the connection is being saved).
+// Built field by field, never by spreading the form: the password goes only into a request that remembers it.
+export function toSavedInput(form: ConnectForm, remember: boolean): SavedConnectionInput {
   return {
     name: effectiveName(form),
     serverType: form.serverType,
@@ -103,6 +131,8 @@ export function toSavedInput(form: ConnectForm): SavedConnectionInput {
     databaseName: emptyToNull(form.databaseName),
     userName: form.userName.trim(),
     color: form.color,
+    rememberPassword: remember,
+    password: remember && form.password ? form.password : null,
   };
 }
 
@@ -115,8 +145,10 @@ export function toDisplay(form: ConnectForm): ConnectionDisplay {
 export type FormErrors = Partial<Record<'name' | 'serverName' | 'port' | 'userName' | 'password' | 'save', string>>;
 
 // selectedId: the entry being changed (it may keep its own name), null for a new one.
+// passwordOptional: a remembered password will be used when the field is left empty (see rememberedPasswordId).
 // The name, port and list messages are the server's own, so the user sees one wording.
-export function formErrors(form: ConnectForm, saved: SavedConnection[], selectedId: string | null, saving: boolean): FormErrors {
+export function formErrors(form: ConnectForm, saved: SavedConnection[], selectedId: string | null, saving: boolean,
+  passwordOptional: boolean): FormErrors {
   const errors: FormErrors = {};
 
   if (!form.serverName.trim()) {
@@ -128,7 +160,7 @@ export function formErrors(form: ConnectForm, saved: SavedConnection[], selected
   if (!form.userName.trim()) {
     errors.userName = 'User name is required.';
   }
-  if (!form.password) {
+  if (!form.password && !passwordOptional) {
     errors.password = 'Password is required.';
   }
 

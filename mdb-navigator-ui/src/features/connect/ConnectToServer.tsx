@@ -7,6 +7,7 @@ import Input from '../../ui/common/Input';
 import Button from '../../ui/common/Button';
 import { ButtonType } from '../../ui/common/ButtonType.enum';
 import { ConnectedResult } from '../../models/connect/connectedResult';
+import useAuth from '../../contexts/auth/useAuth';
 import { SavedConnectionInput } from '../../models/connect/savedConnection';
 import { SAVED_CONNECTION_NAME_MAX_LENGTH } from '../../models/connect/savedConnectionLimits';
 import { ConnectionDisplay } from '../../contexts/databaseServerConnect/DatabaseServerConnectActionTypes';
@@ -25,6 +26,7 @@ import {
   FormErrors,
   formFromSaved,
   newConnectForm,
+  rememberedPasswordId,
   toConnectionSettings,
   toDisplay,
   toSavedInput,
@@ -82,7 +84,11 @@ export default function ConnectToServer({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Always called (hooks can't be conditional); the reconnect dialog passes false and makes no request.
-  const { saved, isLoading, loadFailed, remove } = useSavedConnections(allowSaved);
+  const { saved, isLoading, loadFailed, remove, forgetPassword } = useSavedConnections(allowSaved);
+
+  // Only a hint for showing the option: the server checks the key itself.
+  const { settings } = useAuth();
+  const canRemember = settings?.rememberPasswords ?? false;
 
   // The default name only helps while nothing is saved: with saved connections, a new one starts without a name
   // (it still gets server:port when saved without one), so it doesn't repeat an entry that exists already.
@@ -118,6 +124,8 @@ export default function ConnectToServer({
 
   const selected = saved.find(s => s.id === selectedId) ?? null;
   const saving = allowSaved && saveChecked;
+  // The saved connection whose remembered password is used when the password field is left empty.
+  const rememberedId = rememberedPasswordId(form, selected, initialConnection);
 
   // Missing fields don't disable Connect: pressing it says which ones are missing. Only the CAPTCHA does, since
   // there is no field to point at.
@@ -141,7 +149,8 @@ export default function ConnectToServer({
     setErrors(Object.fromEntries(Object.entries(errors).filter(([key]) => !edited.has(key))));
   }
 
-  // A different entry is a different server, so the password isn't carried over (formFromSaved leaves it empty).
+  // A different entry is a different server, so the password isn't carried over (formFromSaved leaves it empty; a
+  // remembered one is used by id).
   function select(id: string | null) {
     interacted.current = true;
     const entry = id === null ? null : saved.find(s => s.id === id) ?? null;
@@ -166,6 +175,17 @@ export default function ConnectToServer({
     }
   }
 
+  // Right away, without connecting: the entry stays, only its password goes.
+  async function handleForgetPassword() {
+    if (!selected) {
+      return;
+    }
+    if (await forgetPassword(selected.id)) {
+      toast.success(`Forgot the password of "${selected.name}".`);
+      setForm(f => ({ ...f, rememberPassword: false }));
+    }
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -173,14 +193,14 @@ export default function ConnectToServer({
       return;
     }
 
-    const found = formErrors(form, saved, selectedId, saving);
+    const found = formErrors(form, saved, selectedId, saving, rememberedId !== null);
     setErrors(found);
     if (Object.keys(found).length > 0) {
       return;
     }
 
     // Captured before awaiting: the dialog unmounts when the connect succeeds.
-    const input = toSavedInput(form);
+    const input = toSavedInput(form, saving && canRemember && form.rememberPassword);
     const id = selectedId;
     const shouldSave = saving;
     const token = captchaRequired ? captchaToken : null;
@@ -191,7 +211,7 @@ export default function ConnectToServer({
       setCaptchaKey(k => k + 1);
     }
 
-    const ok = await onOk?.(toConnectionSettings(form), token, toDisplay(form));
+    const ok = await onOk?.(toConnectionSettings(form, rememberedId), token, toDisplay(form));
     // Only a connection that opened is saved: a failed attempt leaves the saved list as it was.
     if (ok && id) {
       setLastUsedConnectionId(id);
@@ -275,7 +295,7 @@ export default function ConnectToServer({
         <Input
           label="Password:"
           type="password"
-          placeholder="Type Password here..."
+          placeholder={rememberedId ? 'Remembered (type to use another)' : 'Type Password here...'}
           error={errors.password}
           initialValue={form.password}
           onChange={val => update({ password: val })}
@@ -288,7 +308,7 @@ export default function ConnectToServer({
           <div className="mb-8">
             <ConnectionColorPicker
               value={form.color}
-              autoColor={autoConnectionColor(toConnectionSettings(form))}
+              autoColor={autoConnectionColor(toConnectionSettings(form, null))}
               onChange={color => update({ color })}
             />
           </div>
@@ -304,6 +324,19 @@ export default function ConnectToServer({
               />
               {selected ? 'Save changes' : 'Save this connection'}
             </label>
+            {canRemember && (
+              <label className="mt-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="accent-accent"
+                  checked={form.rememberPassword}
+                  // Remembered together with the entry, so it needs the save checkbox.
+                  disabled={!saveChecked || isConnecting}
+                  onChange={e => update({ rememberPassword: e.target.checked })}
+                />
+                Remember password
+              </label>
+            )}
             {errors.save && (
               <div className="text-sm text-danger">{errors.save}</div>
             )}
@@ -345,6 +378,11 @@ export default function ConnectToServer({
           {allowSaved && selected && (
             <Button type={ButtonType.secondary} disabled={isConnecting} onClick={e => { e.preventDefault(); setConfirmingDelete(true); }}>
               Delete
+            </Button>
+          )}
+          {allowSaved && selected?.hasPassword && (
+            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={e => { e.preventDefault(); void handleForgetPassword(); }}>
+              Forget password
             </Button>
           )}
           {onCancel && (

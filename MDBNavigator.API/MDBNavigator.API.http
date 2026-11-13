@@ -39,14 +39,14 @@ GET {{host}}/api/savedConnections
 Authorization: Bearer {{login.response.body.$.accessToken}}
 id: {{tab}}
 
-### Save a connection (no password: one sent here would be ignored)
+### Save a connection (rememberPassword false: no password is kept)
 # @name saved
 POST {{host}}/api/savedConnections
 Authorization: Bearer {{login.response.body.$.accessToken}}
 id: {{tab}}
 Content-Type: application/json
 
-{ "name": "Local dev", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5432, "databaseName": "postgres", "userName": "postgres", "color": "#16a34a" }
+{ "name": "Local dev", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5432, "databaseName": "postgres", "userName": "postgres", "color": "#16a34a", "rememberPassword": false }
 
 ### Change it (all fields; color null = automatic)
 PUT {{host}}/api/savedConnections/{{saved.response.body.$.id}}
@@ -54,7 +54,29 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 id: {{tab}}
 Content-Type: application/json
 
-{ "name": "Local dev", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5433, "databaseName": null, "userName": "postgres", "color": null }
+{ "name": "Local dev", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5433, "databaseName": null, "userName": "postgres", "color": null, "rememberPassword": false }
+
+### Save one that remembers its password (only when SavedConnections:PasswordKey is set; otherwise 400)
+# @name savedWithPassword
+POST {{host}}/api/savedConnections
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+Content-Type: application/json
+
+{ "name": "Local dev (remembered)", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5432, "databaseName": "postgres", "userName": "postgres", "color": null, "rememberPassword": true, "password": "…" }
+
+### Connect with the remembered password (empty password plus the saved connection's id)
+POST {{host}}/api/databaseConnection/connect
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+Content-Type: application/json
+
+{ "serverType": "PostgreSQL", "serverName": "localhost", "port": 5432, "userName": "postgres", "password": "", "savedConnectionId": "{{savedWithPassword.response.body.$.id}}" }
+
+### Forget the remembered password (the saved connection stays)
+DELETE {{host}}/api/savedConnections/{{savedWithPassword.response.body.$.id}}/password
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
 
 ### Delete it
 DELETE {{host}}/api/savedConnections/{{saved.response.body.$.id}}
