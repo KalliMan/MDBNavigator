@@ -51,11 +51,12 @@ function App({ active }: Props) {
         <ModalWindow name="Connect To DB Server" title="Connect To DB Server"
           canClose={hasConnections && !isConnecting} onClose={cancelConnectDialog}>
           <ConnectToServer
+            allowSaved
             error={error}
             isConnecting={isConnecting}
             captchaRequired={captchaRequired}
             onCancel={hasConnections ? cancelConnectDialog : undefined}
-            onOk={(connectionSettings, captchaToken) => connect(connectionSettings, captchaToken)}
+            onOk={(settings, captchaToken, display) => connect(settings, captchaToken, display)}
           />
         </ModalWindow>
       }
@@ -64,14 +65,15 @@ function App({ active }: Props) {
         <ModalWindow name="Reconnect To DB Server" title="Reconnect To DB Server"
           canClose={!isConnecting} onClose={cancelConnectDialog}>
           <ConnectToServer
-            initialConnectionSettings = {
+            initialConnection={
               ServerType.PostgreSQL === reconnectedSettings?.serverType ? reconnectedSettings : null
             }
             error={error}
             isConnecting={isConnecting}
             captchaRequired={captchaRequired}
             onCancel={cancelConnectDialog}
-            onOk={(connectionSettings, captchaToken) => reconnect(reconnectedSettings.connectionId, connectionSettings, captchaToken)}
+            // The display is ignored: a reconnect keeps the connection's name and color.
+            onOk={(settings, captchaToken) => reconnect(reconnectedSettings.connectionId, settings, captchaToken)}
           />
         </ModalWindow>
       }

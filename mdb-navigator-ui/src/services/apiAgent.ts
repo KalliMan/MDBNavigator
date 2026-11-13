@@ -11,6 +11,7 @@ import { ConnectedResult } from '../models/connect/connectedResult';
 import { ViewDetails } from '../models/schema/view/viewsDetails';
 import { TableDefinitionDetails } from '../models/schema/table/tableDefinitionDetails';
 import { captchaHeaders } from './authApi';
+import { SavedConnection, SavedConnectionInput } from '../models/connect/savedConnection';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 // Regular API calls are short (queries stream via SignalR after a 202), so a hanging request is an error.
@@ -72,7 +73,9 @@ type QueryParams = Record<string, string | number>;
 
 const requests = {
   get: <T> (url: string, params?: QueryParams) => axios.get<T>(url, { params }).then(responseBody),
-  post: <T> (url: string, body: object, headers?: Record<string, string>) => axios.post<T>(url, body, { headers }).then(responseBody)
+  post: <T> (url: string, body: object, headers?: Record<string, string>) => axios.post<T>(url, body, { headers }).then(responseBody),
+  put: <T> (url: string, body: object) => axios.put<T>(url, body).then(responseBody),
+  del: (url: string) => axios.delete(url).then(() => undefined)
 };
 
 // The server answered 428: the request needs a solved CAPTCHA (after repeated failed connects).
@@ -89,6 +92,15 @@ const databaseConnectionApi = {
   disconnect: (connectionId: string): Promise<void> =>
     requests.post<void>(`/databaseConnection/disconnect/${connectionId}`, { }),
 }
+
+// The signed-in user's saved connections (1.2a). Errors toast through the interceptor like any other call.
+const savedConnectionsApi = {
+  list: (): Promise<SavedConnection[]> => requests.get<SavedConnection[]>('/savedConnections'),
+  create: (input: SavedConnectionInput): Promise<SavedConnection> => requests.post<SavedConnection>('/savedConnections', input),
+  update: (id: string, input: SavedConnectionInput): Promise<SavedConnection> =>
+    requests.put<SavedConnection>(`/savedConnections/${encodeURIComponent(id)}`, input),
+  remove: (id: string): Promise<void> => requests.del(`/savedConnections/${encodeURIComponent(id)}`),
+};
 
 const databaseSchemaApi = {
   fetchDatabases: (connectionId: string): Promise<DatabasesDetails> =>
@@ -144,6 +156,7 @@ const databaseCommandApi = {
 
 const agent = {
   databaseConnectionApi,
+  savedConnectionsApi,
   databaseSchemaApi,
   databaseCommandApi
 };

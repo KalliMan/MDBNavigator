@@ -47,6 +47,7 @@ namespace MDBNavigator.API.Controllers
             ServerName = q.ServerName,
             Port = q.Port,
             UserName = q.UserName,
+            DatabaseName = string.IsNullOrWhiteSpace(q.DatabaseName) ? null : q.DatabaseName.Trim(),
             Password = q.Password
         };
     }

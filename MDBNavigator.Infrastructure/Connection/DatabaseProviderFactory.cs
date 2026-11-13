@@ -22,7 +22,9 @@ namespace MDBNavigator.Infrastructure.Connection
                 ?? throw new NotSupportedException($"No provider registered for server type '{settings.ServerType}'.");
 
             var addresses = await _connectionGuard.GetAllowedAddressesAsync(settings.ServerName, ct);
-            return await factory.CreateAsync(settings, addresses, databaseName, ct);
+            // A request without a database (the connect test, the database list) opens the connection's default one.
+            var database = string.IsNullOrEmpty(databaseName) ? settings.DatabaseName : databaseName;
+            return await factory.CreateAsync(settings, addresses, database, ct);
         }
     }
 }

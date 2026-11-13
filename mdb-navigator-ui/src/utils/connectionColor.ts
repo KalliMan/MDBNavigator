@@ -1,8 +1,8 @@
 import { ConnectionBase } from "../models/connect/connectionBase";
 
 // Each connection gets a color for its tree node, query tabs and query bar, so it is clear where a query runs.
-// (Saved connections will let the user choose; this stays the fallback.)
-const CONNECTION_COLORS = ['#16a34a', '#ea580c', '#7c3aed', '#0284c7', '#db2777', '#ca8a04'];
+// The palette for the hashed color and the color picker (1.2b); a saved connection may also have one of these.
+export const CONNECTION_COLORS = ['#16a34a', '#ea580c', '#7c3aed', '#0284c7', '#db2777', '#ca8a04'];
 
 export const UNKNOWN_CONNECTION_COLOR = '#8b929c';
 
@@ -24,6 +24,11 @@ export function pickConnectionColor(connection: ConnectionBase, usedColors: stri
     }
   }
   return CONNECTION_COLORS[preferred];
+}
+
+// The color a connection gets without a chosen one and with no other connection open: shown in the saved list and for "Automatic".
+export function autoConnectionColor(connection: ConnectionBase): string {
+  return pickConnectionColor(connection, []);
 }
 
 // user@host:port, as shown in the query bar.

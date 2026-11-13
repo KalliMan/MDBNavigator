@@ -1,4 +1,5 @@
 using FluentValidation;
+using MDBNavigator.Application.Features.SavedConnections;
 using MDBNavigator.Domain.Enums;
 
 namespace MDBNavigator.Application.Features.Connection.Commands.Connect
@@ -13,6 +14,8 @@ namespace MDBNavigator.Application.Features.Connection.Commands.Connect
             RuleFor(x => x.ConnectionSettings.UserName).NotEmpty().WithMessage("UserName is required.");
             RuleFor(x => x.ConnectionSettings.Password).NotEmpty().WithMessage("Password is required.");
             RuleFor(x => x.ConnectionSettings.Port).GreaterThan(0).WithMessage("Port must be a positive integer.");
+            RuleFor(x => x.ConnectionSettings.DatabaseName).MaximumLength(SavedConnectionLimits.DatabaseNameMaxLength)
+                .WithMessage($"DatabaseName must be at most {SavedConnectionLimits.DatabaseNameMaxLength} characters.");
         }
     }
 }

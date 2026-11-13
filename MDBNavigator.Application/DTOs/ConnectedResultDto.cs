@@ -10,5 +10,6 @@ namespace MDBNavigator.Application.DTOs
         public int Port { get; set; }
         public required ServerType ServerType { get; set; }
         public required string UserName { get; set; }
+        public string? DatabaseName { get; set; }
     }
 }

@@ -46,8 +46,8 @@ export default function useDatabaseTreeState(
       return;
     }
 
-    const { connectionId, serverName } = connectedResult;
-    const serverNode = createServerNode(connectionId, serverName, true, connection.color);
+    const { connectionId } = connectedResult;
+    const serverNode = createServerNode(connectionId, connection.name, true, connection.color);
     serversRoot.nodes!.push(serverNode);
 
     const schema = databaseSchemas?.find(
@@ -62,7 +62,8 @@ export default function useDatabaseTreeState(
     serverNode.nodes!.push(databasesFolder);
 
     schema.databasesDetails.databases?.forEach((db) => {
-      const dbNode = createDatabaseNode(db.name, databasesFolder, false);
+      // The connection's default database starts expanded; mergeTreeState keeps the user's choice after that.
+      const dbNode = createDatabaseNode(db.name, databasesFolder, db.name === connectedResult.databaseName);
       databasesFolder.nodes!.push(dbNode);
 
       // Tables --> TODDO Add the definition loading state

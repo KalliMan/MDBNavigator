@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { DatabaseServerConnectContextType } from "./DatabaseServerConnectReducer";
 import { ConnectionSettings } from "../../models/connect/connectionSettings";
-import { DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
+import { ConnectionDisplay, DatabaseServerConnectActionTypes } from "./DatabaseServerConnectActionTypes";
 import agent, { isCaptchaRequired } from "../../services/apiAgent";
 import { getErrorMessage } from "../../utils/errorMessage";
 
@@ -14,7 +14,9 @@ export default function useDatabaseServerConnectContext() {
   }
 
   // captchaToken: set once the server asked for a CAPTCHA (state.captchaRequired).
-  async function connect(connectionSettings: ConnectionSettings, captchaToken?: string | null) {
+  // Resolves true once connected, false on every error (the dialog shows it). The connect dialog uses that to
+  // save the connection only after it worked.
+  async function connect(connectionSettings: ConnectionSettings, captchaToken: string | null | undefined, display: ConnectionDisplay): Promise<boolean> {
     context!.dispatch( {
       type: DatabaseServerConnectActionTypes.Connecting,
       payload: connectionSettings
@@ -25,14 +27,15 @@ export default function useDatabaseServerConnectContext() {
       if (result){
         context!.dispatch({
           type: DatabaseServerConnectActionTypes.Connected,
-          payload: result
+          payload: result,
+          display
         });
-      } else {
-        context!.dispatch({
-          type: DatabaseServerConnectActionTypes.Error,
-          payload: `Cannot connect to ${connectionSettings.serverName}`
-        });
+        return true;
       }
+      context!.dispatch({
+        type: DatabaseServerConnectActionTypes.Error,
+        payload: `Cannot connect to ${connectionSettings.serverName}`
+      });
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);
       context!.dispatch({
@@ -41,6 +44,7 @@ export default function useDatabaseServerConnectContext() {
         captchaRequired: isCaptchaRequired(error)
       });
     }
+    return false;
   }
 
   // Only opens the reconnect dialog; the request happens in reconnect().
@@ -51,7 +55,7 @@ export default function useDatabaseServerConnectContext() {
     });
   }
 
-  async function reconnect(connectionId: string, connectionSettings: ConnectionSettings, captchaToken?: string | null) {
+  async function reconnect(connectionId: string, connectionSettings: ConnectionSettings, captchaToken?: string | null): Promise<boolean> {
     try {
       context!.dispatch({
         type: DatabaseServerConnectActionTypes.Connecting,
@@ -64,12 +68,12 @@ export default function useDatabaseServerConnectContext() {
           type: DatabaseServerConnectActionTypes.Reconnected,
           payload: result
         });
-      } else {
-        context!.dispatch({
-          type: DatabaseServerConnectActionTypes.Error,
-          payload: `Cannot reconnect to ${connectionSettings.serverName}`
-        });
+        return true;
       }
+      context!.dispatch({
+        type: DatabaseServerConnectActionTypes.Error,
+        payload: `Cannot reconnect to ${connectionSettings.serverName}`
+      });
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error);
       context!.dispatch({
@@ -78,6 +82,7 @@ export default function useDatabaseServerConnectContext() {
         captchaRequired: isCaptchaRequired(error)
       });
     }
+    return false;
   }
 
   function connectNewDatabase() {

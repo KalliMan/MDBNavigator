@@ -27,7 +27,7 @@ function queryTarget(query: DatabaseSQLCommandQuery, connections: DatabaseServer
     return { serverName: 'Unknown server', databaseName: query.databaseName, address: '', color: UNKNOWN_CONNECTION_COLOR };
   }
   return {
-    serverName: connection.serverName,
+    serverName: match.name,
     databaseName: query.databaseName,
     address: connectionAddress(connection),
     color: match.color,

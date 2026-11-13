@@ -21,9 +21,14 @@ export type DatabaseConnectingAction = {
   payload: ConnectionSettings;
 };
 
+// Chosen in the connect dialog: the name shown for the connection (null: the server name) and its color
+// (null: picked from the server's address).
+export type ConnectionDisplay = { name: string | null; color: string | null };
+
 export type DatabaseConnectedAction = {
   type: DatabaseServerConnectActionTypes.Connected;
   payload: ConnectedResult;
+  display: ConnectionDisplay;
 };
 
 export type DatabaseConnectNewDatabaseServerAction = {

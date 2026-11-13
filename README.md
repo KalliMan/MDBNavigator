@@ -16,6 +16,7 @@ A web-based database navigator: connect to a database server, browse its databas
 - Streamed execution. Rows arrive over SignalR in batches while the query runs, and the grid shows them as they come. Multiple result sets, cancellation and a server-side row limit (100,000 rows by default) are supported.
 - Virtualized result grid: only visible rows are rendered, so large results stay responsive.
 - Light and dark theme, following the system setting until you pick one in the top bar. Each server has its own color in the tree, on its query tabs and in the query bar, so it is clear where a query runs.
+- Saved connections: the connect dialog lists the connections you saved (name, server, port, default database, user and color; never the password). Tick "Save this connection" to save one when it connects. The name starts as server:port (while nothing is saved) and can be changed. The dialog opens with the connection you used last (in this browser), or the first saved one. The default database is the one opened on connect and expanded in the tree.
 - Clear errors: PostgreSQL `DETAIL` and `HINT` are included, for example which objects block a `DROP`.
 
 ## Repository layout
@@ -199,7 +200,7 @@ Errors are returned as JSON:
 
 | Method and path | Purpose |
 |---|---|
-| `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName }`. After repeated failed connects, needs a `Captcha-Token` header when a CAPTCHA is set. |
+| `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password, databaseName? }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName, databaseName }`. `databaseName` is opened whenever a request names no database (the connect test, the database list); without it, the server's default (PostgreSQL: the database named like the user). After repeated failed connects, needs a `Captcha-Token` header when a CAPTCHA is set. |
 | `POST databaseConnection/reconnect/{connectionId}` | Same body. Replaces the settings for an existing connection id. |
 | `POST databaseConnection/disconnect/{connectionId}` | Forgets the connection and cancels its running queries. |
 | `GET savedConnections` | The user's saved connections, by name: `[{ id, name, serverType, serverName, port, databaseName, userName, color }]`. No passwords. |

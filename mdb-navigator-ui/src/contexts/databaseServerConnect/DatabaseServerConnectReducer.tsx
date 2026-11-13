@@ -8,6 +8,8 @@ export type DatabaseServerConnection = {
   isConnecting: boolean;
   // Set on connect and kept on reconnect: the tree and the query tabs show it, so it must not change while open.
   color: string;
+  // Shown in the tree, on query tabs and in the query bar; set on connect and kept on reconnect, like color.
+  name: string;
 
   connectionSettings: ConnectionSettings | null;
   connectedResult: ConnectedResult | null;
@@ -62,7 +64,8 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
         databaseServerConnections: [...state.databaseServerConnections, {
           isConnectedToDB: true,
           isConnecting: false,
-          color: pickConnectionColor(action.payload, state.databaseServerConnections.map(conn => conn.color)),
+          name: action.display.name || action.payload.serverName,
+          color: action.display.color ?? pickConnectionColor(action.payload, state.databaseServerConnections.map(conn => conn.color)),
           connectionSettings: null,
           error: null,
           connectedResult: action.payload,
@@ -74,6 +77,7 @@ export function databaseConnectReducer(state: DatabaseConnectState, action: Data
           ? {
               isConnectedToDB: true,
               isConnecting: false,
+              name: conn.name,
               color: conn.color,
               connectionSettings: null,
               error: null,

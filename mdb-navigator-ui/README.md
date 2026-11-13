@@ -47,7 +47,7 @@ New variables must also be declared in `src/vite-env.d.ts`.
 | Folder | Contents |
 |---|---|
 | `src/Root.tsx` | The routes: the sign-in pages, or the workspace (`App.tsx`) at `/`. |
-| `src/features` | Screens: sign-in pages (`auth/`), the CAPTCHA (`captcha/`), connect dialog, schema tree view with context menus, SQL editor with result view and status bar. |
+| `src/features` | Screens: sign-in pages (`auth/`), the CAPTCHA (`captcha/`), connect dialog with the saved connections list (`connect/`), schema tree view with context menus, SQL editor with result view and status bar. |
 | `src/contexts` | App state: one React context per area. `auth/` holds who is signed in, `theme/` light or dark; the others (server connections, database schema, query tabs, command execution) use reducers. |
 | `src/services` | `apiAgent.ts`: axios setup, the tab `id` header, error toasts, the session-ended handling, and all REST calls. `authApi.ts`: the sign-in calls, on their own axios instance without toasts. `commandResultHub.ts`: the single SignalR connection and its status. |
 | `src/models` | Types for what the API sends and receives. |

@@ -60,3 +60,11 @@ Content-Type: application/json
 DELETE {{host}}/api/savedConnections/{{saved.response.body.$.id}}
 Authorization: Bearer {{login.response.body.$.accessToken}}
 id: {{tab}}
+
+### Connect, opening a given database (no database: the server's default, PostgreSQL: named like the user)
+POST {{host}}/api/databaseConnection/connect
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+Content-Type: application/json
+
+{ "serverType": "PostgreSQL", "serverName": "localhost", "port": 5432, "userName": "postgres", "password": "…", "databaseName": "postgres" }

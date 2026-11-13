@@ -56,7 +56,8 @@ namespace MDBNavigator.Application.Features
                 ServerName = settings.ServerName,
                 Port = settings.Port,
                 ServerType = settings.ServerType,
-                UserName = settings.UserName
+                UserName = settings.UserName,
+                DatabaseName = settings.DatabaseName
             };
         }
 
