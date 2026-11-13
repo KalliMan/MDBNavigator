@@ -82,6 +82,9 @@ export default function ConnectToServer({
   // to its field and goes away when that field is edited.
   const [errors, setErrors] = useState<FormErrors>({});
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Passwords typed in this dialog, per entry (null: "New connection"), so clicking between entries doesn't lose them.
+  // Memory only, and gone when the dialog closes (it unmounts); a password is only ever sent with its own entry.
+  const typedPasswords = useRef(new Map<string | null, string>());
 
   // Always called (hooks can't be conditional); the reconnect dialog passes false and makes no request.
   const { saved, isLoading, loadFailed, remove, forgetPassword } = useSavedConnections(allowSaved);
@@ -149,13 +152,17 @@ export default function ConnectToServer({
     setErrors(Object.fromEntries(Object.entries(errors).filter(([key]) => !edited.has(key))));
   }
 
-  // A different entry is a different server, so the password isn't carried over (formFromSaved leaves it empty; a
-  // remembered one is used by id).
+  // A different entry is a different server, so the password isn't carried over to it. Each entry gets back the
+  // password typed for it earlier in this dialog, if any (formFromSaved leaves it empty; a remembered one is used by id).
+  // Other edits are still dropped on a switch: only the password is the thing people retype.
   function select(id: string | null) {
     interacted.current = true;
     const entry = id === null ? null : saved.find(s => s.id === id) ?? null;
+    typedPasswords.current.set(selectedId, form.password);
+    const next = entry ? formFromSaved(entry) : withName(newConnectForm());
+    const typed = typedPasswords.current.get(entry?.id ?? null);
     setSelectedId(entry?.id ?? null);
-    setForm(entry ? formFromSaved(entry) : withName(newConnectForm()));
+    setForm(typed === undefined ? next : { ...next, password: typed });
     setNameTouched(entry !== null);
     // Edits to a saved entry are kept by default; a new connection is saved only when asked.
     setSaveChecked(entry !== null);
@@ -169,6 +176,7 @@ export default function ConnectToServer({
     }
     if (await remove(selectedId)) {
       select(null);
+      typedPasswords.current.delete(selectedId);
     } else {
       // The toast explains it; the entry stays.
       setConfirmingDelete(false);
@@ -295,7 +303,9 @@ export default function ConnectToServer({
         <Input
           label="Password:"
           type="password"
-          placeholder={rememberedId ? 'Remembered (type to use another)' : 'Type Password here...'}
+          // Dots for a remembered password: it never comes back to the browser, so they are only the placeholder (the
+          // field stays empty and nothing extra is sent). A fixed length, so they say nothing about the real one.
+          placeholder={rememberedId ? '••••••••' : 'Type Password here...'}
           error={errors.password}
           initialValue={form.password}
           onChange={val => update({ password: val })}

@@ -80,7 +80,9 @@ function App({ active }: Props) {
 
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-canvas text-fg">
         <TopBar />
-        <div className="grid min-h-0 flex-1 grid-cols-[max-content_auto] overflow-hidden">
+        {/* The row is pinned to the available height (minmax(0, 1fr)). An implicit auto row grows to fit a long tree,
+            so the sidebar was clipped here instead of scrolling inside NavBar. */}
+        <div className="grid min-h-0 flex-1 grid-cols-[max-content_auto] grid-rows-[minmax(0,1fr)] overflow-hidden">
           <VerticalSidebar>
             <NavBar />
           </VerticalSidebar>
