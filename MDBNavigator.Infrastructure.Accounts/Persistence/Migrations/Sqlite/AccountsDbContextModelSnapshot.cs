@@ -17,6 +17,81 @@ namespace MDBNavigator.Infrastructure.Accounts.Persistence.Migrations.Sqlite
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
+            modelBuilder.Entity("MDBNavigator.Domain.Entities.SavedConnection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("color");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("DatabaseName")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("database_name");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("port");
+
+                    b.Property<string>("ServerName")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("server_name");
+
+                    b.Property<string>("ServerType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("server_type");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("user_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_saved_connections");
+
+                    b.HasIndex("OwnerId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_saved_connections_owner_id_normalized_name");
+
+                    b.ToTable("saved_connections", (string)null);
+                });
+
             modelBuilder.Entity("MDBNavigator.Infrastructure.Accounts.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")

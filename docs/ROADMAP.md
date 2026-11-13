@@ -73,7 +73,10 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | Step | Contents | Size |
 |---|---|---|
 | **1.1** UI refresh | A compact IDE look: light and dark theme as Tailwind color tokens, system fonts, a restyled top bar, connection tree, query tabs that show their server and database, a query bar with Run and Stop, a denser result grid and status bar. Each server has its own color. Plan: [plans/1.1-ui-refresh.md](plans/1.1-ui-refresh.md). | M |
-| **1.2** Saved connections | Connections stored per user (name, host, port, database, user, color) and a connect dialog with the saved list. Optional "remember password", encrypted with a key from an environment variable and only offered when that key is set. Switching a tab's server or database from the query bar. Possibly read-only connections (to decide). | L |
+| **1.2a** Saved connections: storage | Saved connections per user in the app database (name, server, port, default database, user, color), a CRUD API under `/api/savedConnections`. With `Auth:Mode = None` they belong to the local user. Plan: [plans/1.2a-saved-connections-storage.md](plans/1.2a-saved-connections-storage.md). | M |
+| **1.2b** Saved connections: connect dialog | The saved list in the connect dialog: save, edit, delete, connect from a saved entry (password typed each time), a color picker. | M |
+| **1.2c** Remember password | Optional, encrypted with AES-GCM and a key from `SavedConnections:PasswordKey` (environment variable or user secrets). Only offered when the key is set. | M |
+| **1.2d** Switch server or database | Change a query tab's server or database from the query bar. | M |
 | **1.3** Result grid | Select and copy (TSV), column resize, a cell viewer, sort and filter on the loaded rows, CSV and JSON export, one tab per result set. | L |
 
 ### Later
@@ -105,7 +108,7 @@ Depending on demand.
 
 | Feature | Size | Notes |
 |---|---|---|
-| Roles and permissions per connection | L | Including read-only users. |
+| Roles and permissions per connection | L | Including read-only users and read-only connections (moved here from 1.2). |
 | Shared connections stored on the server | L | Connections currently live only in memory. Storing passwords permanently needs proper encryption and key management. |
 | Audit log | M | Who ran which query, and when. |
 | Single sign-on (OpenID Connect) | M | |

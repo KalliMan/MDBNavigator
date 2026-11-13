@@ -1,3 +1,4 @@
+using MDBNavigator.Application.Contracts;
 using MDBNavigator.Infrastructure.Accounts.Email;
 using MDBNavigator.Infrastructure.Accounts.Identity;
 using MDBNavigator.Infrastructure.Accounts.Persistence;
@@ -20,16 +21,24 @@ namespace MDBNavigator.Infrastructure.Accounts
 
         public const int PasswordMinLength = 10;
 
-        // Identity with its API endpoints (mapped by the API under /api/auth), the session cookie, the external
-        // providers, and the Data Protection keys in the app database. Only for Auth:Mode = Accounts.
-        public static IServiceCollection AddAccounts(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        // The app database, in both auth modes: with Accounts it holds the accounts too, with None only the local user's
+        // saved connections. AddAccounts needs it registered first.
+        public static IServiceCollection AddAppDatabase(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
         {
             var connectionString = ResolveConnectionString(
                 configuration.GetConnectionString(ConnectionStringName) ?? DefaultConnectionString,
                 environment.ContentRootPath);
 
             services.AddDbContext<AccountsDbContext>(options => AccountsDbContext.Configure(options, connectionString));
+            services.AddScoped<ISavedConnectionStore, SavedConnectionStore>();
 
+            return services;
+        }
+
+        // Identity with its API endpoints (mapped by the API under /api/auth), the session cookie, the external providers,
+        // and the Data Protection keys in the app database. Only for Auth:Mode = Accounts, after AddAppDatabase.
+        public static IServiceCollection AddAccounts(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        {
             var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
             ValidateEmailOptions(email, environment);
 

@@ -25,7 +25,7 @@ A web-based database navigator: connect to a database server, browse its databas
 | `MDBNavigator.Domain` | Entities, value objects (`ConnectionSettings`), enums, domain exceptions. No dependencies. |
 | `MDBNavigator.Application` | Use cases as MediatR requests and handlers (`Features/...`), validators, DTOs, and the contracts the other layers implement (`IDatabaseProvider`, `IConnectionCache`, `IBatchNotifier`, ...). |
 | `MDBNavigator.Infrastructure` | Implementations that don't depend on a database server: connection cache, background query queue and execution registry, SignalR hub and notifier. |
-| `MDBNavigator.Infrastructure.Accounts` | The app's own accounts: ASP.NET Core Identity on EF Core, stored in SQLite, with migrations, the admin seeding and the Data Protection keys. |
+| `MDBNavigator.Infrastructure.Accounts` | The app's own database (EF Core on SQLite, with migrations): accounts with ASP.NET Core Identity, the admin seeding, saved connections and the Data Protection keys. |
 | `MDBNavigator.Infrastructure.PostgreSQL` | PostgreSQL provider (Npgsql + Dapper): schema queries, script generation, streaming, cell conversion (`JsonCellValue`), error descriptions. |
 | `MDBNavigator.API` | ASP.NET Core host: controllers, session filter, exception middleware, configuration. Serves the built UI in production. |
 | `mdb-navigator-ui` | React + TypeScript + Vite single-page app. See [its README](mdb-navigator-ui/README.md). |
@@ -92,12 +92,12 @@ Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overrid
 | `QueryExecution:MaxConcurrentQueries` | `8` | Background workers running streamed queries in parallel. Further runs wait in a queue. |
 | `QueryExecution:MaxRowsPerExecution` | `100000` | Rows streamed per execution, across all result sets. When reached, the query is cancelled and the run reports `truncated: true`. `0` means unlimited. |
 | `ConnectionCache:SlidingExpirationMinutes` | `480` | A connection's settings are dropped after this long without use, and the user has to reconnect. |
-| `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in and no app database; only requests from the local machine are served. |
+| `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in; only requests from the local machine are served, and saved connections belong to one local user. Connections saved in one mode don't show up in the other. |
 | `Auth:SignUp` | `Open` | `Closed`: nobody can create an account; the first admin comes from `Auth:Admin`. |
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if it doesn't exist. Put them in user secrets or environment variables. |
-| `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
+| `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts, saved connections; used in both auth modes). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Sign-in with that provider, switched on when both are set (user secrets or environment variables). The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
-| `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:AppBaseUrl` (the app's address for links), and for SMTP `Email:FromAddress` and `Email:Smtp:Host`, `Port`, `Username`, `Password`. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
+| `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:AppBaseUrl` (the app's address for links), and for SMTP `Email:FromAddress`, `Email:Smtp:Username` and `Email:Smtp:Password`. `Email:Smtp:Host` and `Port` default to Brevo (`smtp-relay.brevo.com`, 587); set them only for another mail server. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
 | `RateLimiting:AuthRequestsPerMinute` | `10` | Sign-in, register and password requests per minute and IP address. |
 | `RateLimiting:ConnectsPerMinute` | `10` | Connect and reconnect requests per minute and user. |
 | `RateLimiting:QueriesPerMinute` | `60` | Query runs started per minute and user. |
@@ -195,13 +195,18 @@ Errors are returned as JSON:
 { "statusCode": 400, "message": "Connection failed: password authentication failed for user \"admin\"", "details": null }
 ```
 
-`details` contains the stack trace in Development only. Database and validation errors are `400`, a missing object is `404`, a [rate limit](#rate-limits-and-captcha) is `429`, a missing or invalid CAPTCHA is `428`, and anything else is `500`.
+`details` contains the stack trace in Development only. Database and validation errors are `400`, a missing object is `404`, a conflict with stored data (a saved connection name already taken, the list full) is `409`, a [rate limit](#rate-limits-and-captcha) is `429`, a missing or invalid CAPTCHA is `428`, and anything else is `500`.
 
 | Method and path | Purpose |
 |---|---|
 | `POST databaseConnection/connect` | Body: `{ serverType, serverName, port, userName, password }`. Tests the connection and returns `{ connectionId, connectionName, serverName, port, serverType, userName }`. After repeated failed connects, needs a `Captcha-Token` header when a CAPTCHA is set. |
 | `POST databaseConnection/reconnect/{connectionId}` | Same body. Replaces the settings for an existing connection id. |
 | `POST databaseConnection/disconnect/{connectionId}` | Forgets the connection and cancels its running queries. |
+| `GET savedConnections` | The user's saved connections, by name: `[{ id, name, serverType, serverName, port, databaseName, userName, color }]`. No passwords. |
+| `GET savedConnections/{id}` | One saved connection. `404` if it doesn't exist or belongs to someone else. |
+| `POST savedConnections` | Body: `{ name, serverType, serverName, port, databaseName?, userName, color? }` (`color`: `#rrggbb`, or null for automatic). `201` with the saved connection. `409` when the name is taken (ignoring case) or the user already has 100. |
+| `PUT savedConnections/{id}` | Same body; replaces all fields. `200` with the result, `404`, or `409` for a taken name. |
+| `DELETE savedConnections/{id}` | `204`, or `404`. Deleting an account deletes its saved connections. |
 | `GET databaseSchema/{databases\|tables\|storedProcedures\|functions\|views}/{connectionId}` | Schema objects. All except `databases` take `?database=`. |
 | `GET databaseSchema/tableDefinition/{connectionId}?database=&schema=&table=` | Columns, indexes and constraints of a table. |
 | `GET databaseCommand/{script}/{connectionId}?database=&schema=&...` | Generated SQL text: `tableRecordsScript`, `createTableScript`, `insertTableScript`, `procedureDefinition`, `viewDefinition`, and so on. Object names are always query parameters, never path segments. |

@@ -8,6 +8,9 @@ namespace MDBNavigator.API.Auth
         {
             services.AddSingleton(options);
 
+            // Both modes: with None the app database holds the local user's saved connections.
+            services.AddAppDatabase(configuration, environment);
+
             if (options.Mode == AuthMode.Accounts)
             {
                 services.AddAccounts(configuration, environment);

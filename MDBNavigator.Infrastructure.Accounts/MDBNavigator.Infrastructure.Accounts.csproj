@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- The app's own accounts: ASP.NET Core Identity on EF Core, stored in the app database (SQLite). -->
+  <!-- The app's own database (SQLite, EF Core): accounts with ASP.NET Core Identity, saved connections, Data Protection keys. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -7,6 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />

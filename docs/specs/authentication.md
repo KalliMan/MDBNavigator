@@ -17,7 +17,7 @@ Identity's database storage uses EF Core, but only for the app's own data. Brows
 
 ## Storage
 
-The app database is a single SQLite file, `data/mdbnavigator.db` under the app's folder by default. It needs no database server, and it will also hold the app's other per-user data later (preferences, saved queries, history). It runs in WAL mode.
+The app database is a single SQLite file, `data/mdbnavigator.db` under the app's folder by default. It needs no database server, and it also holds the app's other per-user data: saved connections (roadmap 1.2), later preferences, saved queries and history. It runs in WAL mode.
 
 - **The file must be on a persistent local disk.** In Docker, the `data` folder is a mounted volume; without one, the data is lost when the container is recreated. Network file shares (SMB, NFS) are not safe for SQLite.
 - **Protect the file like a secret.** It holds password hashes and the Data Protection keys, which are stored unencrypted: anyone with the file could forge sign-in cookies. Encrypting the keys (with a certificate) is a later option.
@@ -32,14 +32,14 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 | `Auth:Mode` | `Accounts` (default), `None` | `None`: no sign-in, and the API accepts requests only from the local machine. |
 | `Auth:SignUp` | `Open` (default), `Closed` | `Closed`: nobody can create an account through the UI or the API. |
 | `Auth:Admin:Email`, `Auth:Admin:Password` | | The first admin, created at startup if no admin exists. Needed with `SignUp = Closed`. |
-| `ConnectionStrings:AppDb` | | The app database. Default: `Data Source=data/mdbnavigator.db`. A relative path is taken from the app's folder. Not used with `Auth:Mode = None`. |
+| `ConnectionStrings:AppDb` | | The app database. Default: `Data Source=data/mdbnavigator.db`. A relative path is taken from the app's folder. Used with `Auth:Mode = None` too, for the local user's saved connections. |
 | `RateLimiting:AuthRequestsPerMinute` | default `10` | Requests per minute and IP address to the sign-in, register, password and email endpoints. `0` switches the limit off. The other rate limits (connects, queries) are in the [README](../README.md#rate-limits-and-captcha). |
 | `Captcha:Provider` | `None` (default), `Turnstile`, `Altcha` | Asks for a CAPTCHA when creating an account (and after repeated failed connects). `Turnstile` also needs `Captcha:Turnstile:SiteKey` and `SecretKey`. Details in the [README](../README.md#rate-limits-and-captcha). |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Each provider is switched on only when both values are set. The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
 | `Email:Delivery` | `None` (default), `Smtp`, `Log` | Email confirmation and password reset are on with `Smtp`, or with `Log` (Development only: emails go to the log). |
 | `Email:AppBaseUrl` | | The app's address for links in emails, e.g. `https://mdbnavigator.example.com`. Required when email is on. |
 | `Email:FromAddress`, `Email:FromName` | | The sender. `FromName` defaults to `MDBNavigator`. |
-| `Email:Smtp:Host`, `Port` (587), `Username`, `Password` | | The mail server. Port 465 uses TLS from the start, any other port STARTTLS. The password is a secret (user secrets, environment variable). |
+| `Email:Smtp:Host`, `Port` (587), `Username`, `Password` | `smtp-relay.brevo.com`, `587` (in `appsettings.json`) | The mail server. Host and port default to Brevo, so only the login is configured. Port 465 uses TLS from the start, any other port STARTTLS. The password is a secret (user secrets, environment variable). |
 
 ## Server
 
@@ -64,8 +64,9 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
   - Invalid email settings stop the app at startup with a message.
 - **Sessions:** the session id becomes `userId:tabId`. The tab id still comes from the `id` header. The SignalR hub requires sign-in and puts each connection in the group of its own `userId:tabId`. It no longer trusts the `applicationId` query string.
 - **Data Protection keys** are stored in the app database, so cookies stay valid across restarts and containers.
+- **Deleting an account** also deletes its saved connections, in the same transaction (they have no foreign key to `users`, because the local user of `Auth:Mode = None` has no row there).
 - **Migrations** run at startup.
-- **`Auth:Mode = None`** registers no Identity and needs no app database. Every request must come from the local machine, and all of them act as one user, `local`.
+- **`Auth:Mode = None`** registers no Identity. The app database is still created and migrated, for the saved connections of the one local user (`local`); no roles or admin are seeded. Every request must come from the local machine, and all of them act as that user.
 - **Development** uses accounts with `Email:Delivery = Log` (confirmation links appear in the API's output). The Vite dev server proxies to the API's HTTP port and keeps the browser's host, so the provider return address is `http://localhost:3000/api/auth/signin-{provider}`: register that in each provider's app for development.
 - **No CORS:** the UI always comes from the API's origin.
 - **Roles:** `Admin` exists from the start. In Phase 0 it has no extra screens; user management comes with the team edition.

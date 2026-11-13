@@ -8,15 +8,15 @@ using Microsoft.Extensions.Logging;
 
 namespace MDBNavigator.Infrastructure.Accounts
 {
-    public static class AccountsDatabase
+    public static class AppDatabase
     {
-        // Creates or upgrades the app database, then makes sure the roles and the configured admin exist.
-        // Runs at every start and changes nothing when everything is already in place.
-        public static async Task InitializeAccountsDatabaseAsync(this IServiceProvider services, CancellationToken ct = default)
+        // Creates or upgrades the app database (both auth modes), then, with accounts, makes sure the roles and the
+        // configured admin exist. Runs at every start and changes nothing when everything is already in place.
+        public static async Task InitializeAppDatabaseAsync(this IServiceProvider services, CancellationToken ct = default)
         {
             await using var scope = services.CreateAsyncScope();
             var provider = scope.ServiceProvider;
-            var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AccountsDatabase));
+            var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AppDatabase));
             var db = provider.GetRequiredService<AccountsDbContext>();
 
             if (db.Database.IsSqlite())
@@ -38,9 +38,15 @@ namespace MDBNavigator.Infrastructure.Accounts
                 await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", ct);
             }
 
+            // Auth:Mode None registers no Identity: there are no roles or accounts to seed.
+            var options = provider.GetRequiredService<AuthOptions>();
+            if (options.Mode != AuthMode.Accounts)
+            {
+                return;
+            }
+
             await SeedRolesAsync(provider.GetRequiredService<RoleManager<IdentityRole<Guid>>>());
 
-            var options = provider.GetRequiredService<AuthOptions>();
             var users = provider.GetRequiredService<UserManager<ApplicationUser>>();
             if (!string.IsNullOrWhiteSpace(options.Admin.Email))
             {

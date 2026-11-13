@@ -1,5 +1,7 @@
+using MDBNavigator.Infrastructure.Accounts.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace MDBNavigator.Infrastructure.Accounts.Identity
@@ -21,11 +23,13 @@ namespace MDBNavigator.Infrastructure.Accounts.Identity
 
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly AccountsDbContext _db;
 
-        public AccountManagement(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+        public AccountManagement(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, AccountsDbContext db)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _db = db;
         }
 
         public async Task<AccountInfo?> GetAsync(ClaimsPrincipal principal)
@@ -150,11 +154,22 @@ namespace MDBNavigator.Infrastructure.Accounts.Identity
                 return Failed(LastAdmin);
             }
 
+            // Saved connections have no foreign key to users (see AccountsDbContext), so they are removed here, in the same
+            // transaction: the account and its connections go together, or neither does. UserManager uses this same scoped
+            // context, so its delete runs inside the transaction.
+            var ownerId = user.Id.ToString();
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            await _db.SavedConnections.Where(c => c.OwnerId == ownerId).ExecuteDeleteAsync();
+
             var result = await _userManager.DeleteAsync(user);
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                await _signInManager.SignOutAsync();
+                // Disposing the transaction without committing rolls the connections' delete back.
+                return result;
             }
+
+            await transaction.CommitAsync();
+            await _signInManager.SignOutAsync();
             return result;
         }
 

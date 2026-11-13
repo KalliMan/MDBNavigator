@@ -60,10 +60,8 @@ var app = builder.Build();
 // and the mode in effect is logged.
 app.Services.GetRequiredService<IConnectionGuard>();
 
-if (authOptions.Mode == AuthMode.Accounts)
-{
-    await app.Services.InitializeAccountsDatabaseAsync();
-}
+// Both auth modes use the app database (accounts, saved connections); seeding happens only with accounts.
+await app.Services.InitializeAppDatabaseAsync();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {

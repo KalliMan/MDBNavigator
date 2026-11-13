@@ -83,6 +83,7 @@ namespace MDBNavigator.API.Middleware
         private (int StatusCode, string Message) MapException(Exception ex, IDatabaseErrorDescriber? errorDescriber) => ex switch
         {
             ObjectNotFoundException => ((int)HttpStatusCode.NotFound, ex.Message),
+            ConflictException => ((int)HttpStatusCode.Conflict, ex.Message),
             TooManyRequestsException => ((int)HttpStatusCode.TooManyRequests, ex.Message),
             CaptchaRequiredException => ((int)HttpStatusCode.PreconditionRequired, ex.Message),
             DbException => ((int)HttpStatusCode.BadRequest, errorDescriber?.Describe(ex) ?? ex.Message),

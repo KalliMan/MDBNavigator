@@ -33,3 +33,30 @@ id: {{tab}}
 
 ### Without sign-in: 401
 GET {{host}}/api/auth/me
+
+### Saved connections of the signed-in user (with Auth:Mode None: the local user's)
+GET {{host}}/api/savedConnections
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+
+### Save a connection (no password: one sent here would be ignored)
+# @name saved
+POST {{host}}/api/savedConnections
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+Content-Type: application/json
+
+{ "name": "Local dev", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5432, "databaseName": "postgres", "userName": "postgres", "color": "#16a34a" }
+
+### Change it (all fields; color null = automatic)
+PUT {{host}}/api/savedConnections/{{saved.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}
+Content-Type: application/json
+
+{ "name": "Local dev", "serverType": "PostgreSQL", "serverName": "localhost", "port": 5433, "databaseName": null, "userName": "postgres", "color": null }
+
+### Delete it
+DELETE {{host}}/api/savedConnections/{{saved.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+id: {{tab}}

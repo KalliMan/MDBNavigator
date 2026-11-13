@@ -18,5 +18,9 @@ namespace MDBNavigator.Domain.Enums
             serverType = ServerType.None;
             return false;
         }
+
+        // The API/UI name of a server type ("PostgreSQL", "MS SQL Server"); the enum name for one without a display name.
+        public static string NameOf(ServerType serverType)
+            => ByName.FirstOrDefault(pair => pair.Value == serverType).Key ?? serverType.ToString();
     }
 }
