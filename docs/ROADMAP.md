@@ -38,7 +38,7 @@ Design: [specs/authentication.md](specs/authentication.md).
 | Step | Contents | Size |
 |---|---|---|
 | **0.3a** UI unit tests (Vitest) | Reducers, `batchBuffer`, `formatCell`, the auth context. Started in 1.3a (Vitest, the grid's pure functions). | S–M |
-| **0.3b** Provider tests (xUnit) | PostgreSQL identifier quoting, generated scripts, `JsonCellValue`. | M |
+| **0.3b** Provider tests (xUnit) | PostgreSQL identifier quoting, generated scripts, `JsonCellValue`. Started in 1.3e (xUnit, the script splitter). | M |
 | **0.3c** API tests (xUnit) | Handlers and the auth flows against a real Postgres. | M |
 
 ### 0.4 Docker
@@ -63,6 +63,7 @@ Design: [specs/authentication.md](specs/authentication.md).
 |---|---|---|
 | **0.6a** | Remove the stray root `package.json`/`package-lock.json`. | S |
 | **0.6b** | Hide "MS SQL Server" in the connect dialog until its provider exists. | S |
+| **0.6c** | Replace MediatR with our own handler interfaces, injected directly, with decorators for logging and validation. This removes a dependency held on 12.4.1 because later versions are commercial. Done after the live demo (0.5) and the API tests (0.3c), so the tests show that nothing changed. | S–M |
 
 ## Phase 1: Basics
 
@@ -81,12 +82,14 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | **1.3b** Result grid: resize and cell viewer | Drag a header edge to resize a column, double-click it to fit; columns are virtualized too. Double-click a cell to see its full value, JSON formatted. Plan: [plans/1.3b-resize-cell-viewer.md](plans/1.3b-resize-cell-viewer.md). | M |
 | **1.3c** Result grid: sort and filter | Sort by a column and filter across all columns, on the loaded rows. Plan: [plans/1.3c-sort-filter.md](plans/1.3c-sort-filter.md). | M |
 | **1.3d** Result grid: tabs and export | One tab per result set, a Table or CSV view, and CSV and JSON download. Plan: [plans/1.3d-tabs-export.md](plans/1.3d-tabs-export.md). | M |
+| **1.3e** Run scripts statement by statement | The server splits a script at its semicolons and runs the statements one after another, as psql does. The row limit counts per result set, a failing statement stops the script and is named with its line, and the status bar shows the running statement. First backend unit tests (xUnit). Plan: [plans/1.3e-run-statements-one-by-one.md](plans/1.3e-run-statements-one-by-one.md). | L |
 
 ### Later
 
 | Feature | Size | Notes |
 |---|---|---|
 | Error panel and error position | S–M | Long errors get their own panel. PostgreSQL reports where a query failed, so that spot is marked in the editor. |
+| Messages panel | S–M | Per statement: rows affected, notices and timing. |
 | Query history | S–M | Per connection. |
 | Saved queries / snippets | S–M | |
 | Autocomplete for table and column names | M–L | Uses the schema already loaded for the tree. |

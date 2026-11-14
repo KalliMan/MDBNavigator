@@ -49,6 +49,7 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                 var stats = new QueryStreamStats();
                 var status = CommandExecutionStatus.Completed;
                 string? error = null;
+                StatementStarted? current = null;
 
                 try
                 {
@@ -58,17 +59,32 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                     var factory = services.GetRequiredService<IDatabaseProviderFactory>();
                     await using var provider = await DbConnectionHelper.CreateProviderAsync(cache, factory, request.SessionId, request.ConnectionId, request.DatabaseName, linkedCts.Token);
 
-                    var batches = provider.StreamQuery(
+                    var stream = provider.StreamQuery(
                         request.CmdQuery,
                         options.BatchSize,
                         commandTimeoutSeconds: options.CommandTimeoutSeconds,
-                        maxRows: options.MaxRowsPerExecution > 0 ? options.MaxRowsPerExecution : null,
+                        maxRowsPerResultSet: options.MaxRowsPerResultSet > 0 ? options.MaxRowsPerResultSet : null,
                         stats: stats,
                         ct: linkedCts.Token);
 
-                    await foreach (var batch in batches)
+                    await foreach (var item in stream)
                     {
-                        await notifier.SendBatchCommandResult(ToDto(request, batch), request.SessionId);
+                        switch (item)
+                        {
+                            case StatementStarted started:
+                                current = started;
+                                await notifier.SendStatementStarted(new StatementStartedDto
+                                {
+                                    ExecutionId = request.ExecutionId,
+                                    StatementIndex = started.StatementIndex,
+                                    StatementCount = started.StatementCount,
+                                    Line = started.Line
+                                }, request.SessionId);
+                                break;
+                            case QueryBatch batch:
+                                await notifier.SendBatchCommandResult(ToDto(request, batch), request.SessionId);
+                                break;
+                        }
                     }
                 }
                 catch (Exception) when (linkedCts.IsCancellationRequested)
@@ -83,13 +99,13 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                     logger.LogWarning("Query execution {ExecutionId} failed: {Message}", request.ExecutionId, ex.Message);
                     status = CommandExecutionStatus.Failed;
                     // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).
-                    error = services.GetService<IDatabaseErrorDescriber>()?.Describe(ex) ?? ex.Message;
+                    error = AtStatement(services.GetService<IDatabaseErrorDescriber>()?.Describe(ex) ?? ex.Message, current);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Query execution {ExecutionId} failed unexpectedly", request.ExecutionId);
                     status = CommandExecutionStatus.Failed;
-                    error = ex.Message;
+                    error = AtStatement(ex.Message, current);
                 }
                 finally
                 {
@@ -128,7 +144,15 @@ namespace MDBNavigator.Application.Features.DatabaseCommand.Queries.ExecuteQuery
                     DataTypeName = c.DataTypeName
                 })
                 : null,
-            Rows = batch.Rows
+            Rows = batch.Rows,
+            Truncated = batch.Truncated,
+            SkippingRest = batch.SkippingRest
         };
+
+        // A script's error says which statement failed; a single statement needs no such hint.
+        private static string AtStatement(string error, StatementStarted? statement) =>
+            statement is { StatementCount: > 1 }
+                ? $"Statement {statement.StatementIndex + 1} of {statement.StatementCount} (line {statement.Line}): {error}"
+                : error;
     }
 }

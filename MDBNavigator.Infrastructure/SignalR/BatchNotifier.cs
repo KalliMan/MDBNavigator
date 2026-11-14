@@ -14,6 +14,9 @@ namespace MDBNavigator.Infrastructure.SignalR
         }
 
         // Each session has its own hub group (see BatchCommandResultHub).
+        public async Task SendStatementStarted(StatementStartedDto statement, string sessionId)
+            => await _hubContext.Clients.Group(sessionId).SendAsync("StatementStarted", statement);
+
         public async Task SendBatchCommandResult(DatabaseCommandBatchResultDto command, string sessionId)
             => await _hubContext.Clients.Group(sessionId).SendAsync("BatchCommandResult", command);
 

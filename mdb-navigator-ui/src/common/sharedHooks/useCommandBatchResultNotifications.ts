@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import { StatementStartedResult } from "../../models/databaseCommand/result/statementStartedResult";
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { getHubConnection, HubStatus, startHub, subscribeHubStatus } from "../../services/commandResultHub";
 
 interface Props {
   onBatchCommandResult: (result: DatabaseCommandBatchResult) => void;
+  onStatementStarted: (result: StatementStartedResult) => void;
   onCommandFinished: (result: CommandFinishedResult) => void;
   onHubStatusChanged: (status: HubStatus) => void;
 }
@@ -19,10 +21,12 @@ export default function useCommandBatchResultNotifications(props: Props) {
   useEffect(() => {
     const connection = getHubConnection();
     const onBatch = (message: DatabaseCommandBatchResult) => handlersRef.current.onBatchCommandResult(message);
+    const onStatement = (message: StatementStartedResult) => handlersRef.current.onStatementStarted(message);
     const onFinished = (message: CommandFinishedResult) => handlersRef.current.onCommandFinished(message);
 
     // Handlers are registered before start() so no message can arrive unhandled.
     connection.on("BatchCommandResult", onBatch);
+    connection.on("StatementStarted", onStatement);
     connection.on("CommandFinished", onFinished);
     const unsubscribe = subscribeHubStatus(status => handlersRef.current.onHubStatusChanged(status));
 
@@ -31,6 +35,7 @@ export default function useCommandBatchResultNotifications(props: Props) {
     // The connection itself is app-wide and is not stopped here (safe under StrictMode double effects).
     return () => {
       connection.off("BatchCommandResult", onBatch);
+      connection.off("StatementStarted", onStatement);
       connection.off("CommandFinished", onFinished);
       unsubscribe();
     };

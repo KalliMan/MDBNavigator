@@ -21,6 +21,12 @@ export type RanOn = {
   databaseName: string;
 };
 
+// The statement of the script that is running now.
+export type RunningStatement = {
+  index: number;
+  count: number;
+};
+
 export type DatabaseCommand = {
   id: string;
   isExecuting: boolean;
@@ -30,6 +36,7 @@ export type DatabaseCommand = {
   status: CommandExecutionStatus | null;
   stats: DatabaseCommandStats | null;
   ranOn: RanOn | null;
+  runningStatement: RunningStatement | null;
 
   query: DatabaseSQLCommandQuery | null;
   resultSets: ResultSet[];
@@ -62,6 +69,7 @@ function createCommand(id: string): DatabaseCommand {
     status: null,
     stats: null,
     ranOn: null,
+    runningStatement: null,
     query: null,
     resultSets: []
   };
@@ -84,7 +92,9 @@ function appendBatches(resultSets: ResultSet[], batches: DatabaseCommandBatchRes
         resultSetIndex: batch.resultSetIndex,
         fields: batch.fields ?? [],
         rows: [],
-        isComplete: false
+        isComplete: false,
+        truncated: false,
+        skippingRest: false
       });
       index = next.length - 1;
     }
@@ -94,7 +104,7 @@ function appendBatches(resultSets: ResultSet[], batches: DatabaseCommandBatchRes
     pendingRows.set(index, chunks);
 
     if (batch.isLastBatch) {
-      next[index] = { ...next[index], isComplete: true };
+      next[index] = { ...next[index], isComplete: true, truncated: batch.truncated, skippingRest: batch.skippingRest };
     }
   }
 
@@ -115,6 +125,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         status: null,
         stats: null,
         ranOn,
+        runningStatement: null,
         resultSets: [],
         error: null
       };
@@ -168,6 +179,18 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
       };
     }
 
+    case DatabaseCommandActionTypes.StatementStarted: {
+      const started = action.payload;
+      return {
+        ...state,
+        commands: state.commands.map(c =>
+          isCurrentExecution(c, started.executionId)
+            ? { ...c, runningStatement: { index: started.statementIndex, count: started.statementCount } }
+            : c
+        )
+      };
+    }
+
     case DatabaseCommandActionTypes.CommandFinished: {
       const finished = action.payload;
       return {
@@ -177,6 +200,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
             ? {
                 ...c,
                 isExecuting: false,
+                runningStatement: null,
                 status: finished.status,
                 error: finished.status === 'Failed' ? finished.error ?? 'Query execution failed' : null,
                 stats: {
@@ -209,7 +233,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         commands: connectionLost
           ? state.commands.map(c =>
               c.isExecuting && c.executionId !== null
-                ? { ...c, isExecuting: false, status: 'Failed', error: CONNECTION_LOST_MESSAGE }
+                ? { ...c, isExecuting: false, runningStatement: null, status: 'Failed', error: CONNECTION_LOST_MESSAGE }
                 : c
             )
           : state.commands
@@ -222,7 +246,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         ...state,
         commands: state.commands.map(c =>
           c.id === commandId
-            ? { ...c, isExecuting: false, status: 'Failed', error: message }
+            ? { ...c, isExecuting: false, runningStatement: null, status: 'Failed', error: message }
             : c
         )
       };

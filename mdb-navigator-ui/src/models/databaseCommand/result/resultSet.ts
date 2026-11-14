@@ -8,4 +8,8 @@ export interface ResultSet {
   fields: DatabaseCommandResultField[];
   rows: CellValue[][];
   isComplete: boolean;
+  // Stopped at the server's row limit.
+  truncated: boolean;
+  // The server is still reading the statement's remaining rows away.
+  skippingRest: boolean;
 }

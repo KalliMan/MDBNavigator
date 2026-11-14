@@ -67,9 +67,9 @@ New variables must also be declared in `src/vite-env.d.ts`.
 ## How a query runs in the UI
 
 1. `useDatabaseCommandContext().executeDatabaseSQLCommand` generates a new `executionId`, which marks the tab as executing. It waits until the SignalR hub is connected, then posts the query. The server answers `202` right away.
-2. `BatchCommandResult` messages go into `batchBuffer`. The buffer dispatches them to `DatabaseCommandReducer` in groups at most every 150 ms, so a large result causes a few renders per second rather than one per batch.
+2. `BatchCommandResult` messages go into `batchBuffer`. The buffer dispatches them to `DatabaseCommandReducer` in groups at most every 150 ms, so a large result causes a few renders per second rather than one per batch. `StatementStarted` messages (one before each statement of a script) go through the same buffer, which keeps only the latest per run: a script with thousands of statements doesn't cause thousands of renders. The status bar shows the running statement (`features/databaseCommand/runStatus.ts`, pure functions with unit tests).
 3. The reducer appends a batch only to the tab whose current `executionId` matches it. Late batches from a cancelled or replaced run are ignored.
-4. `CommandFinished` first flushes the buffer, then sets the tab's status (`Completed`, `Failed` or `Cancelled`) and the stats shown in the status bar: row count, records affected, elapsed time, and whether the row limit was hit.
+4. `CommandFinished` first flushes the buffer, then sets the tab's status (`Completed`, `Failed` or `Cancelled`) and the stats shown in the status bar: row count, records affected and elapsed time. Whether a result stopped at the server's row limit comes with that result's last batch (`truncated`) and shows on its tab.
 5. If the hub disconnects or starts reconnecting, running tabs are marked failed, because batches sent in the meantime are lost.
 
 A tab's target (`QueryTarget`: connection, database, server name, color) lives in `MainBar` next to the tab's query, and the query bar's menus (`QueryTargetPicker`) change it. A run sends the target's connection and database. The tab's query object never changes, so the editor keeps its text. Each run records where it went (`ranOn`). The status bar compares that with the current target, and results are freed when the server they came from is disconnected.

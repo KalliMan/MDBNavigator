@@ -2,12 +2,14 @@ import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/data
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus } from "../../services/commandResultHub";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import { StatementStartedResult } from "../../models/databaseCommand/result/statementStartedResult";
 import type { RanOn } from "./DatabaseCommandReducer";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
   Queried = 'command/queried',
   RowsAppended = 'command/rowsAppended',
+  StatementStarted = 'command/statementStarted',
   CommandFinished = 'command/finished',
   CommandRemoved = 'command/removed',
   HubStatusChanged = 'command/hubStatusChanged',
@@ -29,6 +31,12 @@ export type CommandQueriedAction = {
 export type RowsAppendedAction = {
   type: DatabaseCommandActionTypes.RowsAppended;
   payload: DatabaseCommandBatchResult[];
+}
+
+// The latest StatementStarted message of a run, collected by batchBuffer.
+export type StatementStartedAction = {
+  type: DatabaseCommandActionTypes.StatementStarted;
+  payload: StatementStartedResult;
 }
 
 export type CommandFinishedAction = {
@@ -54,6 +62,7 @@ export type ErrorAction = {
 export type DatabaseCommandActions = ExecutingAction
 | CommandQueriedAction
 | RowsAppendedAction
+| StatementStartedAction
 | CommandFinishedAction
 | CommandRemovedAction
 | HubStatusChangedAction

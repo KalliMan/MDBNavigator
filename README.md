@@ -13,7 +13,7 @@ A web-based database navigator: connect to a database server, browse its databas
 - Several connections at once, each with a schema tree (databases, schemas, tables with columns and indexes, views, functions, procedures).
 - Script generation: select the first N rows, `CREATE`, `INSERT` and `DROP` for tables, plus definitions and `CREATE`/`DROP` scripts for views, functions and procedures.
 - SQL editor (Monaco) with PostgreSQL highlighting, one tab per query, all tabs kept open in the background.
-- Streamed execution. Rows arrive over SignalR in batches while the query runs, and the grid shows them as they come. Multiple result sets, cancellation and a server-side row limit (100,000 rows by default) are supported.
+- Streamed execution. Rows arrive over SignalR in batches while the query runs, and the grid shows them as they come. A script runs statement by statement, as in psql: each statement commits on its own unless the script opens a transaction, a failing statement stops the script, and the error names the statement and its line. Cancellation and a server-side row limit per result set (100,000 rows by default) are supported.
 - Virtualized result grid: only visible rows and columns are rendered, so large and wide results stay responsive. Select a range of cells, rows or columns with the mouse or the keyboard and copy it as tab-separated text, with or without a header row. Drag a header edge to resize a column, or double-click it to fit the content. Double-click a cell to see its full value, with JSON formatted for reading. Sort by a column and filter across all columns; both work on the loaded rows, mark the matches, and keep each row's original number.
 - One tab per result set when a run returns several. A switch shows the active result as a table or as CSV text, and Export downloads it as CSV or JSON: the loaded rows, with the current sort and filter. CSV writes NULL as an empty field and an empty string as `""`; JSON keeps `bigint` and `numeric` as strings, so no digit is lost.
 - Light and dark theme, following the system setting until you pick one in the top bar. Each server has its own color in the tree, on its query tabs and in the query bar, so it is clear where a query runs. The server and database in the query bar are menus: pick another connected server or database and the tab's SQL runs there next time, with the editor text kept. The status bar says which server and database the results on screen came from.
@@ -29,6 +29,7 @@ A web-based database navigator: connect to a database server, browse its databas
 | `MDBNavigator.Infrastructure` | Implementations that don't depend on a database server: connection cache, background query queue and execution registry, SignalR hub and notifier. |
 | `MDBNavigator.Infrastructure.Accounts` | The app's own database (EF Core on SQLite, with migrations): accounts with ASP.NET Core Identity, the admin seeding, saved connections and the Data Protection keys. |
 | `MDBNavigator.Infrastructure.PostgreSQL` | PostgreSQL provider (Npgsql + Dapper): schema queries, script generation, streaming, cell conversion (`JsonCellValue`), error descriptions. |
+| `MDBNavigator.Infrastructure.PostgreSQL.Tests` | Unit tests of the PostgreSQL provider (xUnit). |
 | `MDBNavigator.API` | ASP.NET Core host: controllers, session filter, exception middleware, configuration. Serves the built UI in production. |
 | `mdb-navigator-ui` | React + TypeScript + Vite single-page app. See [its README](mdb-navigator-ui/README.md). |
 
@@ -85,14 +86,14 @@ The API serves static files only when `wwwroot/index.html` exists, so in develop
 
 ## Configuration
 
-Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overridden with an environment variable, using `__` between section and key, for example `QueryExecution__MaxRowsPerExecution=50000`.
+Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overridden with an environment variable, using `__` between section and key, for example `QueryExecution__MaxRowsPerResultSet=50000`.
 
 | Setting | Default | Meaning |
 |---|---|---|
 | `QueryExecution:BatchSize` | `500` | Rows per SignalR batch message. |
-| `QueryExecution:CommandTimeoutSeconds` | `0` | Database command timeout. `0` means no timeout; long queries are stopped with the cancel endpoint. |
+| `QueryExecution:CommandTimeoutSeconds` | `0` | Database command timeout, per statement. `0` means no timeout; long queries are stopped with the cancel endpoint. |
 | `QueryExecution:MaxConcurrentQueries` | `8` | Background workers running streamed queries in parallel. Further runs wait in a queue. |
-| `QueryExecution:MaxRowsPerExecution` | `100000` | Rows streamed per execution, across all result sets. When reached, the query is cancelled and the run reports `truncated: true`. `0` means unlimited. |
+| `QueryExecution:MaxRowsPerResultSet` | `100000` | Rows streamed per result set. A longer result stops there and is marked `truncated`; the rest of the script still runs. `0` means unlimited. See [how a script runs](#how-a-script-runs). |
 | `ConnectionCache:SlidingExpirationMinutes` | `480` | A connection's settings are dropped after this long without use, and the user has to reconnect. |
 | `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in; only requests from the local machine are served, and saved connections belong to one local user. Connections saved in one mode don't show up in the other. |
 | `Auth:SignUp` | `Open` | `Closed`: nobody can create an account; the first admin comes from `Auth:Admin`. |
@@ -250,7 +251,13 @@ Content-Type: application/json
 
 The response is `202 Accepted` with `{ "id": "{executionId}" }`. The run is queued and starts once a worker is free.
 
-**3. Receive `BatchCommandResult` messages**, zero or more per run:
+**3. Receive the run's messages.** Before each statement of the script, one `StatementStarted`:
+
+```json
+{ "executionId": "...", "statementIndex": 0, "statementCount": 2, "line": 1 }
+```
+
+Then `BatchCommandResult` messages, zero or more per statement:
 
 ```jsonc
 {
@@ -260,6 +267,8 @@ The response is `202 Accepted` with `{ "id": "{executionId}" }`. The run is queu
   "index": 0,                               // batch number within the result set
   "isFirstBatch": true,
   "isLastBatch": false,
+  "truncated": false,
+  "skippingRest": false,
   "fields": [ { "index": 0, "fieldName": "order_id", "category": "Number", "dataTypeName": "integer" } ],
   "rows": [ [1, "2024-01-15T00:00:00", "199.90", null] ]
 }
@@ -267,8 +276,9 @@ The response is `202 Accepted` with `{ "id": "{executionId}" }`. The run is queu
 
 - `fields` is present only on the first batch of a result set.
 - Every result set that returns columns ends with exactly one batch where `isLastBatch` is `true`. That batch can have no rows, which is how an empty result still delivers its columns. A result set can be a single batch that is both first and last.
-- Statements that return no columns (`INSERT`, `UPDATE`, DDL) send no batches but still use up a `resultSetIndex`, so indexes can skip numbers.
-- Batches of one run arrive in order.
+- `resultSetIndex` is the statement's `statementIndex`. Statements that return no columns (`INSERT`, `UPDATE`, DDL) send no batches, so indexes can skip numbers.
+- `truncated` and `skippingRest` are set only on a result set's last batch. `truncated`: the result has more rows than `MaxRowsPerResultSet` and stops here. `skippingRest`: the server is still reading the statement's remaining rows and throwing them away, so the next statement starts when that is done (see [how a script runs](#how-a-script-runs)).
+- Messages of one run arrive in order.
 
 **Column types** are the same for every database server. `category` is one of `Number`, `Text`, `Boolean`, `DateTime`, `Json`, `Binary` and `Other`, and decides how the UI sorts and formats the column. `dataTypeName` is what the database calls the type (`jsonb`, `numeric(10, 2)`); the UI shows it and never interprets it. A shared mapper (`DbTypeCategories`) derives the category from the .NET type, and a provider corrects only what its database knows better (PostgreSQL: `json` and `jsonb` arrive as strings). The enum is `DbTypeCategory.cs`, and the UI type is `dbTypeCategory.ts`. Change them together.
 
@@ -298,20 +308,32 @@ The server side is `JsonCellValue.cs` and the client type is `CellValue` in `mdb
 |---|---|
 | `status` | `Completed`, `Failed` or `Cancelled`. |
 | `rowCount` | Rows streamed, across all result sets. |
-| `recordsAffected` | Rows changed by `INSERT`/`UPDATE`/`DELETE`, as reported by the provider. |
+| `recordsAffected` | Rows changed by `INSERT`/`UPDATE`/`DELETE`, summed over the script's statements. `-1` when no statement reported a count. |
 | `elapsedMs` | Time from when a worker started the run. Time spent waiting in the queue is not included. |
-| `truncated` | `true` when the run stopped at `MaxRowsPerExecution`. The rows up to the limit were sent, and later result sets were not. |
-| `error` | Message for `Failed` runs, including the server's detail and hint. Batches sent before the error stay valid. |
+| `truncated` | `true` when at least one result set stopped at `MaxRowsPerResultSet`. |
+| `error` | Message for `Failed` runs, including the server's detail and hint. For a script with several statements it starts with the failing one: `Statement 2 of 5 (line 14): ...`. Batches sent before the error stay valid. |
 
 **Cancelling:** `POST /api/databaseCommand/cancel/{executionId}`. The outcome arrives as the run's `CommandFinished` with status `Cancelled`. Disconnecting a connection cancels all of its runs. Starting a run with an `executionId` that is already running cancels the earlier one.
 
 **If the hub drops**, batches sent in the meantime are lost. A client should treat its running executions as failed and run them again once it has reconnected.
 
+### How a script runs
+
+The server splits the script into statements at its semicolons and runs them one after another on one connection, opened for the run. This is what psql does.
+
+- **Splitting** follows psql's rules: a semicolon inside a string, a quoted identifier, dollar-quoted text, a comment, parentheses or a `BEGIN ATOMIC ... END` function body does not split. psql's backslash commands are not supported.
+- **Each statement commits on its own.** To make several statements all-or-nothing, put them between `BEGIN` and `COMMIT`; a long data script is also much faster that way. A transaction still open when the script ends is rolled back, because the connection is closed.
+- **The first failing statement stops the script.** Earlier statements keep their results and, outside a transaction, their changes.
+- **The row limit counts per result set.** A statement that only reads (`SELECT`, `TABLE`, `VALUES`, `WITH` or `SHOW`, without `INSERT`, `UPDATE`, `DELETE` or `MERGE` in it) and runs outside a transaction is cancelled at the limit, which is immediate. Any other statement is read to its end with the remaining rows thrown away, because cancelling it would undo its changes or abort the open transaction. For a very large result that takes a while; the run can be cancelled as usual.
+- A `SELECT` that calls a function which changes data, and returns more rows than the limit, is cancelled like any other `SELECT`, and the function's changes are undone. Run it between `BEGIN` and `COMMIT` to have it read to the end.
+
+The splitter and these rules are `PostgresScriptSplitter` and `PostgresStatementRules` in the PostgreSQL provider, with unit tests.
+
 ## Development
 
 - Backend: `dotnet build MDBNavigator.sln`.
 - UI: `npm run check` (type check plus type-aware ESLint with zero warnings allowed) and `npm run build` in `mdb-navigator-ui`.
-- Tests: `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions: selection, clipboard text, geometry, JSON layout, sort and filter, and the CSV and JSON export). xUnit tests for the backend are planned.
+- Tests: `dotnet test MDBNavigator.sln` runs the backend's unit tests (xUnit; so far the PostgreSQL script splitter and its stop rules). `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions, the CSV and JSON export, and the status bar's run texts).
 
 ### Docker
 

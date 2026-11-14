@@ -30,7 +30,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId, activeResult
   const active = resultSets.find(rs => rs.id === activeResultId) ?? resultSets[0];
   const tabs = (
     <ResultTabs
-      results={resultSets.map(rs => ({ id: rs.id, rowCount: rs.rows.length, arriving: isExecuting && !rs.isComplete }))}
+      results={resultSets.map(rs => ({ id: rs.id, rowCount: rs.rows.length, arriving: isExecuting && !rs.isComplete, truncated: rs.truncated }))}
       activeId={active.id}
       onSelect={onActiveResultChange}
     />

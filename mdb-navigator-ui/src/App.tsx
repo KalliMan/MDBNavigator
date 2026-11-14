@@ -31,9 +31,9 @@ function App({ active }: Props) {
     reconnect,
     cancelConnectDialog
   } = useDatabaseServerConnectContext();
-  const { onBatchCommandResult, onCommandFinished, onHubStatusChanged } = useDatabaseCommandContext();
+  const { onBatchCommandResult, onStatementStarted, onCommandFinished, onHubStatusChanged } = useDatabaseCommandContext();
 
-  useCommandBatchResultNotifications({ onBatchCommandResult, onCommandFinished, onHubStatusChanged });
+  useCommandBatchResultNotifications({ onBatchCommandResult, onStatementStarted, onCommandFinished, onHubStatusChanged });
   const hasConnections = databaseServerConnections.length > 0;
   // Without any connection the connect dialog is mandatory; otherwise it can be cancelled.
   const showConnectModal = active && (connectNewDatabaseServer || !hasConnections);

@@ -7,7 +7,7 @@ export interface CommandFinishedResult {
   rowCount: number;
   recordsAffected: number;
   elapsedMs: number;
-  // True when the server stopped at its row limit.
+  // True when at least one result set stopped at the server's row limit.
   truncated: boolean;
   error?: string | null;
 }

@@ -280,105 +280,137 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
             return await GetTableScript(sql, schema, table, ct);
         }
 
-        public async IAsyncEnumerable<QueryBatch> StreamQuery(
-            string cmdQuery,
+        // Runs the script statement by statement, as psql does (see PostgresScriptSplitter). The row limit counts
+        // per result set, and a result that hits it no longer takes the rest of the script with it.
+        //
+        // How a result is stopped at the limit depends on what is safe:
+        // - Cancel, when the statement only reads and no transaction of the user is open. It is immediate, and the
+        //   next statement runs normally.
+        // - Skip otherwise: read the remaining rows and throw them away. A cancel is an error for PostgreSQL: inside
+        //   the user's transaction it would abort it (25P02 on the next statement), and for a statement that
+        //   changes data (UPDATE ... RETURNING) it would undo the changes.
+        // When unsure, skip: it is slower and never wrong.
+        public async IAsyncEnumerable<QueryStreamItem> StreamQuery(
+            string script,
             int batchSize,
-            object? parameters = null,
             int? commandTimeoutSeconds = null,
-            int? maxRows = null,
+            int? maxRowsPerResultSet = null,
             QueryStreamStats? stats = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
-            long totalRows = 0;
-            var limitReached = false;
+            var statements = PostgresScriptSplitter.Split(script);
+            // The connection was opened for this run, so no transaction is open yet.
+            var inTransaction = false;
 
-            await using var command = new NpgsqlCommand(cmdQuery, _connection);
-            if (commandTimeoutSeconds.HasValue)
+            for (var index = 0; index < statements.Count; index++)
             {
-                command.CommandTimeout = commandTimeoutSeconds.Value;
-            }
-            if (parameters != null)
-            {
-                foreach (var prop in parameters.GetType().GetProperties())
-                    command.Parameters.AddWithValue(prop.Name, prop.GetValue(parameters) ?? DBNull.Value);
-            }
-            await using var reader = await command.ExecuteReaderAsync(ct);
+                var statement = statements[index];
+                yield return new StatementStarted { StatementIndex = index, StatementCount = statements.Count, Line = statement.Line };
 
-            var resultSetIndex = 0;
-            do
-            {
-                if (reader.FieldCount == 0)
+                // A batch command's text goes to the server untouched. Npgsql searches an NpgsqlCommand's text for
+                // semicolons and splits it again, which breaks a function body written as BEGIN ATOMIC ... END.
+                await using var batch = new NpgsqlBatch(_connection) { BatchCommands = { new NpgsqlBatchCommand(statement.Text) } };
+                if (commandTimeoutSeconds.HasValue)
                 {
-                    resultSetIndex++;
-                    continue;
+                    batch.Timeout = commandTimeoutSeconds.Value;
                 }
+                await using var reader = await batch.ExecuteReaderAsync(ct);
 
-                var columns = Enumerable.Range(0, reader.FieldCount)
-                    .Select(i =>
-                    {
-                        var dataTypeName = reader.GetDataTypeName(i);
-                        return new ColumnInfo(reader.GetName(i), CategoryOf(reader.GetFieldType(i), dataTypeName), dataTypeName);
-                    })
-                    .ToArray();
-
-                var batchRows = new List<object?[]>(batchSize);
-                var batchIndex = 0;
-                var isFirstBatch = true;
-
-                while (await reader.ReadAsync(ct))
+                var cancelled = false;
+                if (reader.FieldCount > 0)
                 {
-                    var row = new object?[reader.FieldCount];
-                    for (int i = 0; i < reader.FieldCount; i++)
-                        row[i] = reader.IsDBNull(i) ? null : JsonCellValue.From(reader.GetValue(i));
-                    batchRows.Add(row);
-                    totalRows++;
-                    if (stats != null) stats.RowCount++;
-
-                    if (maxRows.HasValue && totalRows >= maxRows.Value)
-                    {
-                        limitReached = true;
-                        break;
-                    }
-
-                    if (batchRows.Count == batchSize)
-                    {
-                        yield return new QueryBatch
+                    var columns = Enumerable.Range(0, reader.FieldCount)
+                        .Select(i =>
                         {
-                            ResultSetIndex = resultSetIndex,
-                            IsFirstBatch = isFirstBatch,
-                            IsLastBatch = false,
-                            BatchIndex = batchIndex,
-                            Columns = isFirstBatch ? columns : null,
-                            Rows = batchRows.ToArray()
-                        };
-                        isFirstBatch = false;
-                        batchIndex++;
-                        batchRows.Clear();
+                            var dataTypeName = reader.GetDataTypeName(i);
+                            return new ColumnInfo(reader.GetName(i), CategoryOf(reader.GetFieldType(i), dataTypeName), dataTypeName);
+                        })
+                        .ToArray();
+
+                    var batchRows = new List<object?[]>(batchSize);
+                    var batchIndex = 0;
+                    var isFirstBatch = true;
+                    long resultRows = 0;
+                    var limitReached = false;
+
+                    while (await reader.ReadAsync(ct))
+                    {
+                        var row = new object?[reader.FieldCount];
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            row[i] = reader.IsDBNull(i) ? null : JsonCellValue.From(reader.GetValue(i));
+                        batchRows.Add(row);
+                        resultRows++;
+                        if (stats != null) stats.RowCount++;
+
+                        if (maxRowsPerResultSet.HasValue && resultRows >= maxRowsPerResultSet.Value)
+                        {
+                            // One more row is read only to learn whether the result is longer; it is not sent.
+                            // A result of exactly the limit is complete, not truncated.
+                            limitReached = await reader.ReadAsync(ct);
+                            break;
+                        }
+
+                        if (batchRows.Count == batchSize)
+                        {
+                            yield return new QueryBatch
+                            {
+                                ResultSetIndex = index,
+                                IsFirstBatch = isFirstBatch,
+                                IsLastBatch = false,
+                                BatchIndex = batchIndex,
+                                Columns = isFirstBatch ? columns : null,
+                                Rows = batchRows.ToArray()
+                            };
+                            isFirstBatch = false;
+                            batchIndex++;
+                            batchRows.Clear();
+                        }
+                    }
+
+                    var canCancel = limitReached && PostgresStatementRules.CanCancelAtRowLimit(statement, inTransaction);
+
+                    // Yielded before the cancel or the skipping starts, so the browser has the rows and its tab
+                    // while the server is still busy.
+                    yield return new QueryBatch
+                    {
+                        ResultSetIndex = index,
+                        IsFirstBatch = isFirstBatch,
+                        IsLastBatch = true,
+                        BatchIndex = batchIndex,
+                        Columns = isFirstBatch ? columns : null,
+                        Rows = batchRows.ToArray(),
+                        Truncated = limitReached,
+                        SkippingRest = limitReached && !canCancel
+                    };
+
+                    if (limitReached)
+                    {
+                        if (stats != null) stats.Truncated = true;
+                        if (canCancel)
+                        {
+                            await StopReaderAsync(batch, reader);
+                            cancelled = true;
+                        }
+                        else
+                        {
+                            // The user's Cancel still stops this: ReadAsync(ct) throws.
+                            while (await reader.ReadAsync(ct)) { }
+                        }
                     }
                 }
 
-                yield return new QueryBatch
+                if (!cancelled)
                 {
-                    ResultSetIndex = resultSetIndex,
-                    IsFirstBatch = isFirstBatch,
-                    IsLastBatch = true,
-                    BatchIndex = batchIndex,
-                    Columns = isFirstBatch ? columns : null,
-                    Rows = batchRows.ToArray()
-                };
-
-                if (limitReached)
-                {
-                    if (stats != null) stats.Truncated = true;
-                    await StopReaderAsync(command, reader);
-                    yield break;
+                    // The count is known once the reader is past the statement.
+                    await reader.NextResultAsync(ct);
+                    if (stats != null && reader.RecordsAffected >= 0)
+                    {
+                        stats.RecordsAffected = Math.Max(stats.RecordsAffected, 0) + reader.RecordsAffected;
+                    }
                 }
 
-                resultSetIndex++;
+                inTransaction = PostgresStatementRules.InTransactionAfter(statement, inTransaction);
             }
-            while (await reader.NextResultAsync(ct));
-
-            if (stats != null) stats.RecordsAffected = reader.RecordsAffected;
         }
 
         // json and jsonb arrive as strings, so the .NET type alone would call them Text.
@@ -421,11 +453,11 @@ WHERE c.relname = @Table AND n.nspname = @Schema;";
 
         // Disposing a reader reads all remaining rows, so the command is cancelled server-side first.
         // The resulting "query canceled" error is expected and swallowed.
-        private static async Task StopReaderAsync(NpgsqlCommand command, NpgsqlDataReader reader)
+        private static async Task StopReaderAsync(NpgsqlBatch batch, NpgsqlDataReader reader)
         {
             try
             {
-                command.Cancel();
+                batch.Cancel();
                 await reader.DisposeAsync();
             }
             catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.QueryCanceled)

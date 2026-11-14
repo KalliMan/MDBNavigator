@@ -13,5 +13,9 @@ namespace MDBNavigator.Application.DTOs.Command
         // Row values, already JSON-friendly: the provider converts every cell (PostgreSQL: JsonCellValue.From);
         // the UI's CellValue type describes the possible shapes.
         public required IReadOnlyList<object?[]> Rows { get; init; }
+        // Last batch only: the result set stopped at the row limit.
+        public bool Truncated { get; init; }
+        // Last batch only: the server is still reading the statement's remaining rows away.
+        public bool SkippingRest { get; init; }
     }
 }

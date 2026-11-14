@@ -36,15 +36,16 @@ namespace MDBNavigator.Application.Contracts
         string GetDropTableScript(string schema, string table);
         Task<string> GetInsertTableScript(string schema, string table, CancellationToken ct = default);
 
-        // commandTimeoutSeconds: null keeps the provider default, 0 means no timeout.
-        // maxRows: stop (and cancel the command) once this many rows were read across all result sets.
+        // Runs the script statement by statement on this provider's connection. Each statement commits on its own
+        // unless the script opens a transaction. The first failing statement ends the stream with its exception.
+        // commandTimeoutSeconds: per statement; null keeps the provider default, 0 means no timeout.
+        // maxRowsPerResultSet: a longer result set stops there (its last batch says Truncated); the script goes on.
         // stats is filled while the stream is consumed (row count, records affected, truncated).
-        IAsyncEnumerable<QueryBatch> StreamQuery(
-            string cmdQuery,
+        IAsyncEnumerable<QueryStreamItem> StreamQuery(
+            string script,
             int batchSize,
-            object? parameters = null,
             int? commandTimeoutSeconds = null,
-            int? maxRows = null,
+            int? maxRowsPerResultSet = null,
             QueryStreamStats? stats = null,
             CancellationToken ct = default);
     }

@@ -3,6 +3,8 @@ export interface ResultTabInfo {
   rowCount: number;
   // True while this result's rows are still arriving.
   arriving: boolean;
+  // True when the server stopped this result at its row limit.
+  truncated: boolean;
 }
 
 interface Props {
@@ -34,9 +36,15 @@ export default function ResultTabs({ results, activeId, onSelect }: Props) {
             }`}
           >
             Result {index + 1}
-            <span className="font-normal text-fg-muted">
-              {result.rowCount.toLocaleString('en-US')} {result.rowCount === 1 ? 'row' : 'rows'}{result.arriving ? ' so far' : ''}
-            </span>
+            {result.truncated ? (
+              <span className="font-normal text-warning" title="The server stopped this result at its row limit (QueryExecution:MaxRowsPerResultSet)">
+                first {result.rowCount.toLocaleString('en-US')} rows
+              </span>
+            ) : (
+              <span className="font-normal text-fg-muted">
+                {result.rowCount.toLocaleString('en-US')} {result.rowCount === 1 ? 'row' : 'rows'}{result.arriving ? ' so far' : ''}
+              </span>
+            )}
           </button>
         );
       })}

@@ -13,7 +13,7 @@ namespace MDBNavigator.Application.Common
         // Number of background workers executing streamed queries in parallel.
         public int MaxConcurrentQueries { get; set; } = 8;
 
-        // Rows streamed per execution (all result sets); 0 = unlimited. Protects the browser.
-        public int MaxRowsPerExecution { get; set; } = 100_000;
+        // Rows streamed per result set; 0 = unlimited. Protects the browser from one huge result.
+        public int MaxRowsPerResultSet { get; set; } = 100_000;
     }
 }

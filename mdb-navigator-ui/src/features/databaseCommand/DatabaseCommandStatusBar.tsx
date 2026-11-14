@@ -3,6 +3,7 @@ import { CommandExecutionStatus } from '../../models/databaseCommand/result/comm
 import { DatabaseCommandStats } from '../../contexts/databaseCommand/DatabaseCommandReducer';
 import { HubStatus } from '../../services/commandResultHub';
 import { SelectionSize } from '../../ui/dataGrid/selection';
+import { rowLimitText } from './runStatus';
 
 interface Props {
   isExecuting: boolean;
@@ -16,6 +17,10 @@ interface Props {
   selection: SelectionSize | null;
   // How many result sets the run has; more than one is said next to the row count.
   resultSetCount: number;
+  // What to say while the run is going.
+  executingLabel: string;
+  // How many result sets stopped at the row limit.
+  truncatedResultCount: number;
 }
 
 const hubStatusView: Record<HubStatus, { label: string; dotClass: string }> = {
@@ -48,7 +53,7 @@ function formatRows(stats: DatabaseCommandStats | null, resultSetCount: number):
   return null;
 }
 
-export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, resultsFrom, selection, resultSetCount }: Props) {
+export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, resultsFrom, selection, resultSetCount, executingLabel, truncatedResultCount }: Props) {
   const [executionTime, setExecutionTime] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -78,6 +83,7 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
   // Prefer the server-measured time once the execution has finished.
   const finishedTime = formatTime(stats?.elapsedMs ?? executionTime);
   const rows = formatRows(stats, resultSetCount);
+  const limitText = stats ? rowLimitText(stats.rowCount, resultSetCount, truncatedResultCount) : null;
   const hub = hubStatusView[hubStatus];
 
   return (
@@ -87,7 +93,7 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
           <>
             <div className="flex items-center gap-2">
               <div className="size-3 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
-              <span className="font-medium text-fg">Executing query...</span>
+              <span className="font-medium text-fg">{executingLabel}</span>
             </div>
             <span className="text-fg-muted">
               Elapsed time: {formatTime(executionTime)}
@@ -121,9 +127,9 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
               <div className="size-2 rounded-full bg-success"></div>
               <span className="font-medium text-fg">Query executed successfully</span>
             </div>
-            {stats?.truncated ? (
-              <span className="text-warning" title="The server stops streaming at its row limit (QueryExecution:MaxRowsPerExecution)">
-                Showing first {stats.rowCount.toLocaleString('en-US')} rows (row limit reached). Sort and filter cover these rows only.
+            {limitText ? (
+              <span className="text-warning" title="The server stops each result at its row limit (QueryExecution:MaxRowsPerResultSet)">
+                {limitText}
               </span>
             ) : (
               rows && <span className="text-fg-muted">{rows}</span>

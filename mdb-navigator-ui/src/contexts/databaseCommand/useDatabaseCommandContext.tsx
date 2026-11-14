@@ -5,6 +5,7 @@ import agent from "../../services/apiAgent";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import { DatabaseCommandActionTypes } from "./DatabaseCommandActionType";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import { StatementStartedResult } from "../../models/databaseCommand/result/statementStartedResult";
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus, waitUntilConnected } from "../../services/commandResultHub";
 import { getErrorMessage } from "../../utils/errorMessage";
@@ -85,6 +86,10 @@ export default function useDatabaseCommandContext(){
     context!.batchBuffer.push(result);
   }
 
+  function onStatementStarted(result: StatementStartedResult): void {
+    context!.batchBuffer.pushStatement(result);
+  }
+
   function onCommandFinished(result: CommandFinishedResult): void {
     // Rows still waiting in the buffer must be applied before the run is marked finished.
     context!.batchBuffer.flush();
@@ -108,6 +113,7 @@ export default function useDatabaseCommandContext(){
     cancelDatabaseSQLCommand,
     removeDatabaseSQLCommand,
     onBatchCommandResult,
+    onStatementStarted,
     onCommandFinished,
     onHubStatusChanged,
   };

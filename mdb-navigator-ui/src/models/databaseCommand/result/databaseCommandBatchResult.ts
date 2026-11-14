@@ -12,4 +12,8 @@ export interface DatabaseCommandBatchResult {
   isLastBatch: boolean;
   fields?: DatabaseCommandResultField[];
   rows: CellValue[][];
+  // Last batch only: the result set stopped at the server's row limit.
+  truncated: boolean;
+  // Last batch only: the server is still reading the statement's remaining rows away.
+  skippingRest: boolean;
 }

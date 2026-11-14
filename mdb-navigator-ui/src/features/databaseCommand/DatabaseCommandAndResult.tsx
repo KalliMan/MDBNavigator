@@ -9,6 +9,7 @@ import { QueryTarget } from '../../models/databaseCommand/query/queryTarget';
 import useDatabaseServerConnectContext from '../../contexts/databaseServerConnect/useDatabaseServerConnect';
 import { findConnection } from './queryTargets';
 import { SelectionSize } from '../../ui/dataGrid/selection';
+import { executingLabel } from './runStatus';
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
@@ -81,6 +82,8 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery, target,
         resultsFrom={resultsFrom}
         selection={selectionSize}
         resultSetCount={resultSets.length}
+        executingLabel={executingLabel(command?.runningStatement ?? null, resultSets)}
+        truncatedResultCount={resultSets.filter(rs => rs.truncated).length}
       />
     </div>
   );
