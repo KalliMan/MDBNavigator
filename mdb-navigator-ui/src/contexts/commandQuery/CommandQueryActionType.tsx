@@ -1,7 +1,9 @@
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
+import { TreeDatabase } from "../../features/databaseCommand/queryTargets";
 
 export enum CommandQueryActionTypes {
   Queried = 'command/queried',
+  TreeDatabasePicked = 'command/treeDatabasePicked',
 }
 
 export type CommandQueriedAction = {
@@ -9,4 +11,9 @@ export type CommandQueriedAction = {
   payload: DatabaseSQLCommandQuery;
 }
 
-export type CommandQueryActions = CommandQueriedAction;
+export type CommandTreeDatabasePickedAction = {
+  type: CommandQueryActionTypes.TreeDatabasePicked;
+  payload: TreeDatabase;
+}
+
+export type CommandQueryActions = CommandQueriedAction | CommandTreeDatabasePickedAction;

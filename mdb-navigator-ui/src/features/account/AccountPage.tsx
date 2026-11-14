@@ -81,7 +81,7 @@ export default function AccountPage() {
 function Section({ title, tone, children }: React.PropsWithChildren<{ title: string; tone?: 'danger' }>) {
   return (
     <section className={`grid gap-3 rounded-md border bg-canvas p-5 shadow-sm ${tone === 'danger' ? 'border-danger/30' : 'border-line'}`}>
-      <h2 className={`font-semibold ${tone === 'danger' ? 'text-danger' : 'text-fg'}`}>{title}</h2>
+      <h2 className={`text-base font-semibold ${tone === 'danger' ? 'text-danger' : 'text-fg'}`}>{title}</h2>
       {children}
     </section>
   );

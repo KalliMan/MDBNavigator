@@ -3,7 +3,7 @@ import { CommandExecutionStatus } from '../../models/databaseCommand/result/comm
 import { DatabaseCommandStats } from '../../contexts/databaseCommand/DatabaseCommandReducer';
 import { HubStatus } from '../../services/commandResultHub';
 import { SelectionSize } from '../../ui/dataGrid/selection';
-import { rowLimitText } from './runStatus';
+import { recordsAffectedText, rowLimitText } from './runStatus';
 
 interface Props {
   isExecuting: boolean;
@@ -11,8 +11,10 @@ interface Props {
   status: CommandExecutionStatus | null;
   stats: DatabaseCommandStats | null;
   hubStatus: HubStatus;
-  // Where the results on screen came from; stale once the tab points somewhere else (1.2d). null: no results to describe.
-  resultsFrom: { label: string; stale: boolean } | null;
+  // Where the tab points: first in the bar, with the server's color, so it is clear where the next run goes.
+  target: { label: string; color: string };
+  // Set when the results on screen came from somewhere else than the tab's target (1.2d): its "server · database".
+  staleResultsFrom: string | null;
   // The size of the grid selection; null when nothing is selected.
   selection: SelectionSize | null;
   // How many result sets the run has; more than one is said next to the row count.
@@ -48,12 +50,12 @@ function formatRows(stats: DatabaseCommandStats | null, resultSetCount: number):
     return resultSetCount > 1 ? `${rows} in ${resultSetCount} results` : rows;
   }
   if (stats.recordsAffected >= 0) {
-    return `${stats.recordsAffected.toLocaleString('en-US')} records affected`;
+    return recordsAffectedText(stats.recordsAffected);
   }
   return null;
 }
 
-export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, resultsFrom, selection, resultSetCount, executingLabel, truncatedResultCount }: Props) {
+export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hubStatus, target, staleResultsFrom, selection, resultSetCount, executingLabel, truncatedResultCount }: Props) {
   const [executionTime, setExecutionTime] = useState<number>(0);
   const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -87,8 +89,12 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
   const hub = hubStatusView[hubStatus];
 
   return (
-    <div className="flex h-7 flex-none items-center justify-between gap-4 border-t border-line bg-chrome px-3 text-xs text-fg-muted">
-      <div className="flex items-center gap-4 min-w-0">
+    <div className="flex h-7 flex-none items-center justify-between gap-4 border-t border-line bg-chrome pr-3 text-xs text-fg-muted">
+      <div className="flex h-full items-center gap-4 min-w-0">
+        <span className="flex h-full max-w-[40%] flex-none items-center gap-2 border-r border-line px-3 font-medium text-fg" title={target.label}>
+          <span className="size-2.5 flex-none rounded-[2px]" style={{ backgroundColor: target.color }} />
+          <span className="truncate">{target.label}</span>
+        </span>
         {isExecuting ? (
           <>
             <div className="flex items-center gap-2">
@@ -149,13 +155,7 @@ export function DatabaseCommandStatusBar({ isExecuting, error, status, stats, hu
             {selection.rows} {selection.rows === 1 ? 'row' : 'rows'} × {selection.columns} {selection.columns === 1 ? 'column' : 'columns'} selected
           </span>
         )}
-        {resultsFrom && (
-          resultsFrom.stale ? (
-            <span className="truncate text-warning">Results are from {resultsFrom.label}. Run to refresh.</span>
-          ) : (
-            <span className="truncate">Results from {resultsFrom.label}</span>
-          )
-        )}
+        {staleResultsFrom && <span className="truncate text-warning">Results are from {staleResultsFrom}. Run to refresh.</span>}
         <div className="flex flex-none items-center gap-1.5" title="Result stream connection">
           <div className={`size-2 rounded-full ${hub.dotClass}`}></div>
           {hub.label}

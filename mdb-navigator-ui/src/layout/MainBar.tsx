@@ -3,6 +3,7 @@ import Tabs from '../ui/tabs/Tabs';
 
 import { v4 as uuidv4 } from 'uuid';
 import DatabaseCommandAndResult from '../features/databaseCommand/DatabaseCommandAndResult';
+import NoQueryOpen from '../features/databaseCommand/NoQueryOpen';
 import { DatabaseSQLCommandQuery } from '../models/databaseCommand/query/databaseSQLCommandQuery';
 import useCommandQueryContext from '../contexts/commandQuery/useCommandQueryContext';
 import useDatabaseCommandContext from '../contexts/databaseCommand/useDatabaseCommandContext';
@@ -91,7 +92,7 @@ function Mainbar() {
 
   return (
     <div className="h-full overflow-hidden">
-      {tabsData?.length > 0 && (
+      {tabsData.length > 0 ? (
         <Tabs activeId={activeTabId}
           onSetActiveTab={setActiveTabId}
           onClose={(id) => handleCloseTab(id)} >
@@ -113,6 +114,8 @@ function Mainbar() {
             </Tabs.Tab>
           ))}
         </Tabs>
+      ) : (
+        <NoQueryOpen />
       )}
     </div>
   );

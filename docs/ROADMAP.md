@@ -85,7 +85,7 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | **1.3e** Run scripts statement by statement | The server splits a script at its semicolons and runs the statements one after another, as psql does. The row limit counts per result set, a failing statement stops the script and is named with its line, and the status bar shows the running statement. First backend unit tests (xUnit). Plan: [plans/1.3e-run-statements-one-by-one.md](plans/1.3e-run-statements-one-by-one.md). | L |
 | **1.4a** UI polish: visible defects | The tree shows short, calm column types; tab arrows only when the tabs don't fit; the editor starts at 40 % of the height; numbers are right-aligned and dates and times are written as PostgreSQL writes them; the connect dialog's wording and button order. Plan: [plans/1.4a-ui-fixes.md](plans/1.4a-ui-fixes.md). | M |
 | **1.4b** UI polish: form controls | One style for inputs, selects, checkboxes, buttons and notices, used by the connect dialog, the account page and the sign-in pages. The connect dialog is tighter (Host and Port on one row), and the account page has the top bar. Plan: [plans/1.4b-form-controls.md](plans/1.4b-form-controls.md). | M |
-| **1.4c** UI polish: surfaces and identity | Clearer surface tones in the light theme, the server's color in the status bar, empty states. | S–M |
+| **1.4c** UI polish: surfaces and identity | Light theme tones that can be told apart, the tab's server and database first in the status bar, and empty states: no query open (with a New query button), no results yet, statements without rows, and an Error tab for a failed statement. Plan: [plans/1.4c-surfaces-empty-states.md](plans/1.4c-surfaces-empty-states.md). | S–M |
 
 ### Later
 

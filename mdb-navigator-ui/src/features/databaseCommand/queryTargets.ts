@@ -66,3 +66,44 @@ export function databaseForServer(
   }
   return { databaseName: fallback, note: `"${currentDatabase}" isn't on ${serverName}, so the tab now uses "${fallback}".` };
 }
+
+export interface TreeDatabase {
+  connectionId: string;
+  databaseName: string;
+}
+
+export interface NewQueryTarget extends TreeDatabase {
+  serverName: string;
+  color: string;
+}
+
+// Where the "New query" button of the empty workspace opens its tab: the database clicked last in the tree while
+// its server is still connected, else the first connected server's default database, else that server's first
+// database. null: nothing to open on yet (no server, or its database list hasn't arrived).
+export function newQueryTarget(
+  last: TreeDatabase | null,
+  connections: DatabaseServerConnection[],
+  schemas: DatabaseSchema[] | null,
+): NewQueryTarget | null {
+  if (last) {
+    const match = findConnection(connections, last.connectionId);
+    if (match) {
+      return { connectionId: last.connectionId, databaseName: last.databaseName, serverName: match.name, color: match.color };
+    }
+  }
+  const first = connections.find(c => c.connectedResult);
+  const connected = first?.connectedResult;
+  if (!first || !connected) {
+    return null;
+  }
+  const target = (databaseName: string): NewQueryTarget =>
+    ({ connectionId: connected.connectionId, databaseName, serverName: first.name, color: first.color });
+  if (connected.databaseName) {
+    return target(connected.databaseName);
+  }
+  const list = databaseList(schemas?.find(s => s.connectionId === connected.connectionId));
+  if (list.state === 'loaded' && list.names.length > 0) {
+    return target(list.names[0]);
+  }
+  return null;
+}

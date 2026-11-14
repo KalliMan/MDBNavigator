@@ -39,6 +39,7 @@ export default function useContextMenuHandlers({
   } = useDatabaseSchemaContext();
 
   const {
+    rememberTreeDatabase,
     queryCommandGetTopNTableRecords,
     queryForDatabase,
     queryCommandProcedureDefinition,
@@ -58,6 +59,12 @@ export default function useContextMenuHandlers({
   function handleOnNodeClick(node: TreeViewNodeData, e: CoordPosition) {
     setCurrentNode(node);
     setContextMenuTarget(e);
+
+    // A click on a database or anything inside it: the empty workspace's "New query" opens there (NoQueryOpen).
+    const nodes = getNodeHierarchy(node);
+    if (nodes) {
+      rememberTreeDatabase(nodes.serverNode.id, nodes.databaseNode.nodeName);
+    }
   }
 
   async function handleExpand(id: string, expanded: boolean) {

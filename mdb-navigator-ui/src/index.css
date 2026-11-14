@@ -9,13 +9,14 @@
 :root {
   color-scheme: light;
   --canvas: #ffffff;
-  --surface: #f8f9fb;
-  --chrome: #f3f4f6;
-  --line: #d9dce1;
-  --line-subtle: #eceef1;
+  /* Three tones that can be told apart, as in the dark theme: the editor and grid (canvas), the sidebar (surface), the bars (chrome). hover is darker than chrome, so it shows on the bars too. */
+  --surface: #f4f5f7;
+  --chrome: #eaecf0;
+  --line: #d0d4db;
+  --line-subtle: #e8eaee;
   --fg: #1f2328;
   --fg-muted: #5b6470;
-  --fg-faint: #8b929c;
+  --fg-faint: #717884;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-strong: #1d4ed8;
@@ -23,7 +24,7 @@
   --selected: #dbe6fd;
   --on-selected: #1e3a8a;
   --match: #fde68a;
-  --hover: #eef1f5;
+  --hover: #dfe3e9;
   --success: #15803d;
   --success-soft: #dcfce7;
   --danger: #b91c1c;

@@ -79,10 +79,17 @@ export default function useCommandQueryContext(){
     openQueryTab(connectionId, databaseName, `${schema}.${name}`, await api.getDropViewScript(connectionId, databaseName, schema, name));
   }
 
+  // The tree reports the database of every node clicked; the empty workspace's "New query" opens there.
+  function rememberTreeDatabase(connectionId: string, databaseName: string) {
+    context!.dispatch({ type: CommandQueryActionTypes.TreeDatabasePicked, payload: { connectionId, databaseName } });
+  }
+
   const { databaseCommandQueries } = context.state;
 
   return {
     databaseCommandQueries,
+    lastTreeDatabase: context.state.lastTreeDatabase,
+    rememberTreeDatabase,
     queryCommandGetTopNTableRecords: catchErrors(queryCommandGetTopNTableRecords),
     queryForDatabase,
     queryCommandProcedureDefinition: catchErrors(queryCommandProcedureDefinition),
