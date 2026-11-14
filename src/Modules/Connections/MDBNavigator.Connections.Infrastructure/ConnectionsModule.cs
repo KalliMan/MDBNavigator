@@ -33,6 +33,8 @@ namespace MDBNavigator.Connections.Infrastructure
             services.AddSingleton<IConnectAttemptLimiter, ConnectAttemptLimiter>();
 
             services.AddDbContext<ConnectionsDbContext>(options => ConnectionsDbContext.Configure(options, appDbConnectionString));
+            // Read by GET /health, next to the accounts module's check: each module reports on its own context.
+            services.AddHealthChecks().AddDbContextCheck<ConnectionsDbContext>("connections-db");
             services.AddScoped<ISavedConnectionStore, SavedConnectionStore>();
             services.AddScoped<IUserDataEraser, ConnectionsUserData>();
 

@@ -1,5 +1,7 @@
 # MDBNavigator
 
+[![CI](https://github.com/KalliMan/MDBNavigator/actions/workflows/ci.yml/badge.svg)](https://github.com/KalliMan/MDBNavigator/actions/workflows/ci.yml)
+
 A web-based database navigator: connect to a database server, browse its databases, tables, views, functions and procedures, generate scripts, and run SQL with results streamed into a virtualized grid.
 
 <img width="2554" height="1232" alt="MDBNavigator: schema tree, SQL editor and result grid" src="https://github.com/user-attachments/assets/d18cbd99-07ab-432b-9002-b2d674b1cb65" />
@@ -42,6 +44,8 @@ A web-based database navigator: connect to a database server, browse its databas
 | `Directory.Build.props` | Build settings shared by every project: target framework, nullable, and warnings as errors in Release. |
 | `Directory.Packages.props` | Every NuGet package version. A project file names a package without a version. |
 | `global.json` | The .NET SDK the repository builds with (10.0, latest feature band). |
+| `Dockerfile` | The whole app as one image: the API with the built UI in it. See [Docker](#docker). |
+| `docker-compose.yml`, `docker/sample-db` | A local try-out: the app with a PostgreSQL that holds sample data (Pagila and a table of a million rows). |
 
 ### Architecture
 
@@ -115,6 +119,55 @@ In production the API serves the UI itself, so the browser talks to one origin. 
 
 The API serves static files only when `wwwroot/index.html` exists, so in development (UI on the Vite dev server) it doesn't.
 
+The Docker image does these three steps for you: see [Docker](#docker).
+
+## Docker
+
+One image holds the whole app: the API with the built UI in it.
+
+```sh
+docker build -t mdbnavigator:local .
+docker run --rm -p 8080:8080 -v mdbnavigator-data:/app/data   -e Auth__Admin__Email=you@example.com -e Auth__Admin__Password=change-this-password   mdbnavigator:local
+```
+
+Open http://localhost:8080 and sign in with that account.
+
+- **Data:** the app's SQLite database is in `/app/data`. Keep it in a volume, or accounts and saved connections are gone with the container.
+- **Settings** are environment variables, with `__` between section and key (see [Configuration](#configuration)). Secrets such as `SavedConnections__PasswordKey` and `Auth__Admin__Password` belong there, never in the image.
+- **HTTPS:** the container speaks plain HTTP on port 8080. Put a reverse proxy with TLS in front of it and set `ReverseProxy__TrustedNetworks__0` to the proxy's address or network. The sign-in cookie is `Secure`, so without HTTPS signing in works only on `http://localhost`.
+- **Your databases:** inside the container, `localhost` is the container itself. To reach a PostgreSQL on the Docker host use `host.docker.internal`, and with open sign-up allow it (see [connection guardrails](#connection-guardrails)).
+- **Health:** `GET /health` answers `200 Healthy` when the app's own database is reachable, for a proxy or an uptime monitor.
+- **`Auth:Mode = None` is not for containers:** it serves only requests from the same machine, and your browser is outside the container.
+- The image runs as a non-root user.
+
+### With Compose
+
+To try the app with a database to look at:
+
+```sh
+docker compose up --build
+```
+
+The first start builds the two images and loads the sample data, which takes a few minutes. Then open http://localhost:8080 and sign in as `admin@example.com` with the password `change-this-password`.
+
+Connect to the bundled PostgreSQL:
+
+| Field | Value |
+|---|---|
+| Host | `sample-db` |
+| Port | `5432` |
+| User | `sample` |
+| Password | `sample` |
+| Database | `pagila` |
+
+- **Pagila** is PostgreSQL's usual sample: a DVD rental shop with about 20 tables, views and functions.
+- **`demo.measurements`** has a million rows. `select * from demo.measurements` shows rows arriving while the query runs, the row limit, and Cancel.
+- **Your own databases** on this machine are at the host `host.docker.internal`.
+- **Settings:** copy `.env.example` to `.env` to change the admin's email and password, the port, or to set a key so saved connections can remember passwords.
+- **Starting over:** `docker compose down -v` removes the app's data and the sample database; the next `up` creates both again.
+
+This setup is for one machine: the port is open to `localhost` only, there is no HTTPS, and the password has a default. Before opening it to anyone else, set your own password in `.env` and put a reverse proxy with TLS in front (see `ReverseProxy:TrustedNetworks`).
+
 ## Configuration
 
 Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be overridden with an environment variable, using `__` between section and key, for example `QueryExecution__MaxRowsPerResultSet=50000`.
@@ -150,6 +203,7 @@ Environment variables read by the host:
 | `ASPNETCORE_ENVIRONMENT` | `Development` adds exception messages and stack traces to error responses. Any other value returns a generic message for unexpected errors. |
 | `ASPNETCORE_URLS` | Addresses to listen on, for example `http://0.0.0.0:8080`. The launch profiles set these for local runs. |
 | `ASPNETCORE_HTTPS_PORT` | When set, HTTP requests are redirected to HTTPS on this port, except in Development, where the UI's dev proxy uses the HTTP port. Leave it unset behind a TLS-terminating proxy; `X-Forwarded-Proto` and `X-Forwarded-For` are honoured. |
+| `ReverseProxy:TrustedNetworks` | The proxies in front of the app, as IP addresses or ranges (`172.16.0.0/12`); empty by default. Only their `X-Forwarded-For` and `X-Forwarded-Proto` are believed; with the list empty, only a proxy on the same machine. Needed when the proxy runs in another container or on another host: without it every visitor shares the proxy's address (and its rate limit), and HSTS is not sent. As an environment variable: `ReverseProxy__TrustedNetworks__0=172.16.0.0/12`. |
 
 There is no CORS policy: the UI always comes from the API's own origin (in development through the Vite proxy).
 
@@ -174,7 +228,7 @@ The server opens database connections itself, so on an instance where strangers 
 
 The server opens database connections and runs queries for its users, so without limits one user could use it to guess database passwords, scan hosts and ports, or keep every query worker busy. A refused request gets `429` with a message and, where the wait is known, a `Retry-After` header. Every `RateLimiting` value can be set to `0` to switch that limit off.
 
-- **Per user:** the limits count per signed-in user, so people behind one shared address (an office, a VPN) don't share them. Sign-in requests count per IP address, since there is no user yet. With `Auth:Mode = None` there is no user either, and the address stands in.
+- **Per user:** the limits count per signed-in user, so people behind one shared address (an office, a VPN) don't share them. Sign-in requests count per IP address, since there is no user yet. With `Auth:Mode = None` there is no user either, and the address stands in. Behind a reverse proxy, set `ReverseProxy:TrustedNetworks`, or every visitor counts as the proxy's one address.
 - **Requests per minute:** connects, query runs and sign-in requests, in fixed one-minute windows.
 - **Running queries:** the `QueryExecution:MaxConcurrentQueries` workers are shared by everyone, so one user may have only `MaxRunningQueriesPerUser` runs going at once. Runs still waiting in the queue count too, otherwise the queue itself could be filled. A cancelled or finished run frees its place.
 - **Failed connects:** after `FailedConnectsBeforeWait` failures within `FailedConnectWaitMinutes`, connects are refused for `FailedConnectWaitMinutes` ("try again in N minutes"), without trying the connection. Every failure counts: a wrong password, a host that doesn't answer, a host the [connection guardrails](#connection-guardrails) refuse. A successful connect doesn't reset the count, or a script could connect to a database of its own between guesses.
@@ -367,10 +421,7 @@ The splitter and these rules are `PostgresScriptSplitter` and `PostgresStatement
 - UI: `npm run check` (type check plus type-aware ESLint with zero warnings allowed) and `npm run build` in `mdb-navigator-ui`.
 - Tests: `dotnet test MDBNavigator.slnx` runs the backend's tests (xUnit). The unit tests cover the PostgreSQL script splitter, its stop rules and the cell values. The API smoke tests sign in, connect, load the tree, generate scripts, run and cancel queries, and use saved connections, through the real endpoints and the SignalR hub; they need Docker running, because PostgreSQL starts in a throwaway container, and they use a temporary SQLite file. `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions, the CSV and JSON export, the status bar's and the result pane's run texts, where a new query opens, and the tree's column type names).
 - A Release build (`-c Release`) treats warnings as errors; a Debug build does not. Package versions are set in `Directory.Packages.props` only.
-
-### Docker
-
-The Dockerfiles and `docker-compose.yml` are out of date (for example, the API Dockerfile still copies projects that no longer exist) and will be reworked. Don't use them for now.
+- CI (GitHub Actions, `.github/workflows/ci.yml`) runs all of the above on every push and pull request: the Release build with warnings as errors, every test project, the UI's check, tests and build, and the Docker images, which it also starts once.
 
 ## Contributing
 

@@ -76,9 +76,9 @@ Rules: inside a module, Infrastructure → Core → Contracts → SharedKernel. 
 
 | Step | Contents | Size |
 |---|---|---|
-| **0.4a** Single image | The API serving the built UI, one multi-stage Dockerfile. Replaces both broken Dockerfiles. Also: a setting for the proxies whose `X-Forwarded-*` headers are trusted (today only a proxy on the same machine is, so behind a proxy in another container every visitor counts as one IP and HSTS is not sent), and a health endpoint. | M |
-| **0.4b** Compose setup | The app with its `data` volume (SQLite), plus Postgres with a sample database. Runs with one command. With accounts and a seeded admin: `Auth:Mode = None` serves only requests from the same machine, which a browser outside the container is not. | S |
-| **0.4c** CI | GitHub Actions: build, lint, tests, image. | S–M |
+| **0.4a** Single image | The API serving the built UI, one multi-stage Dockerfile. Replaces both broken Dockerfiles. Also: a setting for the proxies whose `X-Forwarded-*` headers are trusted (today only a proxy on the same machine is, so behind a proxy in another container every visitor counts as one IP and HSTS is not sent), and a health endpoint. Plan: [plans/0.4a-single-image.md](plans/0.4a-single-image.md). | M |
+| **0.4b** Compose setup | The app with its `data` volume (SQLite), plus Postgres with a sample database (Pagila, and one table of about a million rows to show streaming and cancel). Runs with one command. With accounts and a seeded admin: `Auth:Mode = None` serves only requests from the same machine, which a browser outside the container is not. Plan: [plans/0.4b-compose.md](plans/0.4b-compose.md). | S |
+| **0.4c** CI | GitHub Actions: build, lint, tests, image. Plan: [plans/0.4c-ci.md](plans/0.4c-ci.md). | S–M |
 
 ### 0.5 Live demo
 

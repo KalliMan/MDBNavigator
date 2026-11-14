@@ -20,6 +20,8 @@ namespace MDBNavigator.Accounts
         public static IServiceCollection AddAppDatabase(this IServiceCollection services, string connectionString)
         {
             services.AddDbContext<AccountsDbContext>(options => AccountsDbContext.Configure(options, connectionString));
+            // Read by GET /health: the check opens a connection to the file through this context.
+            services.AddHealthChecks().AddDbContextCheck<AccountsDbContext>("accounts-db");
             return services;
         }
 

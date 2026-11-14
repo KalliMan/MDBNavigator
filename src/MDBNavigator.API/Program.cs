@@ -3,6 +3,7 @@ using MDBNavigator.API.Auth;
 using MDBNavigator.API.Captcha;
 using MDBNavigator.API.Middleware;
 using MDBNavigator.API.RateLimiting;
+using MDBNavigator.API.ReverseProxy;
 using MDBNavigator.Connections.Application;
 using MDBNavigator.Connections.Application.SavedConnections;
 using MDBNavigator.Connections.Infrastructure;
@@ -12,7 +13,6 @@ using MDBNavigator.Providers.PostgreSQL;
 using MDBNavigator.SharedKernel;
 using MDBNavigator.Workbench.Infrastructure;
 using MDBNavigator.Workbench.Infrastructure.SignalR;
-using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +25,8 @@ var appDbConnectionString = AppDb.ResolveConnectionString(builder.Configuration,
 var rateLimitingOptions = builder.Configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()
     ?? new RateLimitingOptions();
 var captchaOptions = builder.Configuration.GetSection(CaptchaOptions.SectionName).Get<CaptchaOptions>() ?? new CaptchaOptions();
+var reverseProxyOptions = builder.Configuration.GetSection(ReverseProxyOptions.SectionName).Get<ReverseProxyOptions>()
+    ?? new ReverseProxyOptions();
 
 // Unless set, the connection guard follows who can get in: only with open sign-up can strangers use the server,
 // and then the server's own network (localhost, private ranges) is not theirs to reach. Otherwise the users are the
@@ -66,10 +68,7 @@ app.Services.GetRequiredService<ISavedPasswordProtector>();
 await app.Services.InitializeAppDatabaseAsync();
 await app.Services.InitializeConnectionsDatabaseAsync();
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
-});
+app.UseTrustedForwardedHeaders(reverseProxyOptions);
 
 // First, so error responses carry the headers too.
 app.UseMiddleware<SecurityHeadersMiddleware>();
@@ -111,6 +110,10 @@ if (serveUi)
 var controllers = app.MapControllers();
 app.MapAuthEndpoints(authOptions, captchaOptions);
 app.MapCaptchaEndpoints(captchaOptions);
+
+// For the proxy in front and for an uptime monitor: 200 "Healthy" when the app database answers, 503 otherwise.
+// Anonymous, and it says nothing about users' database servers.
+app.MapHealthChecks("/health").AllowAnonymous();
 
 // With accounts, everything except the auth endpoints and the UI's files needs sign-in.
 if (authOptions.Mode == AuthMode.Accounts)

@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (build and tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore MDBNavigator.slnx
+      # Release treats warnings as errors.
+      - name: Build
+        run: dotnet build MDBNavigator.slnx -c Release --no-restore
+      # The API smoke tests start PostgreSQL in a container; the runner has Docker.
+      - name: Test
+        run: dotnet test MDBNavigator.slnx -c Release --no-build --logger "trx" --results-directory test-results
+      - name: Keep the test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-results
+          path: test-results
+
+  ui:
+    name: UI (check, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mdb-navigator-ui
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mdb-navigator-ui/package-lock.json
+      - run: npm ci
+      # Type check, and lint with zero warnings allowed.
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+  image:
+    name: Docker images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the app image
+        run: docker build -t mdbnavigator:ci .
+      - name: Build the sample database image
+        run: docker build -t mdbnavigator-sample-db:ci docker/sample-db
+      # An image that builds but can't start should fail here, not on a server.
+      - name: Start the app and wait for /health
+        run: |
+          docker run -d --name app -p 8080:8080 \
+            -e Auth__Admin__Email=ci@example.test -e Auth__Admin__Password=ci-only-password \
+            mdbnavigator:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/health; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs app
+          exit 1

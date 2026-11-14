@@ -1,26 +1,47 @@
-services:
-  mdbnavigator-api:
-    environment:
-        - ASPNETCORE_ENVIRONMENT=Release
-        - ASPNETCORE_URLS=http://0.0.0.0:8080
-    container_name: mdbnavigator-api
-    image: kalliman/mdbnavigator-api
-    build:
-      context: .
-      dockerfile: MDBNavigator.API/Dockerfile
-    ports:
-        - "3001:8080"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+# A local try-out: the app and a PostgreSQL with sample data.
+#   docker compose up --build
+# Then open http://localhost:8080 and sign in (see README, "With Compose").
+# Not a deployment: no HTTPS, a default password, and the port is open to this machine only.
+name: mdbnavigator
 
-  mdbnavigator-ui:
-    build:
-      context: mdb-navigator-ui
-      dockerfile: Dockerfile
-    image: kalliman/mdbnavigator-ui
-    container_name: mdbnavigator-ui
-    ports :
-      - "3000:3000"
+services:
+  app:
+    build: .
+    image: mdbnavigator:local
+    ports:
+      # This machine only. Put a reverse proxy with TLS in front before opening it to others.
+      - "127.0.0.1:${MDBNAV_PORT:-8080}:8080"
+    environment:
+      # One admin, created at the first start. Nobody else can create an account.
+      Auth__SignUp: Closed
+      Auth__Admin__Email: ${MDBNAV_ADMIN_EMAIL:-admin@example.com}
+      Auth__Admin__Password: ${MDBNAV_ADMIN_PASSWORD:-change-this-password}
+      # Optional: lets saved connections remember passwords (openssl rand -base64 32).
+      SavedConnections__PasswordKey: ${MDBNAV_PASSWORD_KEY:-}
+    volumes:
+      - app-data:/app/data
     depends_on:
-      - mdbnavigator-api
-    
+      sample-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  sample-db:
+    build: docker/sample-db
+    image: mdbnavigator-sample-db:local
+    environment:
+      POSTGRES_USER: sample
+      POSTGRES_PASSWORD: sample
+      POSTGRES_DB: pagila
+    volumes:
+      - sample-db-data:/var/lib/postgresql/data
+    healthcheck:
+      # Healthy only once the sample data is loaded: the init scripts run before PostgreSQL accepts TCP connections.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U sample -d pagila"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  sample-db-data:
