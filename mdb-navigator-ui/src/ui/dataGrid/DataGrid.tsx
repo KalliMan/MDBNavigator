@@ -416,6 +416,7 @@ export default function DataGrid({ columns, rows, view, sort, onSortChange, canS
           ></div>
           {visibleColumns.map(c => {
             const sorted = sort?.column === c ? sort.direction : null;
+            const numeric = columns[c].category === 'Number';
             return (
               <div
                 key={c}
@@ -423,12 +424,14 @@ export default function DataGrid({ columns, rows, view, sort, onSortChange, canS
                 aria-colindex={c + 1}
                 aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'}
                 // The name is cut inside its own span, so the sort button next to it is never cut off.
-                className={`group absolute top-0 flex h-full cursor-pointer items-center gap-1 border-r border-line px-2 ${range && c >= range.left && c <= range.right ? 'bg-selected text-on-selected' : ''}`}
+                // In a numeric column the sort button goes to the left (flex-row-reverse), so the name ends where the
+                // numbers end.
+                className={`group absolute top-0 flex h-full cursor-pointer items-center gap-1 border-r border-line px-2 ${numeric ? 'flex-row-reverse' : ''} ${range && c >= range.left && c <= range.right ? 'bg-selected text-on-selected' : ''}`}
                 style={{ left: offsets[c], width: widths[c] }}
                 title={`${columns[c].name} (${columns[c].typeName})`}
                 onPointerDown={e => handleHeaderPointerDown(e, c)}
               >
-                <span className="min-w-0 flex-1 truncate">{columns[c].name}</span>
+                <span className={`min-w-0 flex-1 truncate ${numeric ? 'text-right' : ''}`}>{columns[c].name}</span>
                 {canSort && (
                   <button
                     type="button"
@@ -500,6 +503,7 @@ export default function DataGrid({ columns, rows, view, sort, onSortChange, canS
                 </div>
                 {visibleColumns.map(c => {
                   const cell = formatCell(row[c]);
+                  const numeric = columns[c].category === 'Number';
                   const selected = range !== null && isInRange(range, item.index, c);
                   // The anchor (the active cell) stays on the canvas color, as in a spreadsheet.
                   const isAnchor = selection?.anchor.row === item.index && selection.anchor.column === c;
@@ -511,7 +515,7 @@ export default function DataGrid({ columns, rows, view, sort, onSortChange, canS
                       data-row={item.index}
                       data-col={c}
                       aria-selected={selected}
-                      className={`absolute top-0 h-full truncate border-r border-line-subtle px-2 leading-6 ${selected && !isAnchor ? 'bg-selected' : ''} ${cell.isNull ? 'italic text-fg-faint' : ''}`}
+                      className={`absolute top-0 h-full truncate border-r border-line-subtle px-2 leading-6 ${numeric ? 'text-right' : ''} ${selected && !isAnchor ? 'bg-selected' : ''} ${cell.isNull ? 'italic text-fg-faint' : ''}`}
                       style={{ left: offsets[c], width: widths[c] }}
                       title={cell.isNull ? undefined : cell.text}
                     >

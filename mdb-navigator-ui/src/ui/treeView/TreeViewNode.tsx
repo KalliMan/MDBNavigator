@@ -67,7 +67,7 @@ export function TreeViewNode({node, settings, onNodeClick, onExpand}: Props) {
         <span className={`flex flex-none items-center ${node.isSelected ? '' : 'text-fg-muted'}`}>
           {icon}
         </span>
-        <span className="ml-1 whitespace-nowrap select-none" onClick={handleOnClick}>
+        <span className="ml-1 whitespace-nowrap select-none" title={node.nodeTitle} onClick={handleOnClick}>
           {node.nodeTextElement ?? node.nodeText ?? node.nodeName}
         </span>
       </div>

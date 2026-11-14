@@ -48,7 +48,7 @@ function App({ active }: Props) {
       {/* An open dialog shows its own "Connecting…" state */}
       {isConnecting && !showConnectModal && !showReconnectModal && <Loader />}
       {showConnectModal &&
-        <ModalWindow name="Connect To DB Server" title="Connect To DB Server"
+        <ModalWindow name="Connect to a server" title="Connect to a server"
           canClose={hasConnections && !isConnecting} onClose={cancelConnectDialog}>
           <ConnectToServer
             allowSaved
@@ -62,7 +62,7 @@ function App({ active }: Props) {
       }
 
       {showReconnectModal && reconnectedSettings?.connectionId &&
-        <ModalWindow name="Reconnect To DB Server" title="Reconnect To DB Server"
+        <ModalWindow name="Reconnect to the server" title="Reconnect to the server"
           canClose={!isConnecting} onClose={cancelConnectDialog}>
           <ConnectToServer
             initialConnection={

@@ -2,6 +2,7 @@ import { TreeViewNodeData } from "../../ui/treeView/TreeViewNodeData";
 import { NodeType } from "./NodeType";
 import { LuBraces, LuCircleAlert, LuColumns2, LuDatabase, LuEye, LuFolder, LuFolderOpen, LuList, LuServer, LuShieldCheck, LuSquareFunction, LuTable } from "react-icons/lu";
 import { findFirstParentOfType, findNodeOfType } from "../../ui/treeView/treeViewUtils";
+import { fullTypeName, shortTypeName } from "./columnTypeText";
 
 export function createLoaderNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   return {
@@ -137,24 +138,23 @@ export function createTableColumnsFolderNode(parentNode: TreeViewNodeData): Tree
 }
 
 export function createTableColumnNode(columnName: string, dataType: string, maxLength: number | undefined, isNullable: boolean, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
-  const typeText = `${dataType.toUpperCase()}` + (maxLength ? `(${maxLength})` : '');
-  const nullText = isNullable ? ' (NULL)' : ' (NOT NULL)';
-  const nodeText = `${columnName}: ${typeText}${nullText}`;
-
+  // Short, muted type; only "not null" is marked, because most columns are nullable. The full text is the tooltip.
+  const typeText = shortTypeName(dataType, maxLength);
+  const nodeTitle = `${columnName}: ${fullTypeName(dataType, maxLength)}, ${isNullable ? 'null' : 'not null'}`;
   const nodeTextElement = (
     <>
-      <strong>{columnName}</strong>
-      {": "}
-      <span className="text-accent-strong">{typeText}</span>
-      <span className={isNullable ? 'text-fg-faint' : 'text-fg-muted'}>{nullText}</span>
+      {columnName}{' '}
+      <span className="text-fg-muted">{typeText}</span>
+      {!isNullable && <span className="text-fg-faint"> not null</span>}
     </>
   );
 
   return {
     id: `${parentNode.id}::column::${columnName}`,
     nodeName: columnName,
-    nodeText: nodeText,
+    nodeText: `${columnName} ${typeText}${isNullable ? '' : ' not null'}`,
     nodeTextElement,
+    nodeTitle,
     isExpanded: false,
     Icon: <LuColumns2 size={14} />,
     nodes: [],
@@ -185,8 +185,8 @@ export function createTableIndexNode(indexName: string, isUnique: boolean, index
   const badge = tags.join(', ');
   const nodeTextElement = (
     <>
-      <strong>{indexName}</strong>
-      {badge && <span className="text-accent-strong">{` (${badge})`}</span>}
+      {indexName}
+      {badge && <span className="text-fg-muted">{` (${badge})`}</span>}
     </>
   );
 
@@ -219,19 +219,10 @@ export function createTableConstraintsFolderNode(parentNode: TreeViewNodeData): 
 }
 
 export function createTableConstraintNode(constraintName: string, constraintType: string, parentMetaData: object,  parentNode: TreeViewNodeData): TreeViewNodeData {
-  const typeClass =
-    constraintType === 'PRIMARY KEY' ? 'text-warning' :
-    constraintType === 'FOREIGN KEY' ? 'text-accent-strong' :
-    constraintType === 'UNIQUE'      ? 'text-accent-strong' :
-    constraintType === 'CHECK'       ? 'text-fg-muted' :
-    constraintType === 'NOT NULL'    ? 'text-fg-muted' :
-    'text-fg-faint';
-
   const nodeTextElement = (
     <>
-      <strong>{constraintName}</strong>
-      {": "}
-      <span className={typeClass}>{constraintType}</span>
+      {constraintName}{' '}
+      <span className="text-fg-muted">{constraintType.toLowerCase()}</span>
     </>
   );
 
@@ -252,7 +243,7 @@ export function createTableConstraintNode(constraintName: string, constraintType
 export function createProgrammabilityFoldersNode(parentNode: TreeViewNodeData): TreeViewNodeData {
   const result: TreeViewNodeData = {
     id: `${parentNode.id}::programmability`,
-    nodeName: 'Programability',
+    nodeName: 'Programmability',
     isExpanded: false,
     Icon: <LuFolder size={14} />,
     IconExpanded: <LuFolderOpen size={14} />,

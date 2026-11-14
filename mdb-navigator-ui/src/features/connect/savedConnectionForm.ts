@@ -152,13 +152,13 @@ export function formErrors(form: ConnectForm, saved: SavedConnection[], selected
   const errors: FormErrors = {};
 
   if (!form.serverName.trim()) {
-    errors.serverName = 'Server name is required.';
+    errors.serverName = 'Host is required.';
   }
   if (!Number.isInteger(form.port) || form.port < 1 || form.port > 65535) {
     errors.port = 'Port must be between 1 and 65535.';
   }
   if (!form.userName.trim()) {
-    errors.userName = 'User name is required.';
+    errors.userName = 'User is required.';
   }
   if (!form.password && !passwordOptional) {
     errors.password = 'Password is required.';

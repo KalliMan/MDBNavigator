@@ -270,7 +270,7 @@ Then `BatchCommandResult` messages, zero or more per statement:
   "truncated": false,
   "skippingRest": false,
   "fields": [ { "index": 0, "fieldName": "order_id", "category": "Number", "dataTypeName": "integer" } ],
-  "rows": [ [1, "2024-01-15T00:00:00", "199.90", null] ]
+  "rows": [ [1, "2024-01-15 00:00:00", "199.90", null] ]
 }
 ```
 
@@ -290,7 +290,8 @@ Then `BatchCommandResult` messages, zero or more per statement:
 | integers up to 32 bits, finite floats | number |
 | `bigint`, `numeric`/`decimal`, `NaN`/`Infinity` | string, because a JS number can't hold them exactly |
 | `boolean` | boolean |
-| dates, times, `uuid`, `text`, ... | string |
+| `timestamp`, `timestamptz`, `time`, `timetz` | string, as PostgreSQL writes them: `2026-01-22 15:19:01.785309`, `15:19:01`. `timestamptz` is always in UTC and ends with `+00`. |
+| `date`, `uuid`, `text`, ... | string |
 | `bytea` | string in PostgreSQL hex form, `\x0a1b...` |
 | arrays | array, converted element by element |
 | `hstore` | object |
@@ -333,7 +334,7 @@ The splitter and these rules are `PostgresScriptSplitter` and `PostgresStatement
 
 - Backend: `dotnet build MDBNavigator.sln`.
 - UI: `npm run check` (type check plus type-aware ESLint with zero warnings allowed) and `npm run build` in `mdb-navigator-ui`.
-- Tests: `dotnet test MDBNavigator.sln` runs the backend's unit tests (xUnit; so far the PostgreSQL script splitter and its stop rules). `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions, the CSV and JSON export, and the status bar's run texts).
+- Tests: `dotnet test MDBNavigator.sln` runs the backend's unit tests (xUnit; so far the PostgreSQL script splitter, its stop rules and the cell values). `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions, the CSV and JSON export, and the status bar's run texts, and the tree's column type names).
 
 ### Docker
 

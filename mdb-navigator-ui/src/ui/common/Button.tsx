@@ -16,16 +16,9 @@ function Button({ children, disabled, /*to,*/ type, onClick }: React.PropsWithCh
     secondary: base + ' border border-line bg-canvas text-fg hover:bg-hover disabled:hover:bg-canvas',
   };
 
-  if (onClick) {
-    return (
-      <button className={styles[type]} onClick={onClick} disabled={disabled}>
-        {children}
-      </button>
-    );
-  }
-
+  // A button with a handler never submits a form; without one it is the form's submit button.
   return (
-    <button className={styles[type]} disabled={disabled}>
+    <button type={onClick ? 'button' : 'submit'} className={styles[type]} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );

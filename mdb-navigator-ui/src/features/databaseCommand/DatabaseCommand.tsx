@@ -92,7 +92,7 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-9 flex-none items-center gap-1.5 border-b border-line-subtle px-2">
+      <div className="flex h-9 flex-none items-center gap-1.5 border-b border-line-subtle pl-2 pr-3">
         {/* The span carries the tooltip: a disabled button shows none in some browsers. */}
         <span className="flex" title={executeDisabledReason ?? 'Run (Ctrl+Enter)'}>
           <button

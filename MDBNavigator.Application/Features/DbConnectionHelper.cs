@@ -1,6 +1,7 @@
 using MDBNavigator.Application.Common;
 using MDBNavigator.Application.Contracts;
 using MDBNavigator.Application.DTOs;
+using MDBNavigator.Domain.Enums;
 using MDBNavigator.Domain.Exceptions;
 using MDBNavigator.Domain.ValueObjects;
 
@@ -55,7 +56,7 @@ namespace MDBNavigator.Application.Features
                 ConnectionName = $"{settings.ServerName}:{settings.Port}",
                 ServerName = settings.ServerName,
                 Port = settings.Port,
-                ServerType = settings.ServerType,
+                ServerType = ServerTypes.NameOf(settings.ServerType),
                 UserName = settings.UserName,
                 DatabaseName = settings.DatabaseName
             };

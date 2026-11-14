@@ -47,7 +47,7 @@ export default function ResultToolbar({
   }
 
   return (
-    <div className="flex h-8 flex-none items-center gap-2 border-b border-line bg-chrome pr-2 text-xs">
+    <div className="flex h-8 flex-none items-center gap-2 border-b border-line bg-chrome pr-3 text-xs">
       {tabs}
       <span className="flex-1" />
       {!enabled && <span className="truncate text-fg-muted">Sort, filter and export are available when the query finishes</span>}

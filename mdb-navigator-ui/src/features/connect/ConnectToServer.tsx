@@ -248,7 +248,7 @@ export default function ConnectToServer({
 
       <div className="mb-8">
         <Select
-          label="Server Type:"
+          label="Server type:"
           values={serverTypeOptions}
           initialValue={form.serverType}
           onChange={(val: string) => update({ serverType: val as ServerType })}
@@ -257,9 +257,9 @@ export default function ConnectToServer({
 
       <div className="mb-8">
         <Input
-          label="Server Name:"
+          label="Host:"
           type="text"
-          placeholder="Type Server Name here..."
+          placeholder="Host name or IP address"
           error={errors.serverName}
           initialValue={form.serverName}
           onChange={val => update({ serverName: val })}
@@ -270,7 +270,7 @@ export default function ConnectToServer({
         <Input
           label="Port:"
           type="number"
-          placeholder="Type Port here..."
+          placeholder="Port"
           error={errors.port}
           initialValue={form.port.toString()}
           onChange={val => update({ port: +val })}
@@ -290,9 +290,9 @@ export default function ConnectToServer({
 
       <div className="mb-8">
         <Input
-          label="User Name:"
+          label="User:"
           type="text"
-          placeholder="Type User Name here..."
+          placeholder="User name"
           error={errors.userName}
           initialValue={form.userName}
           onChange={val => update({ userName: val })}
@@ -305,7 +305,7 @@ export default function ConnectToServer({
           type="password"
           // Dots for a remembered password: it never comes back to the browser, so they are only the placeholder (the
           // field stays empty and nothing extra is sent). A fixed length, so they say nothing about the real one.
-          placeholder={rememberedId ? '••••••••' : 'Type Password here...'}
+          placeholder={rememberedId ? '••••••••' : 'Password'}
           error={errors.password}
           initialValue={form.password}
           onChange={val => update({ password: val })}
@@ -332,7 +332,7 @@ export default function ConnectToServer({
                 disabled={isConnecting}
                 onChange={e => setSaveChecked(e.target.checked)}
               />
-              {selected ? 'Save changes' : 'Save this connection'}
+              {selected ? 'Save changes to this connection' : 'Save this connection'}
             </label>
             {canRemember && (
               <label className="mt-2 flex items-center gap-2">
@@ -372,34 +372,37 @@ export default function ConnectToServer({
             Delete "{selected.name}"? This doesn't close open connections.
           </div>
           <div className="flex gap-2">
-            <Button type={ButtonType.primary} onClick={e => { e.preventDefault(); void handleDelete(); }}>
-              Delete
-            </Button>
-            <Button type={ButtonType.secondary} onClick={e => { e.preventDefault(); setConfirmingDelete(false); }}>
+            <span className="flex-1" />
+            <Button type={ButtonType.secondary} onClick={() => setConfirmingDelete(false)}>
               Cancel
+            </Button>
+            <Button type={ButtonType.primary} onClick={() => void handleDelete()}>
+              Delete
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex gap-2">
-          <Button disabled={!canSubmit || isConnecting} type={ButtonType.primary}>
-            {isConnecting ? 'Connecting…' : 'Connect'}
-          </Button>
           {allowSaved && selected && (
-            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={e => { e.preventDefault(); setConfirmingDelete(true); }}>
+            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={() => setConfirmingDelete(true)}>
               Delete
             </Button>
           )}
           {allowSaved && selected?.hasPassword && (
-            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={e => { e.preventDefault(); void handleForgetPassword(); }}>
+            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={() => void handleForgetPassword()}>
               Forget password
             </Button>
           )}
+          <span className="flex-1" />
           {onCancel && (
-            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={e => { e.preventDefault(); onCancel(); }}>
+            <Button type={ButtonType.secondary} disabled={isConnecting} onClick={() => onCancel()}>
               Cancel
             </Button>
           )}
+          {/* No onClick: Connect is the form's only submit button, so Enter in a field connects. */}
+          <Button disabled={!canSubmit || isConnecting} type={ButtonType.primary}>
+            {isConnecting ? 'Connecting…' : 'Connect'}
+          </Button>
         </div>
       )}
     </div>

@@ -89,7 +89,7 @@ export function compareValues(a: CellValue, b: CellValue, category: DbTypeCatego
     case 'Text':
       return collator.compare(cellToText(a), cellToText(b));
     default: {
-      // ISO dates and times sort correctly by their text code units.
+      // Dates and times are written year-first in fixed-width fields (JsonCellValue.cs), so they sort correctly by their text code units.
       const x = cellToText(a);
       const y = cellToText(b);
       return x < y ? -1 : x > y ? 1 : 0;

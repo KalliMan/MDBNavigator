@@ -1,4 +1,4 @@
-import { Children, isValidElement, ReactElement, useEffect, useRef } from 'react';
+import { Children, isValidElement, ReactElement, useEffect, useRef, useState } from 'react';
 import Tab, { TabProps } from './Tab';
 import { LuChevronLeft, LuChevronRight, LuX } from 'react-icons/lu';
 
@@ -16,6 +16,25 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
   // Children are <Tabs.Tab> elements; their props (id, label, content) describe the tabs.
   const childrenProps = Children.toArray(children).filter(isValidElement) as TabElement[];
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [overflowing, setOverflowing] = useState(false);
+
+  // Changes when a tab is added, closed or renamed, so the effect below measures again.
+  const tabsKey = JSON.stringify(childrenProps.map(child => [child.props.id, child.props.label, child.props.sublabel]));
+
+  // The scroll arrows show only while the tabs don't fit. The observer also reports once when it starts observing,
+  // so this effect sets no state itself. Showing the arrows makes the strip 48 px narrower, so tabs that needed
+  // them still do; hiding them only happens when the tabs fit the narrower strip, so the state can't flip back
+  // and forth.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(() => {
+      setOverflowing(container.scrollWidth > container.clientWidth);
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [tabsKey]);
 
   useEffect(() => {
     if (!activeId || !scrollContainerRef.current) return;
@@ -51,14 +70,16 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
     // Fills exactly the parent's height (no h-screen: that overflowed the app frame and caused a second scrollbar).
     <div className="h-full flex flex-col">
       <div className="flex h-10 w-full flex-none items-stretch border-b border-line bg-chrome">
-        <button
-          type="button"
-          aria-label="Scroll tabs left"
-          className="flex w-6 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
-          onClick={() => scrollTabs('left')}
-        >
-          <LuChevronLeft size={14} aria-hidden="true" />
-        </button>
+        {overflowing && (
+          <button
+            type="button"
+            aria-label="Scroll tabs left"
+            className="flex w-6 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
+            onClick={() => scrollTabs('left')}
+          >
+            <LuChevronLeft size={14} aria-hidden="true" />
+          </button>
+        )}
         <div
           ref={scrollContainerRef}
           role="tablist"
@@ -98,14 +119,16 @@ export default function Tabs({ activeId, onClose, onSetActiveTab, children }: Re
             );
           })}
         </div>
-        <button
-          type="button"
-          aria-label="Scroll tabs right"
-          className="flex w-6 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
-          onClick={() => scrollTabs('right')}
-        >
-          <LuChevronRight size={14} aria-hidden="true" />
-        </button>
+        {overflowing && (
+          <button
+            type="button"
+            aria-label="Scroll tabs right"
+            className="flex w-6 flex-none items-center justify-center text-fg-muted hover:text-fg cursor-pointer"
+            onClick={() => scrollTabs('right')}
+          >
+            <LuChevronRight size={14} aria-hidden="true" />
+          </button>
+        )}
       </div>
       <div className="flex-1 min-h-0">
         {/* All tabs stay mounted (inactive ones hidden), so editor text, results and scroll survive tab switches. */}

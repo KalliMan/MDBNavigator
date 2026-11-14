@@ -5,6 +5,8 @@ export interface TreeViewNodeData {
   nodeName: string;
   nodeText?: string;
   nodeTextElement?: JSX.Element;
+  // Tooltip of the node's text.
+  nodeTitle?: string;
   isExpanded?: boolean;
 
   isSelected?: boolean;

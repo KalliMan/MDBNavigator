@@ -9,6 +9,9 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="MDBNavigator.Infrastructure.PostgreSQL.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\MDBNavigator.Application\MDBNavigator.Application.csproj" />
   </ItemGroup>
 </Project>
