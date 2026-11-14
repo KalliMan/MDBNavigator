@@ -1,0 +1,15 @@
+using MDBNavigator.Providers.Abstractions.Schema;
+
+namespace MDBNavigator.Workbench.Application.Schema
+{
+    public class TableDefinitionDto
+    {
+        public required string ConnectionId { get; set; }
+        public required string DatabaseName { get; set; }
+        public required string DatabaseSchema { get; set; }
+        public required string Name { get; set; }
+        public required IEnumerable<TableColumn> Columns { get; set; }
+        public IEnumerable<TableIndex>? Indexes { get; set; }
+        public IEnumerable<TableConstraint>? Constraints { get; set; }
+    }
+}

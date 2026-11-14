@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What a database provider must offer, and the types that cross between the app and a provider. No dependencies. -->
+</Project>

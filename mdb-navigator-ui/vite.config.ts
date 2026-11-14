@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
     },
     build: {
-  //    outDir: '../MDBNavigator.API/wwwroot',
+  //    outDir: '../src/MDBNavigator.API/wwwroot',
       outDir: 'dist',
     },
     server: {

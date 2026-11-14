@@ -4,7 +4,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 <img width="2554" height="1232" alt="MDBNavigator: schema tree, SQL editor and result grid" src="https://github.com/user-attachments/assets/d18cbd99-07ab-432b-9002-b2d674b1cb65" />
 
-**Supported servers:** PostgreSQL. The provider layer is pluggable (`IDbServerFactory`); MS SQL Server is planned but not implemented yet, so the connect dialog doesn't offer it.
+**Supported servers:** PostgreSQL. The provider layer is pluggable (`IDatabaseProvider`); MS SQL Server is planned but not implemented yet, so the connect dialog doesn't offer it.
 
 > **Security status:** sign-in is in place ([design](docs/specs/authentication.md)): accounts with email and password, optionally Google, Microsoft and GitHub, and each user's connections and results are separate. With open sign-up, connections to the server's own network (localhost, private ranges, cloud metadata) are refused ([connection guardrails](#connection-guardrails)). Saved connections remember passwords only when a key is configured; they are encrypted with AES-GCM and never sent back to the browser ([remembered passwords](#remembered-passwords)). Connecting and running queries are [rate limited](#rate-limits-and-captcha) per user, and an optional CAPTCHA can be asked on sign-up and after repeated failed connects. Responses carry [security headers](#security-headers), including a Content Security Policy.
 
@@ -25,18 +25,48 @@ A web-based database navigator: connect to a database server, browse its databas
 
 | Path | What it is |
 |---|---|
-| `MDBNavigator.Domain` | Entities, value objects (`ConnectionSettings`), enums, domain exceptions. No dependencies. |
-| `MDBNavigator.Application` | Use cases as MediatR requests and handlers (`Features/...`), validators, DTOs, and the contracts the other layers implement (`IDatabaseProvider`, `IConnectionCache`, `IBatchNotifier`, ...). |
-| `MDBNavigator.Infrastructure` | Implementations that don't depend on a database server: connection cache, background query queue and execution registry, SignalR hub and notifier. |
-| `MDBNavigator.Infrastructure.Accounts` | The app's own database (EF Core on SQLite, with migrations): accounts with ASP.NET Core Identity, the admin seeding, saved connections and the Data Protection keys. |
-| `MDBNavigator.Infrastructure.PostgreSQL` | PostgreSQL provider (Npgsql + Dapper): schema queries, script generation, streaming, cell conversion (`JsonCellValue`), error descriptions. |
-| `MDBNavigator.Infrastructure.PostgreSQL.Tests` | Unit tests of the PostgreSQL provider (xUnit). |
-| `MDBNavigator.API` | ASP.NET Core host: controllers, session filter, exception middleware, configuration. Serves the built UI in production. |
+| `src/Shared/MDBNavigator.SharedKernel` | Shared by everything: command and query handler interfaces with their logging and validation decorators, the errors every part throws, the session key. |
+| `src/Providers/MDBNavigator.Providers.Abstractions` | What a database provider must offer (`IDatabaseProvider`, and `IDatabaseClient` with its schema reader, script generator and query runner), and the types that cross between the app and a provider: `ConnectionSettings`, the schema models, the stream items, `DbTypeCategory`. No dependencies. |
+| `src/Providers/MDBNavigator.Providers.PostgreSQL` | PostgreSQL provider (Npgsql + Dapper): schema queries, script generation, streaming, cell conversion (`JsonCellValue`), error descriptions. References only the abstractions. |
+| `src/Modules/Accounts/MDBNavigator.Accounts` | Accounts in the app's SQLite database (EF Core, with migrations): ASP.NET Core Identity, the admin seeding, external sign-in, email, the account page's operations, the Data Protection keys. |
+| `src/Modules/Connections/MDBNavigator.Connections.Contracts` | What other modules may use of connections: open a database for a session's connection (`IDatabaseConnector`), hear that one was closed, and the connection errors. |
+| `src/Modules/Connections/MDBNavigator.Connections.Core` | Connect, reconnect and disconnect, saved connections and the rules for remembered passwords. One folder per use case under `Application/`. |
+| `src/Modules/Connections/MDBNavigator.Connections.Infrastructure` | The connection cache, the connection guard, the failed-connect wait, saved connections in SQLite (EF Core, own migrations) and password encryption (AES-GCM). |
+| `src/Modules/Workbench/MDBNavigator.Workbench.Core` | The schema tree, script generation, running and cancelling queries. `QueryExecution` is one run of a script, from opening the database to the final `CommandFinished` message. |
+| `src/Modules/Workbench/MDBNavigator.Workbench.Infrastructure` | The query queue and its workers, the registry of running queries, the SignalR hub and notifier. |
+| `src/MDBNavigator.API` | ASP.NET Core host: controllers, session filter, exception middleware, rate limits, CAPTCHA, security headers, configuration. Wires the modules together and serves the built UI in production. |
+| `tests/MDBNavigator.Providers.PostgreSQL.Tests` | Unit tests of the PostgreSQL provider (xUnit). |
+| `tests/MDBNavigator.API.Tests` | Smoke tests of the whole API over HTTP and SignalR, against PostgreSQL in a throwaway container (xUnit, Testcontainers). |
+| `tests/MDBNavigator.Architecture.Tests` | The dependency rules below as tests: which project may reference which (xUnit). |
 | `mdb-navigator-ui` | React + TypeScript + Vite single-page app. See [its README](mdb-navigator-ui/README.md). |
+| `Directory.Build.props` | Build settings shared by every project: target framework, nullable, and warnings as errors in Release. |
+| `Directory.Packages.props` | Every NuGet package version. A project file names a package without a version. |
+| `global.json` | The .NET SDK the repository builds with (10.0, latest feature band). |
+
+### Architecture
+
+The backend is a modular monolith: one deployable API, three modules, each about one problem.
+
+```
+MDBNavigator.API ──► Accounts                  sign-in, providers, email, the account page
+                 ├─► Connections               connect, guard, cache, saved connections
+                 ├─► Workbench ──► Connections.Contracts
+                 │                             schema tree, scripts, running queries
+                 └─► Providers.PostgreSQL ──► Providers.Abstractions
+```
+
+- **Inside a module** dependencies point inward: Infrastructure → Core → Contracts → SharedKernel. Core holds the rules and names no web or database technology; Infrastructure holds the cache, SQLite, SignalR and the background workers.
+- **Between modules** only a `Contracts` project is visible. The workbench opens a database through `IDatabaseConnector` and knows nothing else about connections. Nothing references Accounts: the other modules know a user only as the id in the session key.
+- **A database provider** references only `Providers.Abstractions`. A second provider (MS SQL Server) is a new project next to the PostgreSQL one and one registration line.
+- **A use case** is a command or a query with one handler (`ICommandHandler`, `IQueryHandler`). A controller action gets its handler injected; logging and validation are decorators around every handler. There is no mediator library.
+- **What every module needs** is in the SharedKernel: the handler interfaces, the common errors, the session key, and `IUserDataEraser`, through which each module removes its own data when an account is deleted.
+- The API wires the modules together and owns what belongs to none of them: rate limits, CAPTCHA, security headers, error mapping.
+
+`tests/MDBNavigator.Architecture.Tests` checks the project references against these rules.
 
 ### Tech stack
 
-- **Backend:** .NET 10, ASP.NET Core, MediatR 12.4.1, FluentValidation, Dapper, Npgsql, SignalR. MediatR is pinned to 12.x on purpose because version 13 and later need a commercial licence.
+- **Backend:** .NET 10, ASP.NET Core, FluentValidation, Dapper, Npgsql, SignalR. No mediator library: a controller action gets the handler it calls injected (`ICommandHandler`, `IQueryHandler`), with logging and validation wrapped around it.
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS 4, Monaco Editor with `monaco-sql-languages`, `@tanstack/react-virtual`, immer, axios, `@microsoft/signalr`, react-toastify.
 
 ## Running locally
@@ -58,10 +88,10 @@ A web-based database navigator: connect to a database server, browse its databas
 Run the `https` launch profile, either from Visual Studio or with:
 
 ```sh
-dotnet run --project MDBNavigator.API --launch-profile https
+dotnet run --project src/MDBNavigator.API --launch-profile https
 ```
 
-The API listens on `https://localhost:3001` and `http://localhost:3002`; the UI's dev server proxies to the latter. On first start it creates its SQLite database, `MDBNavigator.API/data/mdbnavigator.db` (git-ignored).
+The API listens on `https://localhost:3001` and `http://localhost:3002`; the UI's dev server proxies to the latter. On first start it creates its SQLite database, `src/MDBNavigator.API/data/mdbnavigator.db` (git-ignored).
 
 Development settings (`appsettings.Development.json`) use accounts with emails written to the log instead of being sent: when you create an account, the confirmation link appears in the API's output. To skip sign-in on your own machine, set `Auth:Mode` to `None` in the API's user secrets.
 
@@ -80,14 +110,14 @@ Open http://localhost:3000 and create an account. The dev server forwards `/api`
 In production the API serves the UI itself, so the browser talks to one origin. This is required: the sign-in cookie is `SameSite=Lax` and the API has no CORS policy.
 
 1. `npm run build` in `mdb-navigator-ui`. `.env.production` uses relative URLs (`/api`, `/batchCommandResult`).
-2. Copy the contents of `mdb-navigator-ui/dist` into `MDBNavigator.API/wwwroot`.
+2. Copy the contents of `mdb-navigator-ui/dist` into `src/MDBNavigator.API/wwwroot`.
 3. Run or publish the API. It serves `index.html` for `/` and for any client-side route that isn't an API or hub endpoint.
 
 The API serves static files only when `wwwroot/index.html` exists, so in development (UI on the Vite dev server) it doesn't.
 
 ## Configuration
 
-Settings live in `MDBNavigator.API/appsettings.json`. Any setting can be overridden with an environment variable, using `__` between section and key, for example `QueryExecution__MaxRowsPerResultSet=50000`.
+Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be overridden with an environment variable, using `__` between section and key, for example `QueryExecution__MaxRowsPerResultSet=50000`.
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -198,13 +228,13 @@ Off unless `SavedConnections:PasswordKey` is set. Then the connect dialog offers
 - Changing or removing the key makes every remembered password unusable (users are asked for it again, and saving replaces it). There is no re-encryption.
 - A wrong key (not base64, or not 32 bytes) stops startup.
 
-Generate a key with `openssl rand -base64 32` (PowerShell: `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`) and set it with `dotnet user-secrets set SavedConnections:PasswordKey <key> --project MDBNavigator.API`, or as the environment variable `SavedConnections__PasswordKey`.
+Generate a key with `openssl rand -base64 32` (PowerShell: `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`) and set it with `dotnet user-secrets set SavedConnections:PasswordKey <key> --project src/MDBNavigator.API`, or as the environment variable `SavedConnections__PasswordKey`.
 
 On an instance with open sign-up, setting the key means the server holds strangers' database passwords. Leave it unset there unless that is intended.
 
 ## API
 
-All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](MDBNavigator.API/MDBNavigator.API.http) has sample requests.
+All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](src/MDBNavigator.API/MDBNavigator.API.http) has sample requests.
 
 Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode, sign-up, providers, email, CAPTCHA provider and Turnstile site key), `register`, `login`, `logout`, `me`, `external/{provider}`, the signed-in user's own `account` (password, linked providers, deletion), plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](docs/specs/authentication.md).
 
@@ -333,9 +363,10 @@ The splitter and these rules are `PostgresScriptSplitter` and `PostgresStatement
 
 ## Development
 
-- Backend: `dotnet build MDBNavigator.sln`.
+- Backend: `dotnet build MDBNavigator.slnx`.
 - UI: `npm run check` (type check plus type-aware ESLint with zero warnings allowed) and `npm run build` in `mdb-navigator-ui`.
-- Tests: `dotnet test MDBNavigator.sln` runs the backend's unit tests (xUnit; so far the PostgreSQL script splitter, its stop rules and the cell values). `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions, the CSV and JSON export, the status bar's and the result pane's run texts, where a new query opens, and the tree's column type names).
+- Tests: `dotnet test MDBNavigator.slnx` runs the backend's tests (xUnit). The unit tests cover the PostgreSQL script splitter, its stop rules and the cell values. The API smoke tests sign in, connect, load the tree, generate scripts, run and cancel queries, and use saved connections, through the real endpoints and the SignalR hub; they need Docker running, because PostgreSQL starts in a throwaway container, and they use a temporary SQLite file. `npm test` in `mdb-navigator-ui` runs the UI's unit tests (Vitest; so far the result grid's pure functions, the CSV and JSON export, the status bar's and the result pane's run texts, where a new query opens, and the tree's column type names).
+- A Release build (`-c Release`) treats warnings as errors; a Debug build does not. Package versions are set in `Directory.Packages.props` only.
 
 ### Docker
 

@@ -1,0 +1,18 @@
+namespace MDBNavigator.SharedKernel
+{
+    // A session is one browser tab of one user: "{userId}:{tabId}". Connections, running queries and result messages
+    // are scoped to it, so knowing a tab id (which the browser sends) never gives access to another user's data.
+    public static class SessionKey
+    {
+        // Auth:Mode = None has no accounts: every request comes from the local machine and acts as this user.
+        public const string LocalUserId = "local";
+
+        public static string Create(string userId, string tabId) => $"{userId}:{tabId}";
+
+        // Every session of this user starts with it (all their browser tabs).
+        public static string UserPrefix(string userId) => $"{userId}:";
+
+        // User ids (GUIDs, or LocalUserId) contain no ':', so the first one ends the user id.
+        public static string UserIdOf(string sessionId) => sessionId[..sessionId.IndexOf(':')];
+    }
+}

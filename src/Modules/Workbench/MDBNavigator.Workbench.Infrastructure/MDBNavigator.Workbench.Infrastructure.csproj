@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Workbench: the query queue and its workers, the registry of running queries, the SignalR hub that delivers results. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MDBNavigator.Workbench.Core\MDBNavigator.Workbench.Core.csproj" />
+  </ItemGroup>
+</Project>

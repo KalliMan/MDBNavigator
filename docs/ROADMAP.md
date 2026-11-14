@@ -10,7 +10,7 @@ Streamed query execution over SignalR (batches, cancellation, row limit, paralle
 
 ## Phase 0: Foundation
 
-Needed before anything goes public. Each sub-phase is one reviewable step.
+Needed before anything goes public. Each sub-phase is one reviewable step. Order of what is left: 0.7 (modular structure), 0.4 (Docker), 0.5 (live demo), then the rest of 0.3c.
 
 ### 0.1 Authentication, part 1
 
@@ -39,21 +39,52 @@ Design: [specs/authentication.md](specs/authentication.md).
 |---|---|---|
 | **0.3a** UI unit tests (Vitest) | Reducers, `batchBuffer`, `formatCell`, the auth context. Started in 1.3a (Vitest, the grid's pure functions). | S–M |
 | **0.3b** Provider tests (xUnit) | PostgreSQL identifier quoting, generated scripts, `JsonCellValue`. Started in 1.3e (xUnit, the script splitter). | M |
-| **0.3c** API tests (xUnit) | Handlers and the auth flows against a real Postgres. | M |
+| **0.3c** API tests (xUnit) | Handlers and the auth flows against a real Postgres. Started in 0.7b (the smoke tests). | M |
+
+### 0.7 Modular structure
+
+Numbered 0.7 because it was added later (2026-11-14), but done **before 0.4**: there is no production database to migrate yet, and the Dockerfile and CI are then written once, for the final layout.
+
+Today one core project (`MDBNavigator.Application`) holds three unrelated problems, saved connections live in the accounts project, and the PostgreSQL provider references the whole core. The target is three modules, each about one problem, plus a small contract project for database providers:
+
+```
+src/
+  Shared/     MDBNavigator.SharedKernel            handler interfaces, decorators, errors, session id
+  Providers/  MDBNavigator.Providers.Abstractions  what a database provider must offer
+              MDBNavigator.Providers.PostgreSQL
+  Modules/
+    Accounts/     MDBNavigator.Accounts                    sign-in, providers, email, account page
+    Connections/  .Contracts  .Core  .Infrastructure       connect, guard, cache, saved connections
+    Workbench/    .Core  .Infrastructure                   schema tree, scripts, running queries
+  MDBNavigator.API
+tests/
+```
+
+Rules: inside a module, Infrastructure → Core → Contracts → SharedKernel. Between modules only `.Contracts` (Workbench → Connections); nothing references Accounts. Providers reference only `Providers.Abstractions`. Accounts is one project, because it is almost entirely ASP.NET Core Identity wiring and a core would be nearly empty. Not part of this: the Result pattern with ProblemDetails (it changes the error contract with the UI), and minimal APIs instead of controllers.
+
+| Step | Contents | Size |
+|---|---|---|
+| **0.7a** Build setup and layout | Projects move to `src/` and `tests/` under their current names. Shared build settings (`Directory.Build.props`, warnings are errors in Release), every NuGet version in `Directory.Packages.props`, a pinned SDK (`global.json`), `MDBNavigator.slnx`. No behavior change. Plan: [plans/0.7a-build-setup-layout.md](plans/0.7a-build-setup-layout.md). | S |
+| **0.7b** API smoke tests | xUnit against the running app and a real PostgreSQL: sign in, connect, load the tree, run a query, saved connections. They show that the moves below change nothing (the first part of 0.3c). Plan: [plans/0.7b-api-smoke-tests.md](plans/0.7b-api-smoke-tests.md). | S–M |
+| **0.7c** Provider contract | `MDBNavigator.Providers.Abstractions`: what a provider must offer, as three interfaces (read the schema, generate scripts, run queries) instead of one. The PostgreSQL provider references only it and becomes `MDBNavigator.Providers.PostgreSQL`. Plan: [plans/0.7c-provider-contract.md](plans/0.7c-provider-contract.md). | S–M |
+| **0.7d** Own handler interfaces | `MDBNavigator.SharedKernel` with command and query handler interfaces, injected directly, and decorators for logging and validation. MediatR is removed (this was 0.6c). Plan: [plans/0.7d-handler-interfaces.md](plans/0.7d-handler-interfaces.md). | S–M |
+| **0.7e** Connections module | Connect, reconnect and disconnect, the connection guard, the cache, the failed-connect wait, saved connections and remembered passwords, with its own database context. Deleting an account clears the user's data through an interface that each module implements, instead of the accounts code reaching into other tables. Plan: [plans/0.7e-connections-module.md](plans/0.7e-connections-module.md). | M |
+| **0.7f** Workbench module | The schema tree, script generation, running and cancelling queries. The query run becomes a class of its own that can be tested without the queue. Plan: [plans/0.7f-workbench-module.md](plans/0.7f-workbench-module.md). | M |
+| **0.7g** Accounts module | `MDBNavigator.Infrastructure.Accounts` becomes `MDBNavigator.Accounts`. What is left of `Application`, `Domain` and `Infrastructure` is removed. Also the dependency rules as a test (`tests/MDBNavigator.Architecture.Tests`). Plan: [plans/0.7g-accounts-module.md](plans/0.7g-accounts-module.md). | S |
 
 ### 0.4 Docker
 
 | Step | Contents | Size |
 |---|---|---|
-| **0.4a** Single image | The API serving the built UI, one multi-stage Dockerfile. Replaces both broken Dockerfiles. | M |
-| **0.4b** Compose setup | The app with its `data` volume (SQLite), plus Postgres with a sample database. Runs with one command. | S |
+| **0.4a** Single image | The API serving the built UI, one multi-stage Dockerfile. Replaces both broken Dockerfiles. Also: a setting for the proxies whose `X-Forwarded-*` headers are trusted (today only a proxy on the same machine is, so behind a proxy in another container every visitor counts as one IP and HSTS is not sent), and a health endpoint. | M |
+| **0.4b** Compose setup | The app with its `data` volume (SQLite), plus Postgres with a sample database. Runs with one command. With accounts and a seeded admin: `Auth:Mode = None` serves only requests from the same machine, which a browser outside the container is not. | S |
 | **0.4c** CI | GitHub Actions: build, lint, tests, image. | S–M |
 
 ### 0.5 Live demo
 
 | Step | Contents | Size |
 |---|---|---|
-| **0.5a** Demo mode | Connections locked to the bundled sample database, through a read-only role with a statement timeout and a connection limit. The database is reset regularly. | M |
+| **0.5a** Demo mode | Connections locked to the bundled sample database, through a read-only role with a statement timeout and a connection limit. The database is reset regularly. A guest can switch the role's timeout off (`SET statement_timeout = 0`), so the app's own `QueryExecution:CommandTimeoutSeconds` is set too, and the containers get memory and CPU limits. | M |
 | **0.5b** Getting in | Decide how visitors get in without a sign-up wall, for example a guest option. | S–M |
 | **0.5c** Hosting | Deploy and keep it running. | M |
 
@@ -63,7 +94,7 @@ Design: [specs/authentication.md](specs/authentication.md).
 |---|---|---|
 | **0.6a** | Remove the stray root `package.json`/`package-lock.json`. | S |
 | **0.6b** | Hide "MS SQL Server" in the connect dialog until its provider exists. | S |
-| **0.6c** | Replace MediatR with our own handler interfaces, injected directly, with decorators for logging and validation. This removes a dependency held on 12.4.1 because later versions are commercial. Done after the live demo (0.5) and the API tests (0.3c), so the tests show that nothing changed. | S–M |
+| **0.6c** | Replace MediatR with our own handler interfaces. Moved to 0.7d: the module split touches every handler anyway, and the smoke tests of 0.7b show that nothing changed. | S–M |
 
 ## Phase 1: Basics
 
@@ -110,7 +141,7 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | AI assistant | M | Plain language to SQL, explain a query. Opt-in, using the user's own API key, because it sends the schema to a third party. |
 | Import CSV into a table | M | |
 | Copy a table between PostgreSQL databases | M | One table, to another server or database, started from a dialog. Rows go server to server with a bulk write, with progress and cancel. No type mapping needed, so it comes before the MS SQL provider. |
-| MS SQL Server provider | L | A second provider behind `IDbServerFactory`. |
+| MS SQL Server provider | L | A second provider behind `IDatabaseProvider`. |
 | Copy a table across database types | M–L | SQL Server to PostgreSQL and back. Maps column types and shows the target table for review before anything is written. Needs the MS SQL provider. |
 | Two-pane transfer view | M | A separate view with a connection tree on each side, to copy several tables from one side to the other. Not available in the read-only live demo. |
 

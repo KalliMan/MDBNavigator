@@ -1,0 +1,40 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/ROADMAP.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MDBNavigator.API/MDBNavigator.API.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/MDBNavigator.SharedKernel/MDBNavigator.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Providers/">
+    <Project Path="src/Providers/MDBNavigator.Providers.Abstractions/MDBNavigator.Providers.Abstractions.csproj" />
+    <Project Path="src/Providers/MDBNavigator.Providers.PostgreSQL/MDBNavigator.Providers.PostgreSQL.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Accounts/">
+    <Project Path="src/Modules/Accounts/MDBNavigator.Accounts/MDBNavigator.Accounts.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Connections/">
+    <Project Path="src/Modules/Connections/MDBNavigator.Connections.Contracts/MDBNavigator.Connections.Contracts.csproj" />
+    <Project Path="src/Modules/Connections/MDBNavigator.Connections.Core/MDBNavigator.Connections.Core.csproj" />
+    <Project Path="src/Modules/Connections/MDBNavigator.Connections.Infrastructure/MDBNavigator.Connections.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Workbench/">
+    <Project Path="src/Modules/Workbench/MDBNavigator.Workbench.Core/MDBNavigator.Workbench.Core.csproj" />
+    <Project Path="src/Modules/Workbench/MDBNavigator.Workbench.Infrastructure/MDBNavigator.Workbench.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MDBNavigator.API.Tests/MDBNavigator.API.Tests.csproj" />
+    <Project Path="tests/MDBNavigator.Architecture.Tests/MDBNavigator.Architecture.Tests.csproj" />
+    <Project Path="tests/MDBNavigator.Providers.PostgreSQL.Tests/MDBNavigator.Providers.PostgreSQL.Tests.csproj" />
+  </Folder>
+</Solution>

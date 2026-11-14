@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Workbench: the schema tree, script generation, running and cancelling queries. Application/ only: it keeps no data of its own. -->
+  <PropertyGroup>
+    <RootNamespace>MDBNavigator.Workbench</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Connections\MDBNavigator.Connections.Contracts\MDBNavigator.Connections.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\MDBNavigator.SharedKernel\MDBNavigator.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

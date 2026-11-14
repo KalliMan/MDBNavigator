@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Connections: connect, reconnect, disconnect, saved connections and remembered passwords. Domain/ + Application/. -->
+  <PropertyGroup>
+    <RootNamespace>MDBNavigator.Connections</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MDBNavigator.Connections.Contracts\MDBNavigator.Connections.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\MDBNavigator.SharedKernel\MDBNavigator.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

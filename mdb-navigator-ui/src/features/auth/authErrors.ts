@@ -22,7 +22,7 @@ const validationCodes: Record<string, { field: AuthField | 'form'; message: stri
   InvalidUserName: { field: 'email', message: 'Please enter a valid email address.' },
   PasswordTooShort: { field: 'password', message: `The password must have at least ${PASSWORD_MIN_LENGTH} characters.` },
   InvalidToken: { field: 'form', message: 'This link is no longer valid. Please ask for a new one.' },
-  // The account page (MDBNavigator.Infrastructure.Accounts/Identity/AccountManagement.cs).
+  // The account page (src/Modules/Accounts/MDBNavigator.Accounts/Identity/AccountManagement.cs).
   PasswordMismatch: { field: 'currentPassword', message: 'The password is wrong.' },
   EmailMismatch: { field: 'email', message: 'That is not this account\'s email address.' },
   LastSignInMethod: { field: 'form', message: 'This is your only way to sign in. Set a password first, or link another provider.' },
@@ -46,7 +46,7 @@ const loginFailures: Record<string, string> = {
   LockedOut: 'Too many failed attempts. Please try again in 5 minutes.',
 };
 
-// ?error= codes the API's provider sign-in sends back (MDBNavigator.API/Auth/AuthEndpoints.cs).
+// ?error= codes the API's provider sign-in sends back (src/MDBNavigator.API/Auth/AuthEndpoints.cs).
 const externalErrors: Record<string, string> = {
   'external-cancelled': 'Sign-in was cancelled.',
   'external-failed': 'Sign-in with that provider didn\'t work. Please try again.',

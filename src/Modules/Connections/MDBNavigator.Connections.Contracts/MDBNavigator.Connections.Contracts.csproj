@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What other modules may use of Connections: open a database for a session's connection, hear that one was closed, and the errors. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Providers\MDBNavigator.Providers.Abstractions\MDBNavigator.Providers.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

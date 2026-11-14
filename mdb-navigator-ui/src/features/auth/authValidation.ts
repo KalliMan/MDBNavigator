@@ -1,6 +1,6 @@
 import type { AuthErrors } from './authErrors';
 
-// Keep in sync with AccountsServiceRegistration.PasswordMinLength on the server.
+// Keep in sync with AccountsModule.PasswordMinLength on the server.
 export const PASSWORD_MIN_LENGTH = 10;
 
 // Checked before sending, so obvious mistakes don't cost a request. The server checks again.

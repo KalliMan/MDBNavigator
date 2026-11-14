@@ -5,5 +5,5 @@ import 'altcha/external';
 import 'altcha/altcha.css';
 import Pbkdf2Worker from 'altcha/workers/pbkdf2?worker';
 
-// The server's only algorithm (MDBNavigator.Infrastructure/Captcha/AltchaCaptcha.cs).
+// The server's only algorithm (src/MDBNavigator.API/Captcha/AltchaCaptcha.cs).
 globalThis.$altcha.algorithms.set('PBKDF2/SHA-256', () => new Pbkdf2Worker());

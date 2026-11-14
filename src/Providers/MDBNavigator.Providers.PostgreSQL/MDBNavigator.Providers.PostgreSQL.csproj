@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MDBNavigator.Providers.PostgreSQL.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MDBNavigator.Providers.Abstractions\MDBNavigator.Providers.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
