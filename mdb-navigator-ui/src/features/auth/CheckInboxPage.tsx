@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import authApi from "../../services/authApi";
 import { toAuthErrors } from "./authErrors";
-import { AuthNotice } from "./AuthControls";
+import Notice from "../../ui/common/Notice";
 import AuthLayout from "./AuthLayout";
 
 // After creating an account while email is on: the account works once the email is confirmed.
@@ -30,8 +30,8 @@ export default function CheckInboxPage() {
         We sent a link to <span className="font-semibold">{email || 'your email address'}</span>.
         Open it to confirm your email, then sign in.
       </p>
-      {error && <AuthNotice tone="error">{error}</AuthNotice>}
-      {state === 'sent' && <AuthNotice tone="success">We sent a new link.</AuthNotice>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {state === 'sent' && <Notice tone="success">We sent a new link.</Notice>}
       <div className="flex items-center justify-between text-sm">
         {email && (
           <button type="button" className="font-medium text-accent-strong hover:underline disabled:opacity-50 cursor-pointer"

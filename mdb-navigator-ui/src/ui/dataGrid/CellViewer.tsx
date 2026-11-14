@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import ModalWindow from "../modalWindow/ModalWindow";
 import Button from "../common/Button";
 import { ButtonType } from "../common/ButtonType.enum";
+import Checkbox from "../common/Checkbox";
 import { viewerText } from "./cellViewerText";
 import { cellToText } from "./formatCell";
 import { CellValue } from "../../models/databaseCommand/result/cellValue";
@@ -56,8 +57,7 @@ function CellViewerBody({ value, category, onCopyText, onClose }: BodyProps) {
   }, []);
 
   return (
-    // -mt-5 takes back ModalWindow's top padding: the value starts right under the title bar.
-    <div className="-mt-5 flex w-[min(720px,calc(100vw-4rem))] flex-col">
+    <div className="flex w-[min(720px,calc(100vw-4rem))] flex-col">
       <pre
         ref={valueRef}
         tabIndex={0}
@@ -68,15 +68,9 @@ function CellViewerBody({ value, category, onCopyText, onClose }: BodyProps) {
 
       <div className="flex items-center justify-between gap-4 px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <label className="flex items-center gap-2 text-xs text-fg-muted">
-            <input
-              type="checkbox"
-              className="accent-accent"
-              checked={wrap}
-              onChange={e => setWrap(e.target.checked)}
-            />
-            Wrap long lines
-          </label>
+          <Checkbox checked={wrap} onChange={setWrap}>
+            <span className="text-xs text-fg-muted">Wrap long lines</span>
+          </Checkbox>
           {shown.formatted && (
             <span className="text-xs text-fg-muted">Formatted for reading. Copy gives the original value.</span>
           )}

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import authApi from "../../services/authApi";
 import { AuthErrors, toAuthErrors } from "./authErrors";
-import { AuthField, AuthNotice, SubmitButton } from "./AuthControls";
+import { AuthField, SubmitButton } from "./AuthControls";
+import Notice from "../../ui/common/Notice";
 import AuthLayout from "./AuthLayout";
 import { hasErrors, PASSWORD_MIN_LENGTH, validateAuthFields } from "./authValidation";
 
@@ -40,7 +41,7 @@ export default function ResetPasswordPage() {
   if (!email || !code) {
     return (
       <AuthLayout title="Choose a new password">
-        <AuthNotice tone="error">This link is incomplete. Please use the link from the email, or ask for a new one.</AuthNotice>
+        <Notice tone="error">This link is incomplete. Please use the link from the email, or ask for a new one.</Notice>
         <Link to="/forgot-password" className="text-center text-sm font-medium text-accent-strong hover:underline">Ask for a new link</Link>
       </AuthLayout>
     );
@@ -49,12 +50,12 @@ export default function ResetPasswordPage() {
   return (
     <AuthLayout title="Choose a new password">
       {done ? (
-        <AuthNotice tone="success">Your password is changed. You can sign in with it now.</AuthNotice>
+        <Notice tone="success">Your password is changed. You can sign in with it now.</Notice>
       ) : (
         <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
           <p className="text-sm text-fg">For <span className="font-semibold">{email}</span></p>
-          {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
-          <AuthField label={`New password (at least ${PASSWORD_MIN_LENGTH} characters)`} type="password" autoComplete="new-password"
+          {errors.form && <Notice tone="error">{errors.form}</Notice>}
+          <AuthField label="New password" hint={`At least ${PASSWORD_MIN_LENGTH} characters`} type="password" autoComplete="new-password"
             autoFocus value={password} error={errors.password} onChange={setPassword} />
           <AuthField label="Repeat password" type="password" autoComplete="new-password"
             value={confirmPassword} error={errors.confirmPassword} onChange={setConfirmPassword} />

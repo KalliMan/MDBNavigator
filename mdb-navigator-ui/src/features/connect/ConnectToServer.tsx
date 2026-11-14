@@ -1,9 +1,13 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { ConnectionSettings } from '../../models/connect/connectionSettings';
 import { ServerType, serverTypeOptions } from '../../types/serverTypeOptions';
 import Select from '../../ui/common/Select';
-import Input from '../../ui/common/Input';
+import TextField from '../../ui/common/TextField';
+import TextInput from '../../ui/common/TextInput';
+import FormField from '../../ui/common/FormField';
+import Checkbox from '../../ui/common/Checkbox';
+import Notice from '../../ui/common/Notice';
 import Button from '../../ui/common/Button';
 import { ButtonType } from '../../ui/common/ButtonType.enum';
 import { ConnectedResult } from '../../models/connect/connectedResult';
@@ -229,154 +233,149 @@ export default function ConnectToServer({
     }
   }
 
+  const baseId = useId();
+  const typeId = `${baseId}-type`;
+  const hostId = `${baseId}-host`;
+  const portId = `${baseId}-port`;
+  const hostMessageId = `${hostId}-message`;
+  // Host and Port share a row, so their messages share the line under it.
+  const hostError = [errors.serverName, errors.port].filter(Boolean).join(' ') || undefined;
+
   const formPane = (
-    <div className="pl-4 pr-4 pb-2">
-      {allowSaved && (
-        <div className="mb-8">
-          <Input
-            label="Name:"
+    // A fixed width: a long error message wraps instead of widening the dialog.
+    <div className="flex w-[26rem] flex-col gap-4 p-4">
+      <div className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-3">
+        {allowSaved && (
+          <TextField
+            layout="side"
+            label="Name"
             type="text"
             // The default is shown only while nothing is saved, like the pre-filled name.
             placeholder={(selectedId === null && saved.length === 0 && defaultName(form)) || 'Name'}
             maxLength={SAVED_CONNECTION_NAME_MAX_LENGTH}
             error={errors.name}
-            initialValue={form.name}
+            value={form.name}
             onChange={val => update({ name: val })}
           />
-        </div>
-      )}
+        )}
 
-      <div className="mb-8">
-        <Select
-          label="Server type:"
-          values={serverTypeOptions}
-          initialValue={form.serverType}
-          onChange={(val: string) => update({ serverType: val as ServerType })}
-        />
-      </div>
+        <FormField layout="side" label="Server type" htmlFor={typeId}>
+          <Select
+            id={typeId}
+            values={serverTypeOptions}
+            value={form.serverType}
+            onChange={(val: string) => update({ serverType: val as ServerType })}
+          />
+        </FormField>
 
-      <div className="mb-8">
-        <Input
-          label="Host:"
-          type="text"
-          placeholder="Host name or IP address"
-          error={errors.serverName}
-          initialValue={form.serverName}
-          onChange={val => update({ serverName: val })}
-        />
-      </div>
+        <FormField layout="side" label="Host" htmlFor={hostId} error={hostError} messageId={hostMessageId}>
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <TextInput
+                id={hostId}
+                type="text"
+                placeholder="Host name or IP address"
+                invalid={!!errors.serverName}
+                describedBy={hostError ? hostMessageId : undefined}
+                value={form.serverName}
+                onChange={val => update({ serverName: val })}
+              />
+            </div>
+            <label htmlFor={portId} className="flex-none">Port</label>
+            <div className="w-16 flex-none">
+              {/* Text, not a number box: its spinner arrows mean nothing for a port. Digits only; empty is 0,
+                  which the form reports as out of range. */}
+              <TextInput
+                id={portId}
+                type="text"
+                inputMode="numeric"
+                maxLength={5}
+                placeholder="5432"
+                invalid={!!errors.port}
+                describedBy={hostError ? hostMessageId : undefined}
+                value={form.port === 0 ? '' : String(form.port)}
+                onChange={val => update({ port: Number(val.replace(/\D/g, '')) })}
+              />
+            </div>
+          </div>
+        </FormField>
 
-      <div className="mb-8">
-        <Input
-          label="Port:"
-          type="number"
-          placeholder="Port"
-          error={errors.port}
-          initialValue={form.port.toString()}
-          onChange={val => update({ port: +val })}
-        />
-      </div>
-
-      <div className="mb-8">
-        <Input
-          label="Database:"
+        <TextField
+          layout="side"
+          label="Database"
           type="text"
           placeholder="Optional: the user's default"
           maxLength={128}
-          initialValue={form.databaseName}
+          value={form.databaseName}
           onChange={val => update({ databaseName: val })}
         />
-      </div>
-
-      <div className="mb-8">
-        <Input
-          label="User:"
+        <TextField
+          layout="side"
+          label="User"
           type="text"
           placeholder="User name"
           error={errors.userName}
-          initialValue={form.userName}
+          value={form.userName}
           onChange={val => update({ userName: val })}
         />
-      </div>
-
-      <div className="mb-8">
-        <Input
-          label="Password:"
+        <TextField
+          layout="side"
+          label="Password"
           type="password"
           // Dots for a remembered password: it never comes back to the browser, so they are only the placeholder (the
           // field stays empty and nothing extra is sent). A fixed length, so they say nothing about the real one.
           placeholder={rememberedId ? '••••••••' : 'Password'}
           error={errors.password}
-          initialValue={form.password}
+          value={form.password}
           onChange={val => update({ password: val })}
         />
+
+        {allowSaved && (
+          <>
+            {/* Name and color are always shown: they set the open connection's name and color even when it isn't saved. */}
+            <FormField layout="side" label="Color">
+              <div className="flex h-7 items-center">
+                <ConnectionColorPicker
+                  value={form.color}
+                  autoColor={autoConnectionColor(toConnectionSettings(form, null))}
+                  onChange={color => update({ color })}
+                />
+              </div>
+            </FormField>
+
+            <div className="col-start-2 grid gap-2">
+              <Checkbox checked={saveChecked} disabled={isConnecting} onChange={setSaveChecked}>
+                {selected ? 'Save changes to this connection' : 'Save this connection'}
+              </Checkbox>
+              {canRemember && (
+                // Remembered together with the entry, so it needs the save checkbox.
+                <Checkbox
+                  checked={form.rememberPassword}
+                  disabled={!saveChecked || isConnecting}
+                  onChange={checked => update({ rememberPassword: checked })}
+                >
+                  Remember password
+                </Checkbox>
+              )}
+              {errors.save && <p className="text-sm text-danger">{errors.save}</p>}
+            </div>
+          </>
+        )}
       </div>
 
-      {allowSaved && (
-        <>
-          {/* Name and color are always shown: they set the open connection's name and color even when it isn't saved. */}
-          <div className="mb-8">
-            <ConnectionColorPicker
-              value={form.color}
-              autoColor={autoConnectionColor(toConnectionSettings(form, null))}
-              onChange={color => update({ color })}
-            />
-          </div>
+      {error && <Notice tone="error">{error}</Notice>}
 
-          <div className="mb-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="accent-accent"
-                checked={saveChecked}
-                disabled={isConnecting}
-                onChange={e => setSaveChecked(e.target.checked)}
-              />
-              {selected ? 'Save changes to this connection' : 'Save this connection'}
-            </label>
-            {canRemember && (
-              <label className="mt-2 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="accent-accent"
-                  checked={form.rememberPassword}
-                  // Remembered together with the entry, so it needs the save checkbox.
-                  disabled={!saveChecked || isConnecting}
-                  onChange={e => update({ rememberPassword: e.target.checked })}
-                />
-                Remember password
-              </label>
-            )}
-            {errors.save && (
-              <div className="text-sm text-danger">{errors.save}</div>
-            )}
-          </div>
-        </>
-      )}
-
-      {error && (
-        <div className="mb-4 max-w-sm text-sm text-danger break-words" role="alert">
-          {error}
-        </div>
-      )}
-
-      {captchaRequired && (
-        <div className="mb-4">
-          <Captcha key={captchaKey} onToken={setCaptchaToken} />
-        </div>
-      )}
+      {captchaRequired && <Captcha key={captchaKey} onToken={setCaptchaToken} />}
 
       {confirmingDelete && selected ? (
-        <div>
-          <div className="mb-2 max-w-sm text-sm break-words">
-            Delete "{selected.name}"? This doesn't close open connections.
-          </div>
+        <div className="grid gap-3">
+          <p className="break-words">Delete "{selected.name}"? This doesn't close open connections.</p>
           <div className="flex gap-2">
             <span className="flex-1" />
             <Button type={ButtonType.secondary} onClick={() => setConfirmingDelete(false)}>
               Cancel
             </Button>
-            <Button type={ButtonType.primary} onClick={() => void handleDelete()}>
+            <Button type={ButtonType.danger} onClick={() => void handleDelete()}>
               Delete
             </Button>
           </div>

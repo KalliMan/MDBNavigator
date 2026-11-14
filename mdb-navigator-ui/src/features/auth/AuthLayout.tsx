@@ -7,7 +7,7 @@ export default function AuthLayout({ title, children }: React.PropsWithChildren<
         <h1 className="text-2xl font-semibold text-fg">MDBNavigator</h1>
         <p className="text-sm text-fg-muted">Browse and query your databases</p>
       </div>
-      <main className="w-full max-w-sm rounded-lg border border-line bg-canvas p-6 shadow-sm">
+      <main className="w-full max-w-sm rounded-md border border-line bg-canvas p-6 shadow-sm">
         <h2 className="mb-5 text-lg font-semibold text-fg">{title}</h2>
         <div className="grid gap-4">
           {children}

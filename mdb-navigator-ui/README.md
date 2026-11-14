@@ -52,7 +52,7 @@ New variables must also be declared in `src/vite-env.d.ts`.
 | `src/contexts` | App state: one React context per area. `auth/` holds who is signed in, `theme/` light or dark; the others (server connections, database schema, query tabs, command execution) use reducers. |
 | `src/services` | `apiAgent.ts`: axios setup, the tab `id` header, error toasts, the session-ended handling, and all REST calls. `authApi.ts`: the sign-in calls, on their own axios instance without toasts. `commandResultHub.ts`: the single SignalR connection and its status. |
 | `src/models` | Types for what the API sends and receives. |
-| `src/ui` | Reusable components with no app knowledge: `DataGrid`, `TreeView`, tabs, sidebars and splitters, modal, context menu, dropdown menu, inputs. |
+| `src/ui` | Reusable components with no app knowledge: `DataGrid`, `TreeView`, tabs, sidebars and splitters, modal, context menu, dropdown menu, and the form controls in `common/` (text field, select, checkbox, button, notice): one look in two sizes, `md` in the workspace and `lg` on the sign-in pages (`controlStyles.ts`). |
 | `src/layout` | Top bar with the theme switch and the user menu, nav bar (the connections tree) and main bar (query tabs). |
 | `src/common/sharedHooks`, `src/utils` | Shared hooks and helpers, such as the per-tab id in `localSessionStorage.ts` and error message extraction. |
 

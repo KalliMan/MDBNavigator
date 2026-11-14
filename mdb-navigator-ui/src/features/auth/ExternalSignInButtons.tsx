@@ -1,4 +1,6 @@
 import { externalSignInUrl } from "../../services/authApi";
+import { ButtonType } from "../../ui/common/ButtonType.enum";
+import { buttonClass } from "../../ui/common/controlStyles";
 import ProviderLogo from "./ProviderLogo";
 
 // One button per configured provider, then an "or" divider before the email form. Nothing when none is configured.
@@ -15,10 +17,10 @@ export default function ExternalSignInButtons({ providers, returnTo }: { provide
           <a
             key={provider}
             href={externalSignInUrl(provider, returnTo)}
-            className="flex items-center justify-center gap-3 rounded border border-line px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-hover"
+            className={buttonClass(ButtonType.secondary, 'lg', true)}
           >
             <ProviderLogo provider={provider} />
-            Continue with {provider}
+            <span className="ml-1.5">Continue with {provider}</span>
           </a>
         ))}
       </div>

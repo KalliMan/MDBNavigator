@@ -1,33 +1,29 @@
+import { LuChevronDown } from 'react-icons/lu';
+import { ControlSize, fieldClass } from './controlStyles';
+
 export interface SelectValue {
   text: string;
   value: string;
 }
 
 interface Props {
-  label: string;
-  initialValue?: string
+  id: string;
+  value: string;
   values: SelectValue[];
-  onChange?: (val: string) => void;
+  onChange: (value: string) => void;
+  size?: ControlSize;
 }
 
-export default function Select({ label, values, initialValue, onChange }: Props) {
+export default function Select({ id, value, values, onChange, size = 'md' }: Props) {
   return (
-    <div className="grid grid-cols-[1fr_2fr] items-center">
-      <label className="text-fg">{label}</label>
-      <select
-        value={initialValue}
-        onChange={e => onChange?.(e.target.value)}
-        className="w-72 ml-8 h-8 rounded-[3px] border border-line bg-canvas px-2 text-fg outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-      >
-        {values.map(value => (
-          <option value={value.value} key={value.value}>
-            {value.text}
-          </option>
-        )
-
-        )}
+    // A native select (keyboard, phones and screen readers know it) with our own chevron in place of the browser's.
+    <div className="relative">
+      <select id={id} value={value} onChange={e => onChange(e.target.value)}
+        className={`${fieldClass(size, false)} appearance-none pr-7`}>
+        {values.map(v => <option value={v.value} key={v.value}>{v.text}</option>)}
       </select>
-
+      <LuChevronDown size={14} aria-hidden="true"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-fg-muted" />
     </div>
   );
 }

@@ -5,7 +5,8 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import useAuth from "../../contexts/auth/useAuth";
 import authApi from "../../services/authApi";
 import { AuthErrors, toAuthErrors } from "./authErrors";
-import { AuthField, AuthNotice, SubmitButton } from "./AuthControls";
+import { AuthField, SubmitButton } from "./AuthControls";
+import Notice from "../../ui/common/Notice";
 import AuthLayout from "./AuthLayout";
 import { hasErrors, PASSWORD_MIN_LENGTH, safeReturnTo, validateAuthFields } from "./authValidation";
 import ExternalSignInButtons from "./ExternalSignInButtons";
@@ -66,9 +67,9 @@ export default function RegisterPage() {
       <ExternalSignInButtons providers={settings?.providers ?? []} returnTo={returnTo} />
 
       <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
-        {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
+        {errors.form && <Notice tone="error">{errors.form}</Notice>}
         <AuthField label="Email" type="email" autoComplete="email" autoFocus value={email} error={errors.email} onChange={setEmail} />
-        <AuthField label={`Password (at least ${PASSWORD_MIN_LENGTH} characters)`} type="password" autoComplete="new-password"
+        <AuthField label="Password" hint={`At least ${PASSWORD_MIN_LENGTH} characters`} type="password" autoComplete="new-password"
           value={password} error={errors.password} onChange={setPassword} />
         <AuthField label="Repeat password" type="password" autoComplete="new-password"
           value={confirmPassword} error={errors.confirmPassword} onChange={setConfirmPassword} />

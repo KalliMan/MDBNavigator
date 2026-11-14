@@ -10,6 +10,8 @@ import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import LoginPage from "./features/auth/LoginPage";
 import RegisterPage from "./features/auth/RegisterPage";
 import ResetPasswordPage from "./features/auth/ResetPasswordPage";
+import Button from "./ui/common/Button";
+import { ButtonType } from "./ui/common/ButtonType.enum";
 import Loader from "./ui/loader/Loader";
 
 // The sign-in pages, or the workspace (App) at "/".
@@ -33,10 +35,7 @@ export default function Root() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-surface text-fg">
         <p>Cannot reach the MDBNavigator server.</p>
-        <button type="button" onClick={() => void reload()}
-          className="rounded bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover cursor-pointer">
-          Try again
-        </button>
+        <Button type={ButtonType.primary} size="lg" onClick={() => void reload()}>Try again</Button>
       </div>
     );
   }

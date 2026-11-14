@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { LuChevronDown, LuMoon, LuSun } from "react-icons/lu";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import useOutsideClick from "../common/sharedHooks/useOutsideClick";
 import useAuth from "../contexts/auth/useAuth";
 import useTheme from "../contexts/theme/useTheme";
@@ -12,10 +12,11 @@ export default function TopBar() {
   // Log out must stay reachable.
   return (
     <header className="relative z-[60] flex h-9 flex-none items-center gap-2 border-b border-line bg-chrome px-2">
-      <div className="flex items-center gap-2 pl-1 pr-2">
+      {/* Back to the workspace from the account page; in the workspace it leads where you already are. */}
+      <Link to="/" className="flex items-center gap-2 pl-1 pr-2">
         <img src="/icon.svg" alt="" className="h-5 w-5" />
         <span className="font-semibold">MDBNavigator</span>
-      </div>
+      </Link>
       <div className="flex-1" />
       {status === 'local' && (
         <span className="rounded-[3px] border border-line bg-surface px-1.5 py-0.5 text-xs text-fg-muted" title="Running without sign-in (Auth:Mode = None)">

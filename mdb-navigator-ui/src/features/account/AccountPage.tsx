@@ -4,7 +4,12 @@ import useAuth from "../../contexts/auth/useAuth";
 import { AccountInfo } from "../../models/auth/auth";
 import authApi, { linkProviderUrl } from "../../services/authApi";
 import { accountLinkError, AuthErrors, toAuthErrors } from "../auth/authErrors";
-import { AuthField, AuthNotice, SubmitButton } from "../auth/AuthControls";
+import TopBar from "../../layout/TopBar";
+import Button from "../../ui/common/Button";
+import { ButtonType } from "../../ui/common/ButtonType.enum";
+import { buttonClass } from "../../ui/common/controlStyles";
+import Notice from "../../ui/common/Notice";
+import TextField from "../../ui/common/TextField";
 import { hasErrors, PASSWORD_MIN_LENGTH, validateAuthFields } from "../auth/authValidation";
 import ProviderLogo from "../auth/ProviderLogo";
 
@@ -34,45 +39,48 @@ export default function AccountPage() {
   const providers = settings?.providers ?? [];
 
   return (
-    <div className="min-h-screen bg-surface px-4 py-8">
-      <main className="mx-auto grid max-w-xl gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-fg">Your account</h1>
-          <Link to="/" className="text-sm font-medium text-accent-strong hover:underline">Back to the workspace</Link>
-        </div>
+    <div className="flex h-screen flex-col bg-surface text-fg">
+      <TopBar />
+      <div className="rounded-scrollbar min-h-0 flex-1 overflow-y-auto">
+        <main className="mx-auto grid max-w-xl gap-4 px-4 py-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold">Your account</h1>
+            <Link to="/" className="font-medium text-accent-strong hover:underline">Back to the workspace</Link>
+          </div>
 
-        {linked && <AuthNotice tone="success">{linked} is now linked to your account.</AuthNotice>}
-        {linkError && <AuthNotice tone="error">{linkError}</AuthNotice>}
-        {loadError && <AuthNotice tone="error">{loadError}</AuthNotice>}
+          {linked && <Notice tone="success">{linked} is now linked to your account.</Notice>}
+          {linkError && <Notice tone="error">{linkError}</Notice>}
+          {loadError && <Notice tone="error">{loadError}</Notice>}
 
-        {account && (
-          <>
-            <Section title="Email">
-              <p className="text-sm text-fg">{account.email}</p>
-              {user?.signInMethod && (
-                <p className="text-xs text-fg-muted">
-                  This session: {user.signInMethod === 'Password' ? 'signed in with a password' : `signed in with ${user.signInMethod}`}
-                </p>
+          {account && (
+            <>
+              <Section title="Email">
+                <p className="text-sm text-fg">{account.email}</p>
+                {user?.signInMethod && (
+                  <p className="text-xs text-fg-muted">
+                    This session: {user.signInMethod === 'Password' ? 'signed in with a password' : `signed in with ${user.signInMethod}`}
+                  </p>
+                )}
+              </Section>
+
+              <PasswordSection hasPassword={account.hasPassword} onChanged={load} />
+
+              {(providers.length > 0 || account.linkedProviders.length > 0) && (
+                <ProvidersSection account={account} providers={providers} onChanged={load} />
               )}
-            </Section>
 
-            <PasswordSection hasPassword={account.hasPassword} onChanged={load} />
-
-            {(providers.length > 0 || account.linkedProviders.length > 0) && (
-              <ProvidersSection account={account} providers={providers} onChanged={load} />
-            )}
-
-            <DeleteSection account={account} />
-          </>
-        )}
-      </main>
+              <DeleteSection account={account} />
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
 
 function Section({ title, tone, children }: React.PropsWithChildren<{ title: string; tone?: 'danger' }>) {
   return (
-    <section className={`grid gap-3 rounded-lg border bg-canvas p-5 shadow-sm ${tone === 'danger' ? 'border-danger/30' : 'border-line'}`}>
+    <section className={`grid gap-3 rounded-md border bg-canvas p-5 shadow-sm ${tone === 'danger' ? 'border-danger/30' : 'border-line'}`}>
       <h2 className={`font-semibold ${tone === 'danger' ? 'text-danger' : 'text-fg'}`}>{title}</h2>
       {children}
     </section>
@@ -120,19 +128,25 @@ function PasswordSection({ hasPassword, onChanged }: { hasPassword: boolean; onC
       {!hasPassword && (
         <p className="text-sm text-fg-muted">You sign in through a provider. A password lets you sign in without it, too.</p>
       )}
-      <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
+      <form className="grid gap-3" onSubmit={e => void submit(e)} noValidate>
         {/* Identity re-checks other sessions against the account's security stamp every 30 minutes (its default). */}
-        {done && <AuthNotice tone="success">Your password is saved. Your other sessions are signed out within 30 minutes.</AuthNotice>}
-        {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
-        {hasPassword && (
-          <AuthField label="Current password" type="password" autoComplete="current-password"
-            value={currentPassword} error={errors.currentPassword} onChange={setCurrentPassword} />
-        )}
-        <AuthField label={`New password (at least ${PASSWORD_MIN_LENGTH} characters)`} type="password" autoComplete="new-password"
-          value={password} error={errors.password} onChange={setPassword} />
-        <AuthField label="Repeat new password" type="password" autoComplete="new-password"
-          value={confirmPassword} error={errors.confirmPassword} onChange={setConfirmPassword} />
-        <SubmitButton busy={busy}>{hasPassword ? 'Change password' : 'Set password'}</SubmitButton>
+        {done && <Notice tone="success">Your password is saved. Your other sessions are signed out within 30 minutes.</Notice>}
+        {errors.form && <Notice tone="error">{errors.form}</Notice>}
+        <div className="grid max-w-xs gap-3">
+          {hasPassword && (
+            <TextField layout="stacked" label="Current password" type="password" autoComplete="current-password"
+              value={currentPassword} error={errors.currentPassword} onChange={setCurrentPassword} />
+          )}
+          <TextField layout="stacked" label="New password" hint={`At least ${PASSWORD_MIN_LENGTH} characters`} type="password" autoComplete="new-password"
+            value={password} error={errors.password} onChange={setPassword} />
+          <TextField layout="stacked" label="Repeat new password" type="password" autoComplete="new-password"
+            value={confirmPassword} error={errors.confirmPassword} onChange={setConfirmPassword} />
+        </div>
+        <div>
+          <Button type={ButtonType.primary} disabled={busy}>
+            {busy ? 'Please wait…' : hasPassword ? 'Change password' : 'Set password'}
+          </Button>
+        </div>
       </form>
     </Section>
   );
@@ -160,24 +174,21 @@ function ProvidersSection({ account, providers, onChanged }: { account: AccountI
 
   return (
     <Section title="Sign-in providers">
-      {error && <AuthNotice tone="error">{error}</AuthNotice>}
+      {error && <Notice tone="error">{error}</Notice>}
       <ul className="grid gap-2">
         {all.map(provider => {
           const isLinked = account.linkedProviders.includes(provider);
           return (
-            <li key={provider} className="flex items-center justify-between rounded border border-line px-3 py-2">
+            <li key={provider} className="flex items-center justify-between rounded-[3px] border border-line px-3 py-2">
               <span className="flex items-center gap-3 text-sm text-fg">
                 <ProviderLogo provider={provider} />
                 {provider}
                 {isLinked && <span className="rounded bg-success-soft px-2 py-0.5 text-xs text-success">Linked</span>}
               </span>
               {isLinked ? (
-                <button type="button" disabled={busy !== null} onClick={() => void unlink(provider)}
-                  className="text-sm font-medium text-fg-muted hover:underline disabled:opacity-50 cursor-pointer">
-                  Unlink
-                </button>
+                <Button type={ButtonType.secondary} disabled={busy !== null} onClick={() => void unlink(provider)}>Unlink</Button>
               ) : providers.includes(provider) && (
-                <a href={linkProviderUrl(provider)} className="text-sm font-medium text-accent-strong hover:underline">Link</a>
+                <a href={linkProviderUrl(provider)} className={buttonClass(ButtonType.secondary)}>Link</a>
               )}
             </li>
           );
@@ -220,29 +231,22 @@ function DeleteSection({ account }: { account: AccountInfo }) {
         Your databases themselves are not touched.
       </p>
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)}
-          className="justify-self-start rounded border border-danger/50 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger-soft cursor-pointer">
-          Delete my account…
-        </button>
+        <div><Button type={ButtonType.secondary} onClick={() => setOpen(true)}>Delete my account…</Button></div>
       ) : (
-        <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
-          {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
-          {account.hasPassword ? (
-            <AuthField label="Your password" type="password" autoComplete="current-password" autoFocus
-              value={proof} error={errors.currentPassword} onChange={setProof} />
-          ) : (
-            <AuthField label={`Type ${account.email} to confirm`} type="email" autoComplete="off" autoFocus
-              value={proof} error={errors.email} onChange={setProof} />
-          )}
+        <form className="grid gap-3" onSubmit={e => void submit(e)} noValidate>
+          {errors.form && <Notice tone="error">{errors.form}</Notice>}
+          <div className="max-w-xs">
+            {account.hasPassword ? (
+              <TextField layout="stacked" label="Your password" type="password" autoComplete="current-password" autoFocus
+                value={proof} error={errors.currentPassword} onChange={setProof} />
+            ) : (
+              <TextField layout="stacked" label={`Type ${account.email} to confirm`} type="email" autoComplete="off" autoFocus
+                value={proof} error={errors.email} onChange={setProof} />
+            )}
+          </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={busy}
-              className="rounded bg-danger-solid px-4 py-2 text-sm font-semibold text-on-accent hover:opacity-90 disabled:opacity-60 cursor-pointer">
-              {busy ? 'Please wait…' : 'Delete my account'}
-            </button>
-            <button type="button" disabled={busy} onClick={() => { setOpen(false); setProof(''); setErrors({}); }}
-              className="rounded border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-hover cursor-pointer">
-              Cancel
-            </button>
+            <Button type={ButtonType.danger} disabled={busy}>{busy ? 'Please wait…' : 'Delete my account'}</Button>
+            <Button type={ButtonType.secondary} disabled={busy} onClick={() => { setOpen(false); setProof(''); setErrors({}); }}>Cancel</Button>
           </div>
         </form>
       )}

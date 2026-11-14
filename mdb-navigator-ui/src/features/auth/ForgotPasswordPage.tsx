@@ -3,7 +3,8 @@ import { Link, Navigate } from "react-router";
 import useAuth from "../../contexts/auth/useAuth";
 import authApi from "../../services/authApi";
 import { AuthErrors, toAuthErrors } from "./authErrors";
-import { AuthField, AuthNotice, SubmitButton } from "./AuthControls";
+import { AuthField, SubmitButton } from "./AuthControls";
+import Notice from "../../ui/common/Notice";
 import AuthLayout from "./AuthLayout";
 import { hasErrors, validateAuthFields } from "./authValidation";
 
@@ -41,13 +42,13 @@ export default function ForgotPasswordPage() {
   return (
     <AuthLayout title="Forgot your password?">
       {sent ? (
-        <AuthNotice tone="success">
+        <Notice tone="success">
           If an account with this email exists, we sent it a link to choose a new password.
-        </AuthNotice>
+        </Notice>
       ) : (
         <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
           <p className="text-sm text-fg">Enter your email and we'll send you a link to choose a new password.</p>
-          {errors.form && <AuthNotice tone="error">{errors.form}</AuthNotice>}
+          {errors.form && <Notice tone="error">{errors.form}</Notice>}
           <AuthField label="Email" type="email" autoComplete="email" autoFocus value={email} error={errors.email} onChange={setEmail} />
           <SubmitButton busy={busy}>Send the link</SubmitButton>
         </form>

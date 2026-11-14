@@ -47,9 +47,7 @@ export default function ModalWindow({ children, name, title, canClose = true, on
             </CloseButton>
           )}
         </div>
-        <div className="pt-5">
-          {cloneElement(children as React.ReactElement<any>, { onCloseModal: close }) }
-        </div>
+        {cloneElement(children as React.ReactElement<any>, { onCloseModal: close }) }
       </div>
     </div>,
     document.body

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import authApi from "../../services/authApi";
-import { AuthNotice } from "./AuthControls";
+import Notice from "../../ui/common/Notice";
 import AuthLayout from "./AuthLayout";
 
 // The link in the confirmation email opens this page, which passes its query on to the API.
@@ -24,11 +24,11 @@ export default function ConfirmEmailPage() {
   return (
     <AuthLayout title="Confirm your email">
       {state === 'confirming' && <p className="text-sm text-fg">Confirming…</p>}
-      {state === 'confirmed' && <AuthNotice tone="success">Your email is confirmed. You can sign in now.</AuthNotice>}
+      {state === 'confirmed' && <Notice tone="success">Your email is confirmed. You can sign in now.</Notice>}
       {state === 'failed' && (
-        <AuthNotice tone="error">
+        <Notice tone="error">
           This link is no longer valid. Sign in to ask for a new one.
-        </AuthNotice>
+        </Notice>
       )}
       {state !== 'confirming' && (
         <Link to="/login" className="text-center text-sm font-medium text-accent-strong hover:underline">Go to sign in</Link>

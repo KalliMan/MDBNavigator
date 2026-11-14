@@ -1,4 +1,6 @@
 export enum ButtonType {
   primary = 'primary',
-  secondary = 'secondary'
+  secondary = 'secondary',
+  // An action that destroys something, on the button that confirms it.
+  danger = 'danger'
 }

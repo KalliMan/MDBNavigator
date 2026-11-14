@@ -3,7 +3,8 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import useAuth from "../../contexts/auth/useAuth";
 import authApi from "../../services/authApi";
 import { AuthErrors, externalSignInError, isEmailNotConfirmed, toAuthErrors } from "./authErrors";
-import { AuthField, AuthNotice, SubmitButton } from "./AuthControls";
+import { AuthField, SubmitButton } from "./AuthControls";
+import Notice from "../../ui/common/Notice";
 import AuthLayout from "./AuthLayout";
 import { hasErrors, safeReturnTo, validateAuthFields } from "./authValidation";
 import ExternalSignInButtons from "./ExternalSignInButtons";
@@ -63,15 +64,15 @@ export default function LoginPage() {
 
   return (
     <AuthLayout title="Sign in">
-      {sessionExpired && <AuthNotice tone="info">Your session has ended. Please sign in again.</AuthNotice>}
-      {searchParams.get('deleted') && <AuthNotice tone="success">Your account was deleted.</AuthNotice>}
-      {externalError && <AuthNotice tone="error">{externalError}</AuthNotice>}
+      {sessionExpired && <Notice tone="info">Your session has ended. Please sign in again.</Notice>}
+      {searchParams.get('deleted') && <Notice tone="success">Your account was deleted.</Notice>}
+      {externalError && <Notice tone="error">{externalError}</Notice>}
 
       <ExternalSignInButtons providers={settings?.providers ?? []} returnTo={returnTo} />
 
       <form className="grid gap-4" onSubmit={e => void submit(e)} noValidate>
         {errors.form && (
-          <AuthNotice tone="error">
+          <Notice tone="error">
             <p>{errors.form}</p>
             {needsConfirmation && emailEnabled && (
               resent
@@ -80,7 +81,7 @@ export default function LoginPage() {
                     Send the link again
                   </button>
             )}
-          </AuthNotice>
+          </Notice>
         )}
         <AuthField label="Email" type="email" autoComplete="email" autoFocus value={email} error={errors.email} onChange={setEmail} />
         <AuthField

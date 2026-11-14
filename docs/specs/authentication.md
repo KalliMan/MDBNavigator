@@ -96,11 +96,11 @@ Pages use `react-router`. Email links and the social-login return need real addr
 | `/account` | Change or set password, linked providers, delete account | Signed in |
 | `/` | The workspace | Signed in, or `Auth:Mode = None` |
 
-Only the providers that are configured get a button. The pages use the current look (Tailwind and the existing `Button` and `Input` components). The UI refresh in Phase 1 restyles them with the rest of the app.
+Only the providers that are configured get a button. The pages use the shared form controls in `src/ui/common` (text fields, buttons, notices), in their large size.
 
 ### Top bar
 
-The workspace gets a slim top bar: the app name on the left, the user menu on the right (email, how you signed in, Log out). It sits above dialogs, so Log out stays reachable while the mandatory connect dialog is open. The UI refresh will add more to it later: a connect button, the dark mode switch, help.
+The workspace gets a slim top bar: the app name on the left, the user menu on the right (email, how you signed in, Log out). It sits above dialogs, so Log out stays reachable while the mandatory connect dialog is open. The UI refresh will add more to it later: a connect button, the dark mode switch, help. The account page shows the same bar; the app name in it leads back to the workspace.
 
 ### Edge cases
 
@@ -113,7 +113,7 @@ The workspace gets a slim top bar: the app name on the left, the user menu on th
 
 ### Account page
 
-Opened from the user menu ("Account").
+Opened from the user menu ("Account"), under the workspace's top bar.
 
 - **Password:** change it (current password required) or set a first one. This session stays signed in; the account's other sessions are signed out at their next check (Identity's default: every 30 minutes).
 - **Sign-in providers:** every configured provider, with Link or Unlink. Linking is a round trip through the provider and back to `/account`. It needs no email match, because the user proves both accounts by signing in to each, and the user id travels with the request and is checked on the way back. A provider account already linked to another MDBNavigator account is refused. The last way to sign in (no password, one provider) can't be unlinked.
