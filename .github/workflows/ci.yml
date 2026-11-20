@@ -65,17 +65,21 @@ jobs:
         run: docker build -t mdbnavigator:ci .
       - name: Build the sample database image
         run: docker build -t mdbnavigator-sample-db:ci docker/sample-db
-      - name: Check the demo Compose file
+      - name: Check the demo Compose file and the Caddyfile
         # Placeholders for the values the demo requires from .env.
         env:
           MDBNAV_DEMO_CODE_LINKEDIN: ci-placeholder-invite-code
           MDBNAV_DEMO_OWNER_EMAIL: owner@example.test
           MDBNAV_DEMO_CONTACT_EMAIL: support@example.test
-          MDBNAV_APP_URL: https://demo.example.test
+          MDBNAV_DOMAIN: demo.example.test
           MDBNAV_EMAIL_FROM: demo@example.test
           MDBNAV_SMTP_USERNAME: ci
           MDBNAV_SMTP_PASSWORD: ci
-        run: docker compose -f docker-compose.yml -f compose.demo.yaml config --quiet
+        run: |
+          docker compose -f docker-compose.yml -f compose.demo.yaml config --quiet
+          # Caddy reads its file only when it starts, so a mistake would otherwise show first on the server.
+          docker compose -f docker-compose.yml -f compose.demo.yaml run --rm --no-deps caddy \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       # An image that builds but can't start should fail here, not on a server.
       - name: Start the app and wait for /health
         run: |

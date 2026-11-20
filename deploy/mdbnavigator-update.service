@@ -1,0 +1,13 @@
+[Unit]
+Description=Rebuild the MDBNavigator demo with fresh base images
+Documentation=https://github.com/KalliMan/MDBNavigator/blob/master/docs/hosting.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=mdbnav
+ExecStart=/bin/sh /opt/mdbnavigator/deploy/update.sh
+# A build on two shared vCPUs takes a while; a stuck one shouldn't run forever.
+TimeoutStartSec=1h

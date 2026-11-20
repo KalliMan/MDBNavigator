@@ -5,6 +5,7 @@
 .vscode
 docs
 docker
+deploy
 tests
 **/bin
 **/obj

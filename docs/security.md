@@ -89,7 +89,7 @@ On an instance with open sign-up, setting the key means the server holds strange
 
 ## Public demo
 
-`compose.demo.yaml` turns the Compose setup into an instance strangers may use: they run any SQL they like, but only against the bundled sample database, and only to read (`docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build`). HTTPS follows with roadmap step 0.5c.
+`compose.demo.yaml` turns the Compose setup into an instance strangers may use: they run any SQL they like, but only against the bundled sample database, and only to read (`docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build`). Caddy in front gives it HTTPS; how the project's own demo is hosted: [hosting.md](hosting.md).
 
 Why not let guests use their own databases instead: the server would then connect anywhere for anyone, and could be used to guess passwords on, or probe, other people's servers, from the demo's address.
 
@@ -121,6 +121,19 @@ Why not let guests use their own databases instead: the server would then connec
 A long statement is stopped by `demo_reader`'s `statement_timeout` (30 s), with PostgreSQL's own message. A guest can `SET statement_timeout = 0`. That lasts one run (each run opens its own connection, and Npgsql resets the session when the connection goes back to its pool), and within that run `MaxRunSeconds` stops it. `QueryExecution:CommandTimeoutSeconds` stays off: it would race the `statement_timeout`, and when it wins the guest sees only "Exception while reading from stream".
 
 **The containers:** the app may use 512 MB and one CPU, the database 1 GB and one CPU. Logs are rotated at five files of 10 MB per container.
+
+**HTTPS and the server**
+
+- **Caddy** (`docker/caddy/Caddyfile`) gets the certificates from Let's Encrypt and renews them, redirects HTTP to HTTPS and the other names (`MDBNAV_REDIRECT_DOMAINS`; on the project's demo the bare domain and `www.`) to the demo's address, and passes requests on to the app. It adds no security headers (the app sets them) and removes its own `Server` and `Via` headers from every answer, its redirects and error pages included.
+- **Cloudflare only answers DNS:** its proxy is off, so TLS ends on the demo's server and Cloudflare never sees guests' emails or cookies. Turning the proxy on would need Caddy's `trusted_proxies` with Cloudflare's ranges, or every visitor would get a Cloudflare address.
+- **Visitors' addresses:** Caddy replaces any `X-Forwarded-For` a visitor sends with the address it sees. The app believes forwarded headers only from `proxy-net`, the network that holds just Caddy and the app (`MDBNAV_PROXY_SUBNET`, which is also `ReverseProxy:TrustedNetworks`).
+- **IPv4 only:** no name has an `AAAA` record. Docker passes IPv6 connections to a container from an address of its own, so every IPv6 visitor would share one address and its limits.
+- **No request logging in Caddy:** no access log, and its error log is off too, since that one records the visitor's address and the whole URL when the app can't answer (e.g. while it restarts). URLs carry invite codes and sign-in links, and addresses are personal data. Caddy still logs its certificates and its own problems; the app's log says what went wrong with a request.
+- **Compression only for the UI's files** (`/assets/*`): compressing an answer that holds a secret next to text a visitor controls can leak the secret (BREACH).
+- **Reachable from outside:** ports 80 and 443, and SSH with keys only (no passwords, no root). The provider's firewall allows nothing else; it sits outside the server because Docker's published ports bypass a firewall on the server itself. The app's port 8080 is published on `127.0.0.1` only, the database not at all.
+- **Updates:** the system's security updates and Docker's packages install by themselves every day, with a reboot at 04:30 UTC when one needs it. Every Sunday at 03:30 UTC, `deploy/update.sh` rebuilds the images on fresh base images (.NET, PostgreSQL 17, Caddy 2.11) and restarts what changed. It doesn't pull new code. NuGet and npm packages are updated in the repository.
+- **No backups:** the visitor list must be gone 90 days after the last visit, as the demo terms promise, and a backup would keep it longer. Everything else is rebuilt from the repository and the server's `.env`.
+- **Data Protection keys** (they sign the sign-in cookies) are stored unencrypted in the SQLite file, which the log warns about at every start. Whoever can read that volume already controls the server, so they are not encrypted further.
 
 **Guests** (`Demo` settings, off unless `Demo:Enabled`)
 

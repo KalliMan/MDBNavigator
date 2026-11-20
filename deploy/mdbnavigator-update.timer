@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly rebuild of the MDBNavigator demo
+
+[Timer]
+# Sunday night, when a guest is least likely to be in a session. Persistent: a run missed while the server was off
+# happens at the next start.
+OnCalendar=Sun *-*-* 03:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

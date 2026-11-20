@@ -1,0 +1,57 @@
+# The public demo's front door (compose.demo.yaml). Caddy gets and renews the certificates itself (Let's Encrypt),
+# redirects HTTP to HTTPS, and passes requests on to the app. MDBNAV_DOMAIN comes from .env, e.g. demo.mdbnavigator.com;
+# MDBNAV_REDIRECT_DOMAINS (compose.demo.yaml's default: www.<MDBNAV_DOMAIN>) are the other names that lead to it.
+# Why each choice: docs/security.md, "Public demo".
+{
+	# No access log, and not this one either: when the app can't answer (e.g. while it restarts), Caddy would log the
+	# visitor's address and the whole URL. URLs carry invite codes and sign-in links, and addresses are personal data.
+	# The app's own log says what went wrong.
+	log default {
+		exclude http.log.error
+	}
+	# The http:// block at the end redirects to HTTPS instead, so that answer carries no Server header either. Caddy's
+	# own redirect would answer first for the names above, with the header.
+	auto_https disable_redirects
+}
+
+# Caddy's own Server and Via headers go, as Kestrel's Server header does: they only tell an attacker what to look up.
+(no_server_headers) {
+	header {
+		-Server
+		-Via
+	}
+}
+
+{$MDBNAV_DOMAIN} {
+	# The app sets the security headers itself.
+	import no_server_headers
+
+	# Only the built UI's files (Monaco is several MB). Compressing answers that hold a secret next to text a visitor
+	# controls can leak the secret (BREACH), so API answers stay as they are.
+	@assets path /assets/*
+	encode @assets zstd gzip
+
+	# Caddy replaces any X-Forwarded-For a visitor sends with the address it sees, and sets X-Forwarded-Proto; the app
+	# trusts both only from proxy-net (ReverseProxy:TrustedNetworks). No trusted_proxies: nothing is in front of Caddy
+	# (Cloudflare's proxy is off), and with it a visitor could fake their address.
+	reverse_proxy app:8080
+
+	# Caddy's own error answers (e.g. 502 while the app restarts) skip the rules above, so the headers go here too.
+	handle_errors {
+		import no_server_headers
+	}
+}
+
+# Names separated by spaces, e.g. "mdbnavigator.com www.mdbnavigator.com". Temporary (302), not permanent: browsers
+# would remember a permanent one, and the root may serve something else one day.
+{$MDBNAV_REDIRECT_DOMAINS} {
+	import no_server_headers
+	redir https://{$MDBNAV_DOMAIN}{uri} temporary
+}
+
+# HTTP to HTTPS for every name (see auto_https above). Caddy still answers Let's Encrypt's checks on port 80 before
+# this block.
+http:// {
+	import no_server_headers
+	redir https://{host}{uri} 308
+}
