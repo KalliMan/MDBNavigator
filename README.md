@@ -6,7 +6,7 @@ A web-based database navigator: connect to a database server, browse its databas
 
 <img width="2556" height="1228" alt="image" src="https://github.com/user-attachments/assets/19403bbf-c538-4aa2-8cfe-d26d84f1ab67" />
 
-<img width="808" height="562" alt="image" src="https://github.com/user-attachments/assets/19beb91a-0df6-4f78-a988-ef91d2fccf95" />
+<img width="807" height="565" alt="image" src="https://github.com/user-attachments/assets/32adf021-a4a4-4273-87d1-285ed8baa335" />
 
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable (`IDatabaseProvider`); MS SQL Server is planned but not implemented yet, so the connect dialog doesn't offer it.
