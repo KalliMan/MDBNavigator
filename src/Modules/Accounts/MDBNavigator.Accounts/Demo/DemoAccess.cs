@@ -19,7 +19,9 @@ namespace MDBNavigator.Accounts.Demo
         LinkInvalid,
         VisitorDailyLimit,
         Full,
-        AddressLimit
+        AddressLimit,
+        // The visitor is blocked after too many refused actions (DemoViolations).
+        Blocked
     }
 
     public record DemoStartResult(DemoStartOutcome Outcome, DateTime? EndsAtUtc = null);
@@ -93,6 +95,13 @@ namespace MDBNavigator.Accounts.Demo
             {
                 // A returning visitor's link, but the visitor was deleted meanwhile.
                 return new DemoStartResult(DemoStartOutcome.LinkInvalid);
+            }
+
+            // Blocked after too many refused actions (DemoViolations). Before the link is used up, like the limits below.
+            if (visitor?.BlockedUntilUtc > now)
+            {
+                _logger.LogWarning("Demo session refused: the visitor is blocked");
+                return new DemoStartResult(DemoStartOutcome.Blocked);
             }
 
             // The limits come before the link is used up: a visitor told "the demo is full" can try the same link again.
@@ -177,7 +186,8 @@ namespace MDBNavigator.Accounts.Demo
             if (newVisitor)
             {
                 _logger.LogInformation("New demo visitor");
-                SendInBackground(EmailTemplates.NewDemoVisitor(_options.OwnerEmail, visitor.Name, visitor.Email), "new demo visitor");
+                DemoEmails.SendInBackground(_delivery, EmailTemplates.NewDemoVisitor(_options.OwnerEmail, visitor.Name, visitor.Email),
+                    "new demo visitor", _logger);
             }
 
             return new DemoStartResult(DemoStartOutcome.Started, endsAt);
@@ -187,6 +197,13 @@ namespace MDBNavigator.Accounts.Demo
         {
             var now = Now();
             var normalized = _normalizer.NormalizeEmail(email);
+
+            // Same answer, no email: the answer must not tell which emails are blocked.
+            if (await _db.DemoVisitors.AnyAsync(v => v.NormalizedEmail == normalized && v.BlockedUntilUtc > now, ct))
+            {
+                _logger.LogWarning("Demo link not sent: the visitor is blocked");
+                return;
+            }
 
             var since = now.AddHours(-1);
             var linksThisHour = await _db.DemoSignInLinks.CountAsync(l => l.NormalizedEmail == normalized && l.CreatedAtUtc > since, ct);
@@ -211,25 +228,8 @@ namespace MDBNavigator.Accounts.Demo
             await _db.SaveChangesAsync(ct);
 
             var link = QueryHelpers.AddQueryString($"{_email.AppBaseUrl.TrimEnd('/')}/demo/start", "token", token);
-            SendInBackground(EmailTemplates.DemoLink(email, link, _options.LinkValidMinutes, _options.SessionMinutes), "demo link");
-        }
-
-        // Sent after the answer, so a request that sends an email takes as long as one that doesn't (an unknown returning
-        // visitor, an address over its limit): the timing must not tell who has visited. A failure is logged, without the
-        // recipient; the visitor can ask again.
-        private void SendInBackground(EmailMessage message, string kind)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _delivery.SendAsync(message, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Sending the {EmailKind} email failed", kind);
-                }
-            });
+            DemoEmails.SendInBackground(_delivery, EmailTemplates.DemoLink(email, link, _options.LinkValidMinutes, _options.SessionMinutes),
+                "demo link", _logger);
         }
 
         private DateTime Now() => _time.GetUtcNow().UtcDateTime;

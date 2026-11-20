@@ -14,6 +14,9 @@ namespace MDBNavigator.API.Demo
         public const string InviteInvalidMessage = "This invite link isn't valid. Please ask for a new one.";
         public const string LinkInvalidMessage = "This link has expired or was already used. Please ask for a new one.";
 
+        public static string BlockedMessage(int hours)
+            => $"Demo access is paused for {(hours == 1 ? "1 hour" : $"{hours} hours")} after too many refused actions.";
+
         public static void MapDemoEndpoints(this WebApplication app, DemoOptions options)
         {
             if (!options.Enabled)
@@ -23,7 +26,7 @@ namespace MDBNavigator.API.Demo
 
             var demo = app.MapGroup("/api/demo");
 
-            // 204 whether or not an email went out (the address may be over its hourly limit).
+            // 204 whether or not an email went out (the address may be over its hourly limit, or its visitor blocked).
             demo.MapPost("join", async (DemoJoinRequest request, HttpContext http, DemoAccess access) =>
                 {
                     if (!InviteCodeMatches(request.InviteCode, options.InviteCode))
@@ -89,6 +92,7 @@ namespace MDBNavigator.API.Demo
                             "The demo is full right now. Please try again in a few minutes."),
                         DemoStartOutcome.AddressLimit => AuthEndpoints.Error(StatusCodes.Status429TooManyRequests,
                             "Too many demo sessions were started from your network in the last hour. Please try again later."),
+                        DemoStartOutcome.Blocked => AuthEndpoints.Error(StatusCodes.Status403Forbidden, BlockedMessage(options.BlockHours)),
                         _ => AuthEndpoints.Error(StatusCodes.Status400BadRequest, LinkInvalidMessage)
                     };
                 })

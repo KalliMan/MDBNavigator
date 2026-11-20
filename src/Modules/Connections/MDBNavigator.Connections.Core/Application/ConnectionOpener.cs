@@ -2,6 +2,7 @@ using MDBNavigator.Providers.Abstractions;
 using MDBNavigator.SharedKernel;
 using MDBNavigator.SharedKernel.Captcha;
 using MDBNavigator.SharedKernel.Errors;
+using MDBNavigator.SharedKernel.Violations;
 
 namespace MDBNavigator.Connections.Application
 {
@@ -13,13 +14,17 @@ namespace MDBNavigator.Connections.Application
         private readonly DatabaseConnector _connector;
         private readonly IConnectAttemptLimiter _limiter;
         private readonly ICaptchaVerifier _captcha;
+        // Only in the public demo, which counts refused actions against a guest.
+        private readonly IViolationRecorder? _violations;
 
-        public ConnectionOpener(IConnectionCache cache, DatabaseConnector connector, IConnectAttemptLimiter limiter, ICaptchaVerifier captcha)
+        public ConnectionOpener(IConnectionCache cache, DatabaseConnector connector, IConnectAttemptLimiter limiter, ICaptchaVerifier captcha,
+            IViolationRecorder? violations = null)
         {
             _cache = cache;
             _connector = connector;
             _limiter = limiter;
             _captcha = captcha;
+            _violations = violations;
         }
 
         // The provider's message says why (e.g. "password authentication failed for user ..."). Network errors
@@ -39,7 +44,7 @@ namespace MDBNavigator.Connections.Application
             var userId = SessionKey.UserIdOf(sessionId);
             if (_limiter.GetWait(userId) is { } wait)
             {
-                await RequireCaptchaOrWaitAsync(captchaToken, wait, ct);
+                await RequireCaptchaOrWaitAsync(userId, captchaToken, wait, ct);
             }
 
             try
@@ -50,6 +55,7 @@ namespace MDBNavigator.Connections.Application
             {
                 // Not when the client went away: that says nothing about the host or the password.
                 _limiter.RecordFailure(userId);
+                await RecordAsync(userId, ViolationKind.ConnectionRefused);
                 throw;
             }
             _cache.Set(sessionId, connectionId, settings);
@@ -69,10 +75,12 @@ namespace MDBNavigator.Connections.Application
         // With a CAPTCHA configured, it replaces the wait: every connect needs a newly solved one until the wait is over,
         // so each further guess costs a person's attention (Turnstile) or seconds of computing (ALTCHA). A successful
         // connect doesn't end the wait early, for the same reason it doesn't reset the failure count.
-        private async Task RequireCaptchaOrWaitAsync(string? token, TimeSpan wait, CancellationToken ct)
+        private async Task RequireCaptchaOrWaitAsync(string userId, string? token, TimeSpan wait, CancellationToken ct)
         {
+            // Asking again while the wait lasts is itself refused, and counted.
             if (!_captcha.Enabled)
             {
+                await RecordAsync(userId, ViolationKind.LimitReached);
                 var minutes = (int)Math.Ceiling(wait.TotalMinutes);
                 throw new TooManyRequestsException(
                     $"Too many failed connection attempts. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.", wait);
@@ -80,12 +88,17 @@ namespace MDBNavigator.Connections.Application
 
             if (string.IsNullOrEmpty(token))
             {
+                await RecordAsync(userId, ViolationKind.LimitReached);
                 throw new CaptchaRequiredException("Too many failed connection attempts. Please complete the CAPTCHA to try again.");
             }
             if (!await _captcha.VerifyAsync(token, ct))
             {
+                await RecordAsync(userId, ViolationKind.LimitReached);
                 throw new CaptchaRequiredException("The CAPTCHA check didn't pass. Please try it again.");
             }
         }
+
+        private Task RecordAsync(string userId, ViolationKind kind)
+            => _violations is null ? Task.CompletedTask : _violations.RecordAsync(userId, kind);
     }
 }

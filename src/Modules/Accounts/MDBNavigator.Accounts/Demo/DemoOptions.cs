@@ -16,7 +16,7 @@ namespace MDBNavigator.Accounts.Demo
         // or the environment variable Demo__InviteCode, not appsettings.json.
         public string InviteCode { get; set; } = string.Empty;
 
-        // Gets an email for every new visitor.
+        // Gets an email for every new visitor and every block.
         public string OwnerEmail { get; set; } = string.Empty;
 
         // Shown in the demo terms, for visitors who want their data deleted sooner.
@@ -40,6 +40,12 @@ namespace MDBNavigator.Accounts.Demo
         public int LinkRequestsPerIpPerHour { get; set; } = 10;
 
         public int LinkValidMinutes { get; set; } = 30;
+
+        // Refused actions in one guest session (DemoViolations) before it ends and the visitor's email is blocked.
+        public int ViolationsBeforeBlock { get; set; } = 20;
+
+        // How long a blocked visitor can't start sessions or get links.
+        public int BlockHours { get; set; } = 24;
 
         public DemoConnectionOptions Connection { get; set; } = new();
 
@@ -74,9 +80,13 @@ namespace MDBNavigator.Accounts.Demo
                 problems.Add("Demo:SessionMinutes must be between 1 and 120");
             }
             if (SessionsPerVisitorPerDay < 1 || MaxActiveGuests < 1 || SessionsPerIpPerHour < 1 || LinkEmailsPerAddressPerHour < 1
-                || LinkRequestsPerIpPerHour < 1 || LinkValidMinutes < 1)
+                || LinkRequestsPerIpPerHour < 1 || LinkValidMinutes < 1 || ViolationsBeforeBlock < 1)
             {
                 problems.Add("the Demo limits must be at least 1");
+            }
+            if (BlockHours is < 1 or > 168)
+            {
+                problems.Add("Demo:BlockHours must be between 1 and 168");
             }
             if (string.IsNullOrWhiteSpace(Connection.ServerName) || Connection.Port < 1 || string.IsNullOrWhiteSpace(Connection.UserName)
                 || string.IsNullOrEmpty(Connection.Password) || string.IsNullOrWhiteSpace(Connection.DatabaseName))

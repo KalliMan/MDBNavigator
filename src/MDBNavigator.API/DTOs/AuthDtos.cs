@@ -8,7 +8,8 @@ namespace MDBNavigator.API.DTOs
         string CaptchaProvider, string? TurnstileSiteKey, bool RememberPasswords, DemoSettingsDto? Demo);
 
     // ContactEmail: for the demo terms. ConnectionName: what the guest's connection is called in the UI.
-    public record DemoSettingsDto(string ContactEmail, int SessionMinutes, string ConnectionName);
+    // ViolationsBeforeBlock, BlockHours: the rule the start page names (refused actions end the session and block).
+    public record DemoSettingsDto(string ContactEmail, int SessionMinutes, string ConnectionName, int ViolationsBeforeBlock, int BlockHours);
 
     // SignInMethod: how this session signed in, "Password" or a provider name such as "Google"; null when unknown.
     // Guest: set for a demo guest; Email is then a made-up address, and Guest.Name is the visitor's name.

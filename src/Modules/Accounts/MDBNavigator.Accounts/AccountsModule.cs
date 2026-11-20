@@ -2,6 +2,7 @@ using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
 using MDBNavigator.Accounts.Persistence;
+using MDBNavigator.SharedKernel.Violations;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
@@ -98,6 +99,10 @@ namespace MDBNavigator.Accounts
             {
                 services.AddSingleton<GuestStartGate>();
                 services.AddScoped<DemoAccess>();
+                // The other modules report refused actions through IViolationRecorder (SharedKernel); without the demo
+                // nothing is registered and they skip it.
+                services.AddSingleton<DemoViolations>();
+                services.AddSingleton<IViolationRecorder>(sp => sp.GetRequiredService<DemoViolations>());
             }
 
             // Without stored keys, every restart would sign everybody out.

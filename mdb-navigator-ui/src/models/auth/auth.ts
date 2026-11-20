@@ -24,6 +24,10 @@ export interface DemoSettings {
   sessionMinutes: number;
   // What the guest's connection to the sample database is called.
   connectionName: string;
+  // Refused actions (writes, permission errors, refused connections, limits) in one session before it ends and the
+  // visitor is blocked for blockHours.
+  violationsBeforeBlock: number;
+  blockHours: number;
 }
 
 // GET /api/auth/account: the signed-in user's own account.

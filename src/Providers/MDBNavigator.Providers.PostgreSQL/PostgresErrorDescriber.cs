@@ -26,5 +26,17 @@ namespace MDBNavigator.Providers.PostgreSQL
             }
             return message;
         }
+
+        // 25006 is what a write in demo_reader's read-only transactions hits first, before any privilege check.
+        // 57014 also means a user's Cancel, but a cancelled run never gets here (QueryExecution handles it before).
+        public DatabaseErrorKind Classify(Exception exception) => exception is PostgresException pg
+            ? pg.SqlState switch
+            {
+                PostgresErrorCodes.InsufficientPrivilege or PostgresErrorCodes.ReadOnlySqlTransaction => DatabaseErrorKind.PermissionDenied,
+                PostgresErrorCodes.QueryCanceled or PostgresErrorCodes.ConfigurationLimitExceeded or PostgresErrorCodes.TooManyConnections
+                    => DatabaseErrorKind.LimitReached,
+                _ => DatabaseErrorKind.Other
+            }
+            : DatabaseErrorKind.Other;
     }
 }

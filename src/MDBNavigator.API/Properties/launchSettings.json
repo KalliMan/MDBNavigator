@@ -16,6 +16,15 @@
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:3001;http://localhost:3002"
     },
+    "https-demo": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Demo__Enabled": "true"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:3001;http://localhost:3002"
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,

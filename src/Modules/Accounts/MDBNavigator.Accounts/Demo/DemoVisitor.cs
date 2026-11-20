@@ -17,5 +17,9 @@ namespace MDBNavigator.Accounts.Demo
         public DateTime CreatedAtUtc { get; set; }
         public DateTime LastVisitAtUtc { get; set; }
         public int VisitCount { get; set; }
+
+        // Set by DemoViolations after too many refused actions in one session: until then, no sessions and no links.
+        // Left in place once it has passed (the checks compare it with now).
+        public DateTime? BlockedUntilUtc { get; set; }
     }
 }

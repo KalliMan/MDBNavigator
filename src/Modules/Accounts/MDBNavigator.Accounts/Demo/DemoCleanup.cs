@@ -55,6 +55,8 @@ namespace MDBNavigator.Accounts.Demo
                 var sessions = await db.DemoGuestSessions.Where(s => s.EndsAtUtc < sessionsBefore).ExecuteDeleteAsync(ct);
                 var visitorsBefore = now.AddDays(-DemoTerms.VisitorRetentionDays);
                 var visitors = await db.DemoVisitors.Where(v => v.LastVisitAtUtc < visitorsBefore).ExecuteDeleteAsync(ct);
+                // Refused-action counts of sessions long over (only with the demo on).
+                scope.ServiceProvider.GetService<DemoViolations>()?.Forget(now.AddDays(-1));
 
                 if (deletedGuests + links + sessions + visitors > 0)
                 {

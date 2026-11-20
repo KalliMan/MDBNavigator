@@ -127,6 +127,10 @@ namespace MDBNavigator.Accounts.Persistence.Migrations.Sqlite
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<DateTime?>("BlockedUntilUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("blocked_until_utc");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT")
                         .HasColumnName("created_at_utc");

@@ -137,4 +137,15 @@ Sign-up stays closed. Someone the owner invites opens `/demo?code=<invite code>`
 - **Personal data:** the visitor list (name, email, the terms' version and when they were agreed to, visits) is deleted 90 days after the last visit, a promise in the terms, so the clean-up runs even after the demo is switched off. Names and emails never go into the log; the owner gets them by email (`Demo:OwnerEmail`) for every new visitor.
 - The per-address counts are kept in memory, like the rate limits, and start over on a restart.
 
+**Violations and blocks** (`Demo:ViolationsBeforeBlock`, 20; `Demo:BlockHours`, 24)
+
+What the server refuses a guest is counted per session. At 20, the session ends at once (and any other running session of the same visitor), the account is deleted as usual, the visitor's email can't start sessions or get links for 24 hours, and the owner gets an email with the name, the email and the counts. The run that ended it says so in its Error tab; the UI also checks the session every 30 seconds and then shows `/demo/ended`. The start page names the rule.
+
+- **Counted:** permission errors (SQLSTATE `42501`, and `25006`: a write in `demo_reader`'s read-only transactions), a guest calling `account/*` or `manage/*` (the UI never does); every failed connect or reconnect and every host the guard refuses; the run's time and row limits, PostgreSQL's `statement_timeout`, `temp_file_limit` and connection limit (`57014`, `53400`, `53300`), "a query is already running", the failed-connect wait or its CAPTCHA, and the per-minute connect and query limits. The provider decides which database errors are refusals (`IDatabaseErrorDescriber.Classify`).
+- **Not counted:** mistakes (syntax errors, missing tables), Cancel, results cut at `MaxRowsPerResultSet` (`select * from demo.measurements` is fine), expired connections. SQL is never scanned for keywords.
+- The demo connection goes through the same connect, so if the sample database is down, a guest's retries count too; nobody retries 20 times in a session.
+- Counts are in memory, per session, and start over on a restart. Blocks are in the database (`demo_visitors.blocked_until_utc`). The block refuses starts with a message; a link request for a blocked email gets the usual answer and no email, so the answer doesn't tell which emails are blocked.
+- **No IP addresses are stored.** An address block is undone with a VPN in a minute, and storing addresses would be one more piece of personal data to explain. A block stops casual misuse and tells the owner; if someone keeps coming back with new emails, the owner changes the invite code. What keeps the demo safe is the read-only role, the guard and the limits above.
+- The log says only "Demo guest blocked after 20 refused actions (... permission, ... connection, ... limit)": no name, email or account id.
+
 **What remains possible:** `SET work_mem` to a large value lets one query use a lot of memory; the container limit caps it, and at worst PostgreSQL restarts. Guests see each other's query text in `pg_stat_activity`. Both are accepted for public sample data.

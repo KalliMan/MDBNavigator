@@ -1,5 +1,6 @@
 using MDBNavigator.Accounts.Demo;
 using MDBNavigator.API.Core;
+using MDBNavigator.SharedKernel.Violations;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Globalization;
 using System.Security.Claims;
@@ -22,8 +23,10 @@ namespace MDBNavigator.API.RateLimiting
             services.AddRateLimiter(limiter =>
             {
                 limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-                limiter.OnRejected = (context, ct) =>
+                limiter.OnRejected = async (context, ct) =>
                 {
+                    await RecordViolationAsync(context.HttpContext);
+
                     var message = "Too many requests. Please wait a minute and try again.";
                     if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                     {
@@ -35,8 +38,8 @@ namespace MDBNavigator.API.RateLimiting
                             ? $"Too many requests. Please try again in {seconds} second{(seconds == 1 ? "" : "s")}."
                             : $"Too many requests. Please try again in {minutes} minutes.";
                     }
-                    return new ValueTask(context.HttpContext.Response.WriteAsJsonAsync(
-                        new ErrorResponse(StatusCodes.Status429TooManyRequests, message), ct));
+                    await context.HttpContext.Response.WriteAsJsonAsync(
+                        new ErrorResponse(StatusCodes.Status429TooManyRequests, message), ct);
                 };
 
                 // Per IP address, against password guessing (on top of the account lockout) and email flooding.
@@ -54,6 +57,19 @@ namespace MDBNavigator.API.RateLimiting
             });
 
             return services;
+        }
+
+        // The public demo counts a signed-in user's refused connects and queries against a guest (DemoViolations). The
+        // per-address policies (sign-in, CAPTCHA, demo links) come before anyone is signed in, so they don't count.
+        private static async Task RecordViolationAsync(HttpContext http)
+        {
+            var policy = http.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+            if (policy is Connect or Query
+                && http.RequestServices.GetService<IViolationRecorder>() is { } violations
+                && http.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId)
+            {
+                await violations.RecordAsync(userId, ViolationKind.LimitReached);
+            }
         }
 
         private static RateLimitPartition<string> PerMinute(string key, int permitLimit) => Fixed(key, permitLimit, TimeSpan.FromMinutes(1));

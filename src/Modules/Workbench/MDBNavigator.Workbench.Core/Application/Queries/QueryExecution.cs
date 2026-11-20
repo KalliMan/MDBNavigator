@@ -1,6 +1,8 @@
 using MDBNavigator.Connections.Contracts;
 using MDBNavigator.Providers.Abstractions;
 using MDBNavigator.Providers.Abstractions.Queries;
+using MDBNavigator.SharedKernel;
+using MDBNavigator.SharedKernel.Violations;
 using MDBNavigator.Workbench.Application.Queries.RunQuery;
 using Microsoft.Extensions.Logging;
 using System.Data.Common;
@@ -19,9 +21,15 @@ namespace MDBNavigator.Workbench.Application.Queries
         private readonly QueryExecutionOptions _options;
         private readonly ILogger<QueryExecution> _logger;
         private readonly IDatabaseErrorDescriber? _errorDescriber;
+        // Only in the public demo, which counts refused actions against a guest.
+        private readonly IViolationRecorder? _violations;
+
+        // Added to the error of the run whose refusal ended the session (the public demo's limit of refused actions).
+        public const string SessionEndedNote = "\n\nThis session has ended after too many refused actions.";
 
         public QueryExecution(IDatabaseConnector connector, IBatchNotifier notifier, ICommandExecutionRegistry registry,
-            QueryExecutionOptions options, ILogger<QueryExecution> logger, IDatabaseErrorDescriber? errorDescriber = null)
+            QueryExecutionOptions options, ILogger<QueryExecution> logger, IDatabaseErrorDescriber? errorDescriber = null,
+            IViolationRecorder? violations = null)
         {
             _connector = connector;
             _notifier = notifier;
@@ -29,6 +37,7 @@ namespace MDBNavigator.Workbench.Application.Queries
             _options = options;
             _logger = logger;
             _errorDescriber = errorDescriber;
+            _violations = violations;
         }
 
         // stoppingToken: the application is shutting down. cancellation: the user's Cancel, or a disconnect.
@@ -49,6 +58,8 @@ namespace MDBNavigator.Workbench.Application.Queries
             var status = CommandExecutionStatus.Completed;
             string? error = null;
             StatementStarted? current = null;
+            // What the server refused, if anything; a mistake in the SQL is not counted.
+            ViolationKind? violation = null;
 
             try
             {
@@ -108,6 +119,7 @@ namespace MDBNavigator.Workbench.Application.Queries
                     // One of this server's limits, not the user: a failure with the reason, shown in the Error tab.
                     status = CommandExecutionStatus.Failed;
                     error = AtStatement(rowLimitReached ? RowLimitMessage() : TimeLimitMessage(), current);
+                    violation = ViolationKind.LimitReached;
                     _logger.LogInformation("Query execution {ExecutionId} stopped at the run's {Limit} limit",
                         command.ExecutionId, rowLimitReached ? "row" : "time");
                 }
@@ -125,6 +137,7 @@ namespace MDBNavigator.Workbench.Application.Queries
                 status = CommandExecutionStatus.Failed;
                 // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).
                 error = AtStatement(_errorDescriber?.Describe(ex) ?? ex.Message, current);
+                violation = ToViolation(ex);
             }
             catch (Exception ex)
             {
@@ -135,6 +148,13 @@ namespace MDBNavigator.Workbench.Application.Queries
             finally
             {
                 _registry.Complete(command.SessionId, command.ExecutionId, cancellation);
+            }
+
+            // After the run is completed in the registry: ending the session deletes the account, which stops its runs.
+            if (violation is { } kind && _violations is not null
+                && await _violations.RecordAsync(SessionKey.UserIdOf(command.SessionId), kind))
+            {
+                error += SessionEndedNote;
             }
 
             await _notifier.SendCommandFinished(new CommandFinishedDto
@@ -148,6 +168,19 @@ namespace MDBNavigator.Workbench.Application.Queries
                 Error = error
             }, command.SessionId);
         }
+
+        // Refused on purpose (rights, the guard, the database's limits); not an expired connection or a mistake.
+        private ViolationKind? ToViolation(Exception ex) => ex switch
+        {
+            ConnectionNotAllowedException => ViolationKind.ConnectionRefused,
+            DbException => _errorDescriber?.Classify(ex) switch
+            {
+                DatabaseErrorKind.PermissionDenied => ViolationKind.PermissionDenied,
+                DatabaseErrorKind.LimitReached => ViolationKind.LimitReached,
+                _ => null
+            },
+            _ => null
+        };
 
         private static DatabaseCommandBatchResultDto ToDto(RunQueryCommand command, QueryBatch batch) => new()
         {

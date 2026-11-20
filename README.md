@@ -165,6 +165,8 @@ Guests get in by invitation: send someone `https://<your address>/demo?code=<inv
 
 Before the first start, set the `MDBNAV_DEMO_*`, `MDBNAV_APP_URL`, `MDBNAV_EMAIL_FROM` and `MDBNAV_SMTP_*` values in `.env` (see `.env.example`); Compose refuses to start without them. The CAPTCHA on the demo forms (ALTCHA) needs HTTPS, or `localhost`. HTTPS itself follows with roadmap step 0.5c.
 
+To try the demo while developing, put the `Demo` settings (all but `Enabled`) in the API's user secrets and start the **https-demo** launch profile: it is the `https` profile with `Demo__Enabled=true`, so the usual profile stays without the demo. In Development, emails go to the log unless `Email:Delivery` says otherwise.
+
 ## Configuration
 
 Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be overridden with an environment variable, using `__` between section and key, for example `QueryExecution__MaxRowsPerResultSet=50000`.
@@ -191,10 +193,11 @@ Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be ove
 | `ConnectionGuard:Mode`, `Allow` | from `Auth` | Which database hosts users may connect to: `Public`, `AllowList` or `Off`. See [connection guardrails](docs/security.md#connection-guardrails). |
 | `Demo:Enabled` | `false` | Invited guests try the app in short sessions, connected to a sample database. Needs `Auth:Mode = Accounts`, email, and the `Demo` settings below; the app doesn't start without them. See [public demo](docs/security.md#public-demo). |
 | `Demo:InviteCode` | | The secret in invite links (`/demo?code=...`), at least 16 characters. Changing it stops every link sent so far. A secret: user secrets or an environment variable. |
-| `Demo:OwnerEmail`, `Demo:ContactEmail` | | Who gets an email for every new visitor; the address in the demo terms for deletion requests. |
+| `Demo:OwnerEmail`, `Demo:ContactEmail` | | Who gets an email for every new visitor and every block; the address in the demo terms for deletion requests. |
 | `Demo:SessionMinutes` | `10` | Length of a guest session (1–120). |
 | `Demo:SessionsPerVisitorPerDay`, `MaxActiveGuests`, `SessionsPerIpPerHour` | `3`, `10`, `3` | Sessions per visitor within 24 hours, guests at once, and sessions started from one IP address within an hour. |
 | `Demo:LinkEmailsPerAddressPerHour`, `LinkRequestsPerIpPerHour`, `LinkValidMinutes` | `3`, `10`, `30` | Sign-in link emails per address and hour (more are silently not sent), link requests per IP address and hour, and how long a link works. |
+| `Demo:ViolationsBeforeBlock`, `BlockHours` | `20`, `24` | Refused actions (permission errors, refused connections, limits reached) in one guest session before it ends and the visitor's email is blocked from the demo, and how long the block lasts (1–168 hours). See [violations and blocks](docs/security.md#public-demo). |
 | `Demo:Connection:Name`, `ServerName`, `Port`, `UserName`, `Password`, `DatabaseName` | | The PostgreSQL database guests are connected to, and its name in the UI. The server connects them itself, so the password never reaches the browser. `Password` is a secret. |
 | `ReverseProxy:TrustedNetworks` | | The proxies in front of the app, as IP addresses or ranges (`172.16.0.0/12`). Only their `X-Forwarded-For` and `X-Forwarded-Proto` are believed; with the list empty, only a proxy on the same machine. Needed when the proxy runs in another container or host: without it every visitor shares the proxy's address (and its rate limit), and HSTS is not sent. |
 

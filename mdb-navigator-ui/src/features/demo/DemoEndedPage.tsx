@@ -9,6 +9,9 @@ export default function DemoEndedPage() {
         Thank you for trying MDBNavigator. Everything from the session (queries, results, saved connections) has been
         deleted.
       </p>
+      <p className="text-sm text-fg-muted">
+        A session also ends early after too many refused actions; demo access is then paused for a while.
+      </p>
       <p className="text-sm text-fg">
         MDBNavigator is open source:{' '}
         <a href="https://github.com/KalliMan/MDBNavigator" className="font-medium text-accent-strong hover:underline">see it on GitHub</a>.

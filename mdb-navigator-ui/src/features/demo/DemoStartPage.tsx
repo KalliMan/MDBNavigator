@@ -16,6 +16,8 @@ export default function DemoStartPage() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const minutes = settings?.demo?.sessionMinutes ?? 10;
+  const violationsBeforeBlock = settings?.demo?.violationsBeforeBlock ?? 20;
+  const blockHours = settings?.demo?.blockHours ?? 24;
 
   async function start(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +41,10 @@ export default function DemoStartPage() {
           <p className="text-sm text-fg">
             Your session lasts {minutes} minutes and starts when you press Start. You are connected to a sample database,
             where you can run any query that reads data.
+          </p>
+          <p className="text-sm text-fg-muted">
+            Refused actions (writes, permission errors, refused connections, limits reached) are counted: after{' '}
+            {violationsBeforeBlock}, the session ends and demo access is paused for {blockHours} hours.
           </p>
           {error && <Notice tone="error">{error}</Notice>}
           <SubmitButton busy={busy}>Start</SubmitButton>

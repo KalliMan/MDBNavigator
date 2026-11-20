@@ -8,6 +8,7 @@ using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
 using MDBNavigator.SharedKernel.Captcha;
+using MDBNavigator.SharedKernel.Violations;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -35,7 +36,9 @@ namespace MDBNavigator.API.Auth
             }
 
             // Only what the UI shows: the guest's connection is opened by the server (DemoController).
-            var demoSettings = demo.Enabled ? new DemoSettingsDto(demo.ContactEmail, demo.SessionMinutes, demo.Connection.Name) : null;
+            var demoSettings = demo.Enabled
+                ? new DemoSettingsDto(demo.ContactEmail, demo.SessionMinutes, demo.Connection.Name, demo.ViolationsBeforeBlock, demo.BlockHours)
+                : null;
             auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email, ISavedPasswordProtector passwords) =>
                 new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled,
                     captchaProvider, turnstileSiteKey, passwords.Enabled, demoSettings));
@@ -49,7 +52,7 @@ namespace MDBNavigator.API.Auth
                         ? await CheckRegisterAsync(context.HttpContext, options) ?? await next(context)
                         // A guest could otherwise give its account a real email (manage/info) and keep it.
                         : IsManage(context.HttpContext.Request) && GuestSessions.IsGuest(context.HttpContext.User)
-                            ? Error(StatusCodes.Status403Forbidden, GuestRefusedMessage)
+                            ? await RefuseGuestAsync(context.HttpContext)
                             : await next(context))
                 .MapIdentityApi<ApplicationUser>();
 
@@ -94,6 +97,17 @@ namespace MDBNavigator.API.Auth
             MapAccount(auth);
         }
 
+        // The UI never sends a guest to these endpoints, so a call is someone probing: it counts as a refused action.
+        private static async Task<IResult> RefuseGuestAsync(HttpContext http)
+        {
+            if (http.RequestServices.GetService<IViolationRecorder>() is { } violations
+                && http.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId)
+            {
+                await violations.RecordAsync(userId, ViolationKind.PermissionDenied);
+            }
+            return Error(StatusCodes.Status403Forbidden, GuestRefusedMessage);
+        }
+
         // The signed-in user's own account (the UI's /account page).
         private static void MapAccount(RouteGroupBuilder auth)
         {
@@ -101,7 +115,7 @@ namespace MDBNavigator.API.Auth
             var account = auth.MapGroup("account")
                 .RequireAuthorization()
                 .AddEndpointFilter(async (context, next) => GuestSessions.IsGuest(context.HttpContext.User)
-                    ? Error(StatusCodes.Status403Forbidden, GuestRefusedMessage)
+                    ? await RefuseGuestAsync(context.HttpContext)
                     : await next(context));
 
             account.MapGet("", async (ClaimsPrincipal principal, AccountManagement accounts) =>

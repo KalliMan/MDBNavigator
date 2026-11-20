@@ -16,7 +16,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
     // An app with the public demo on: invite links, emailed sign-in links and guest sessions. Emails are caught instead
     // of sent, and the clock can be moved forward to end sessions. A collection of its own: it needs email, which changes
     // what the smoke tests see (confirmed emails), and its clock moves.
-    public sealed partial class DemoAppFixture : AppFixture
+    public partial class DemoAppFixture : AppFixture
     {
         public const string InviteCode = "smoke-invite-code-0123456789";
         public const string OwnerEmail = "owner@example.test";
