@@ -10,11 +10,15 @@ A database client that runs in the browser: connect to a database server, browse
 
 ### Application view
 
-<img width="2556" height="1228" alt="Application view" src="https://github.com/user-attachments/assets/19403bbf-c538-4aa2-8cfe-d26d84f1ab67" />
+<p align="center">
+  <img width="2556" height="1228" alt="Application view" src="https://github.com/user-attachments/assets/19403bbf-c538-4aa2-8cfe-d26d84f1ab67" />
+</p>
 
 ### Connection view
 
-<img width="807" height="565" alt="Connection view" src="https://github.com/user-attachments/assets/32adf021-a4a4-4273-87d1-285ed8baa335" />
+<p align="center">
+  <img width="807" height="565" alt="Connection view" src="https://github.com/user-attachments/assets/32adf021-a4a4-4273-87d1-285ed8baa335" />
+</p>
 
 ## Features
 
