@@ -77,6 +77,11 @@ namespace MDBNavigator.Accounts.Persistence.Migrations.Sqlite
                         .HasColumnType("TEXT")
                         .HasColumnName("expires_at_utc");
 
+                    b.Property<string>("InviteName")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("invite_name");
+
                     b.Property<string>("Name")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT")
@@ -140,6 +145,11 @@ namespace MDBNavigator.Accounts.Persistence.Migrations.Sqlite
                         .HasMaxLength(256)
                         .HasColumnType("TEXT")
                         .HasColumnName("email");
+
+                    b.Property<string>("InviteName")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("invite_name");
 
                     b.Property<DateTime>("LastVisitAtUtc")
                         .HasColumnType("TEXT")

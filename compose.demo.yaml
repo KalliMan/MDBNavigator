@@ -33,7 +33,14 @@ services:
       # on the demo forms: no third-party account needed.
       Captcha__Provider: Altcha
       Demo__Enabled: "true"
-      Demo__InviteCode: ${MDBNAV_DEMO_INVITE_CODE:?set MDBNAV_DEMO_INVITE_CODE in .env}
+      # Invite links: https://<address>/?code=<code>. Each code has a name, shown to the owner for every new visitor.
+      # A blank code switches that link off (README, "Public demo setup").
+      Demo__InviteCodes__0__Name: LinkedIn
+      Demo__InviteCodes__0__Code: ${MDBNAV_DEMO_CODE_LINKEDIN:-}
+      Demo__InviteCodes__1__Name: CV
+      Demo__InviteCodes__1__Code: ${MDBNAV_DEMO_CODE_CV:-}
+      Demo__InviteCodes__2__Name: Friends
+      Demo__InviteCodes__2__Code: ${MDBNAV_DEMO_CODE_FRIENDS:-}
       Demo__OwnerEmail: ${MDBNAV_DEMO_OWNER_EMAIL:?set MDBNAV_DEMO_OWNER_EMAIL in .env}
       Demo__ContactEmail: ${MDBNAV_DEMO_CONTACT_EMAIL:?set MDBNAV_DEMO_CONTACT_EMAIL in .env}
       Demo__Connection__Name: Sample database (Pagila)

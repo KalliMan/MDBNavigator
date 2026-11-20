@@ -43,6 +43,42 @@ namespace MDBNavigator.API.Tests
         }
 
         [Fact]
+        public async Task Every_named_invite_code_works()
+        {
+            var email = DemoAppFixture.NewEmail();
+
+            await _fixture.JoinAsync("Smoke Visitor", email, inviteCode: DemoAppFixture.SecondInviteCode).ShouldBeAsync(HttpStatusCode.NoContent);
+
+            var link = await _fixture.Emails.WaitForAsync(email);
+            Assert.Contains("/demo/start?token=", link.TextBody);
+        }
+
+        [Fact]
+        public async Task A_switched_off_or_unknown_code_is_refused()
+        {
+            var email = DemoAppFixture.NewEmail();
+
+            // The empty code of the switched-off entry must not match an empty (or missing) code.
+            await _fixture.JoinAsync("Smoke Visitor", email, inviteCode: "").ShouldBeAsync(HttpStatusCode.Forbidden);
+            await _fixture.JoinAsync("Smoke Visitor", email, inviteCode: "not-one-of-the-codes-000").ShouldBeAsync(HttpStatusCode.Forbidden);
+
+            await CapturedEmails.SettleAsync();
+            Assert.Empty(_fixture.Emails.To(email));
+        }
+
+        [Fact]
+        public async Task The_owner_learns_which_link_a_new_visitor_came_by()
+        {
+            var email = DemoAppFixture.NewEmail();
+            await _fixture.JoinAsync("Smoke Visitor", email, inviteCode: DemoAppFixture.SecondInviteCode).ShouldBeAsync(HttpStatusCode.NoContent);
+
+            using var guest = await _fixture.StartAsync(await _fixture.LinkTokenAsync(email));
+
+            var notice = await _fixture.Emails.WaitForAsync(DemoAppFixture.OwnerEmail, m => m.TextBody.Contains(email));
+            Assert.Contains("They came by the CV link.", notice.TextBody);
+        }
+
+        [Fact]
         public async Task The_terms_must_be_agreed_to_in_their_current_version()
         {
             var missing = await _fixture.JoinAsync("Smoke Visitor", DemoAppFixture.NewEmail(), termsVersion: null).ShouldBeAsync(HttpStatusCode.BadRequest);

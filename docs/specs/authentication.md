@@ -124,8 +124,8 @@ Opened from the user menu ("Account"), under the workspace's top bar.
 
 Roadmap 0.5b. With `Demo:Enabled`, invited people try the app without an account of their own. The limits and why they are there: [security.md](../security.md#public-demo). Settings: the README's [Configuration](../../README.md#configuration).
 
-- **Visitors and guests are kept apart.** A visitor (`demo_visitors`: name, email, terms version and time, visits) is the person; a guest is a throwaway Identity account (role `Guest`) for one session. A visitor is created, or updated, when a link is used, never by the form alone.
-- **Flow:** `/demo?code=` (form) → `POST /api/demo/join` → email → `/demo/start?token=` → Start (`POST /api/demo/start`) → the workspace, connected to the demo database (`POST /api/demo/connect`). Returning visitors: `/demo/sign-in` → `POST /api/demo/sign-in-link` → the same email and start page. Both forms show the demo terms; the version agreed to (`DemoTerms.Version` on the server, `DEMO_TERMS_VERSION` in the UI, kept equal) is recorded.
+- **Visitors and guests are kept apart.** A visitor (`demo_visitors`: name, email, terms version and time, visits) is the person; a guest is a throwaway Identity account (role `Guest`) for one session. A visitor is created, or updated, when a link is used, never by the form alone. A new visitor keeps the name of the invite code they came by (`invite_name`, from `Demo:InviteCodes`); joining again through another link doesn't change it.
+- **Flow:** `/?code=` (start page) → `/demo?code=` (form) → `POST /api/demo/join` → email → `/demo/start?token=` → Start (`POST /api/demo/start`) → the workspace, connected to the demo database (`POST /api/demo/connect`). Returning visitors: `/demo/sign-in` → `POST /api/demo/sign-in-link` → the same email and start page. Both forms show the demo terms; the version agreed to (`DemoTerms.Version` on the server, `DEMO_TERMS_VERSION` in the UI, kept equal) is recorded.
 - **Session:** the cookie is persistent with `ExpiresUtc` at the session's end and `AllowRefresh = false`. The cookie's `OnValidatePrincipal` runs Identity's check, then for guests checks that their session row (`demo_guest_sessions`) hasn't ended.
 - **Ending:** at the end of the countdown, on "End the demo" (`logout`) and on a 401, the UI does a full load of `/demo/ended`. `logout` deletes a guest's account at once; otherwise the clean-up job does it within a minute.
 - **Blocks** (roadmap 0.5b2): too many refused actions in one session end it and block the visitor (`demo_visitors.blocked_until_utc`, `Demo:BlockHours`). A blocked visitor's start gets `403` and leaves the link unused; their link requests get the usual answer and no email. Counting is done by `DemoViolations`, which the other modules reach through `IViolationRecorder` (SharedKernel).
@@ -133,6 +133,7 @@ Roadmap 0.5b. With `Demo:Enabled`, invited people try the app without an account
 
 | Path | Page |
 |---|---|
+| `/` | Start page (demo on, not signed in): what MDBNavigator is, with "Try the demo" when the link has `?code=` |
 | `/demo` | Invite form with `?code=`; without it, a note that the demo is by invitation |
 | `/demo/sign-in` | A returning visitor's form (email and terms) |
 | `/demo/check-inbox` | "A link is on its way", the same whether or not one was sent |

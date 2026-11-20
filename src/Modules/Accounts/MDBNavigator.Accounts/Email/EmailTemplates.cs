@@ -52,9 +52,14 @@ namespace MDBNavigator.Accounts.Email
             ]);
 
         // To the demo's owner (Demo:OwnerEmail).
-        public static EmailMessage NewDemoVisitor(string to, string visitorName, string visitorEmail)
+        // inviteName: the invite link they came by (Demo:InviteCodes); null for a visitor from before the names existed.
+        public static EmailMessage NewDemoVisitor(string to, string visitorName, string visitorEmail, string? inviteName)
         {
             var text = $"{visitorName} ({visitorEmail}) confirmed their email and started a first demo session.";
+            if (inviteName is not null)
+            {
+                text += $" They came by the {inviteName} link.";
+            }
             return Notice(to, "New MDBNavigator demo visitor", "New demo visitor", text);
         }
 

@@ -15,6 +15,7 @@ import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import LoginPage from "./features/auth/LoginPage";
 import RegisterPage from "./features/auth/RegisterPage";
 import ResetPasswordPage from "./features/auth/ResetPasswordPage";
+import StartPage from "./features/start/StartPage";
 import Button from "./ui/common/Button";
 import { ButtonType } from "./ui/common/ButtonType.enum";
 import Loader from "./ui/loader/Loader";
@@ -24,7 +25,7 @@ import Loader from "./ui/loader/Loader";
 // So when the session ends (a 401), the same user can sign in again and find every tab, query and result as it was.
 // A different user, or Log out, reloads the page instead (see AuthContextProvider).
 export default function Root() {
-  const { status, settings, user, reload } = useAuth();
+  const { status, settings, user, sessionExpired, reload } = useAuth();
   const isGuest = !!user?.guest;
   const location = useLocation();
   const workspaceAllowed = status === 'signedIn' || status === 'local';
@@ -58,7 +59,13 @@ export default function Root() {
         </div>
       )}
       <Routes>
-        <Route path="/" element={workspaceAllowed ? null : <Navigate to="/login" replace />} />
+        {/* Signed out with the demo on: the public start page. Not after an expired session, so the "Your session has
+            ended" notice on the sign-in page isn't lost. */}
+        <Route path="/" element={
+          workspaceAllowed ? null
+            : settings?.demo && !sessionExpired ? <StartPage />
+            : <Navigate to="/login" replace />
+        } />
         {/* Without accounts (Auth:Mode = None) there is nothing to sign in to. */}
         {status !== 'local' && (
           <>

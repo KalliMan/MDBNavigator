@@ -19,6 +19,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
     public partial class DemoAppFixture : AppFixture
     {
         public const string InviteCode = "smoke-invite-code-0123456789";
+        public const string SecondInviteCode = "smoke-second-invite-code-0123";
         public const string OwnerEmail = "owner@example.test";
         public const string ContactEmail = "support@example.test";
         public const string ConnectionName = "Smoke sample";
@@ -38,7 +39,13 @@ namespace MDBNavigator.API.Tests.Infrastructure
             ["Email:FromAddress"] = "demo-sender@example.test",
             ["Email:AppBaseUrl"] = "https://demo.example.test",
             ["Demo:Enabled"] = "true",
-            ["Demo:InviteCode"] = InviteCode,
+            // Three named codes; the third is switched off (empty), as a closed channel is.
+            ["Demo:InviteCodes:0:Name"] = "LinkedIn",
+            ["Demo:InviteCodes:0:Code"] = InviteCode,
+            ["Demo:InviteCodes:1:Name"] = "CV",
+            ["Demo:InviteCodes:1:Code"] = SecondInviteCode,
+            ["Demo:InviteCodes:2:Name"] = "Closed",
+            ["Demo:InviteCodes:2:Code"] = "",
             ["Demo:OwnerEmail"] = OwnerEmail,
             ["Demo:ContactEmail"] = ContactEmail,
             ["Demo:SessionMinutes"] = SessionMinutes.ToString(),

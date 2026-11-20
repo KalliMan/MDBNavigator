@@ -10,6 +10,8 @@ namespace MDBNavigator.Accounts.Demo
         public required string NormalizedEmail { get; set; }
         // From the invite form; null for a returning visitor's link (their visitor record has it).
         public string? Name { get; set; }
+        // The invite link's name (Demo:InviteCodes) for a new visitor's link; null for a returning visitor's.
+        public string? InviteName { get; set; }
         public required string TermsVersion { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public DateTime ExpiresAtUtc { get; set; }

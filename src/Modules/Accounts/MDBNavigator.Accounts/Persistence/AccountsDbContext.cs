@@ -44,6 +44,7 @@ namespace MDBNavigator.Accounts.Persistence
                 visitor.Property(v => v.Email).HasMaxLength(DemoVisitor.EmailMaxLength);
                 visitor.Property(v => v.NormalizedEmail).HasMaxLength(DemoVisitor.EmailMaxLength);
                 visitor.Property(v => v.TermsVersion).HasMaxLength(20);
+                visitor.Property(v => v.InviteName).HasMaxLength(DemoInviteCode.NameMaxLength);
                 visitor.HasIndex(v => v.NormalizedEmail).IsUnique();
                 visitor.HasIndex(v => v.LastVisitAtUtc);
             });
@@ -56,6 +57,7 @@ namespace MDBNavigator.Accounts.Persistence
                 link.Property(l => l.NormalizedEmail).HasMaxLength(DemoVisitor.EmailMaxLength);
                 link.Property(l => l.Name).HasMaxLength(DemoVisitor.NameMaxLength);
                 link.Property(l => l.TermsVersion).HasMaxLength(20);
+                link.Property(l => l.InviteName).HasMaxLength(DemoInviteCode.NameMaxLength);
                 link.HasIndex(l => l.TokenHash).IsUnique();
                 // The links sent to one address within the last hour.
                 link.HasIndex(l => new { l.NormalizedEmail, l.CreatedAtUtc });

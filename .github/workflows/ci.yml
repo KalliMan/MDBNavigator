@@ -68,7 +68,7 @@ jobs:
       - name: Check the demo Compose file
         # Placeholders for the values the demo requires from .env.
         env:
-          MDBNAV_DEMO_INVITE_CODE: ci-placeholder-invite-code
+          MDBNAV_DEMO_CODE_LINKEDIN: ci-placeholder-invite-code
           MDBNAV_DEMO_OWNER_EMAIL: owner@example.test
           MDBNAV_DEMO_CONTACT_EMAIL: support@example.test
           MDBNAV_APP_URL: https://demo.example.test

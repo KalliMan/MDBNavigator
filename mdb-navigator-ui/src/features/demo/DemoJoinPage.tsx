@@ -31,6 +31,11 @@ export default function DemoJoinPage() {
           The MDBNavigator demo is by invitation. If someone sent you an invite link, please open that link.
         </p>
       )}
+      {code && (
+        <p className="text-center text-sm text-fg-muted">
+          <Link to={`/?code=${encodeURIComponent(code)}`} className="font-medium text-accent-strong hover:underline">What is MDBNavigator?</Link>
+        </p>
+      )}
       <p className="text-center text-sm text-fg-muted">
         Been here before?{' '}
         <Link to="/demo/sign-in" className="font-medium text-accent-strong hover:underline">Get a new link</Link>

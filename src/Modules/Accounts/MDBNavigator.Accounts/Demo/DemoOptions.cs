@@ -1,5 +1,7 @@
 ﻿using MDBNavigator.Accounts.Email;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MDBNavigator.Accounts.Demo
 {
@@ -12,8 +14,13 @@ namespace MDBNavigator.Accounts.Demo
 
         public bool Enabled { get; set; }
 
-        // The secret in invite links (/demo?code=...). Changing it stops every link sent so far. A secret: user secrets
-        // or the environment variable Demo__InviteCode, not appsettings.json.
+        // The secrets in invite links (/?code=...), each with a name that says where the link was shared. Changing or
+        // blanking one stops only its links. Secrets: user secrets or the environment variables
+        // Demo__InviteCodes__0__Name, Demo__InviteCodes__0__Code, ..., not appsettings.json.
+        public List<DemoInviteCode> InviteCodes { get; set; } = [];
+
+        // Replaced by InviteCodes; only read to stop startup with a clear message when an old configuration still sets it,
+        // so it can't silently lose its code.
         public string InviteCode { get; set; } = string.Empty;
 
         // Gets an email for every new visitor and every block.
@@ -63,10 +70,7 @@ namespace MDBNavigator.Accounts.Demo
             {
                 problems.Add("Email:Delivery must be set (the links are sent by email)");
             }
-            if (InviteCode.Length < InviteCodeMinLength)
-            {
-                problems.Add($"Demo:InviteCode must have at least {InviteCodeMinLength} characters");
-            }
+            ValidateInviteCodes(problems);
             if (!IsEmail(OwnerEmail))
             {
                 problems.Add("Demo:OwnerEmail must be an email address");
@@ -100,8 +104,69 @@ namespace MDBNavigator.Accounts.Demo
             }
         }
 
+        private void ValidateInviteCodes(List<string> problems)
+        {
+            if (InviteCode.Length > 0)
+            {
+                problems.Add("Demo:InviteCode is replaced by Demo:InviteCodes (a list of Name and Code)");
+            }
+            var codes = InviteCodes.Where(c => c.Code.Length > 0).ToList();
+            if (codes.Count == 0)
+            {
+                problems.Add("Demo:InviteCodes needs at least one code");
+            }
+            if (InviteCodes.Any(c => !DemoInviteCode.IsValidName(c.Name)))
+            {
+                problems.Add($"Demo:InviteCodes names must be 1-{DemoInviteCode.NameMaxLength} letters, digits, spaces, - or _");
+            }
+            if (InviteCodes.Select(c => c.Name.ToLowerInvariant()).Distinct().Count() < InviteCodes.Count)
+            {
+                problems.Add("Demo:InviteCodes names must be unique");
+            }
+            if (codes.Any(c => c.Code.Length < InviteCodeMinLength))
+            {
+                problems.Add($"Demo:InviteCodes codes must have at least {InviteCodeMinLength} characters");
+            }
+            if (codes.Select(c => c.Code).Distinct().Count() < codes.Count)
+            {
+                problems.Add("Demo:InviteCodes codes must be unique");
+            }
+        }
+
+        // The code's entry, or null. Compares with every entry in constant time and doesn't stop at a match, so the
+        // answer's timing gives away neither the code nor which entry matched. A switched-off entry (empty Code) never
+        // matches, whatever is given.
+        public DemoInviteCode? FindInviteCode(string? given)
+        {
+            var givenBytes = Encoding.UTF8.GetBytes(given ?? string.Empty);
+            DemoInviteCode? found = null;
+            foreach (var entry in InviteCodes)
+            {
+                var same = CryptographicOperations.FixedTimeEquals(givenBytes, Encoding.UTF8.GetBytes(entry.Code));
+                if (same && entry.Code.Length > 0 && given is not null)
+                {
+                    found ??= entry;
+                }
+            }
+            return found;
+        }
+
         public static bool IsEmail(string? value)
             => !string.IsNullOrWhiteSpace(value) && value.Length <= 256 && new EmailAddressAttribute().IsValid(value);
+    }
+
+    // One invite link's secret, with a name that says where the link was shared (LinkedIn, CV, ...). The name is the
+    // owner's own label: it is stored with each visitor and may be logged.
+    public class DemoInviteCode
+    {
+        public const int NameMaxLength = 30;
+
+        public string Name { get; set; } = string.Empty;
+        // Empty: switched off, its links don't work.
+        public string Code { get; set; } = string.Empty;
+
+        public static bool IsValidName(string name)
+            => name.Length is >= 1 and <= NameMaxLength && name.All(c => char.IsAsciiLetterOrDigit(c) || c is ' ' or '-' or '_');
     }
 
     // The sample database guests are connected to. The server connects them itself, so the password never reaches the

@@ -2,8 +2,6 @@ using MDBNavigator.Accounts.Demo;
 using MDBNavigator.API.Auth;
 using MDBNavigator.API.DTOs;
 using MDBNavigator.API.RateLimiting;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace MDBNavigator.API.Demo
 {
@@ -29,7 +27,9 @@ namespace MDBNavigator.API.Demo
             // 204 whether or not an email went out (the address may be over its hourly limit, or its visitor blocked).
             demo.MapPost("join", async (DemoJoinRequest request, HttpContext http, DemoAccess access) =>
                 {
-                    if (!InviteCodeMatches(request.InviteCode, options.InviteCode))
+                    // The code is checked here, when the form is sent, and nowhere earlier: the start page must not give
+                    // anyone a way to test codes without a CAPTCHA.
+                    if (options.FindInviteCode(request.InviteCode) is not { } invite)
                     {
                         return AuthEndpoints.Error(StatusCodes.Status403Forbidden, InviteInvalidMessage);
                     }
@@ -47,7 +47,7 @@ namespace MDBNavigator.API.Demo
                         return captchaFailed;
                     }
 
-                    await access.RequestJoinLinkAsync(name!, email!, http.RequestAborted);
+                    await access.RequestJoinLinkAsync(name!, email!, invite.Name, http.RequestAborted);
                     return Results.NoContent();
                 })
                 .RequireRateLimiting(RateLimitPolicies.DemoLink);
@@ -98,11 +98,6 @@ namespace MDBNavigator.API.Demo
                 })
                 .RequireRateLimiting(RateLimitPolicies.Auth);
         }
-
-        // In constant time, so the answer's timing doesn't give the code away character by character.
-        private static bool InviteCodeMatches(string? given, string expected)
-            => given is not null
-                && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(given), Encoding.UTF8.GetBytes(expected));
 
         // The keys are error codes, like Identity's validation problems, so the UI can put each message at its field.
         private static string? CheckName(string? value, Dictionary<string, string[]> errors)

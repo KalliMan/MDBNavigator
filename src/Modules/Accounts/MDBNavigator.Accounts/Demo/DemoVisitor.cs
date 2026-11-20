@@ -18,6 +18,10 @@ namespace MDBNavigator.Accounts.Demo
         public DateTime LastVisitAtUtc { get; set; }
         public int VisitCount { get; set; }
 
+        // The name of the invite link the visitor first came by (Demo:InviteCodes), kept for good: joining again through
+        // another link doesn't change it. Null for visitors from before the names existed.
+        public string? InviteName { get; set; }
+
         // Set by DemoViolations after too many refused actions in one session: until then, no sessions and no links.
         // Left in place once it has passed (the checks compare it with now).
         public DateTime? BlockedUntilUtc { get; set; }

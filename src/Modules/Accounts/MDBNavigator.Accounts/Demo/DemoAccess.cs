@@ -59,8 +59,9 @@ namespace MDBNavigator.Accounts.Demo
 
         // The invite form. The name and the terms wait in the link until it is used: only then is the email proven, and
         // only then is the visitor created (or, for someone already known, updated).
-        public Task RequestJoinLinkAsync(string name, string email, CancellationToken ct)
-            => RequestLinkAsync(email, name, ct);
+        // inviteName: the name of the invite code that was used (Demo:InviteCodes); the visitor keeps it.
+        public Task RequestJoinLinkAsync(string name, string email, string inviteName, CancellationToken ct)
+            => RequestLinkAsync(email, name, inviteName, ct);
 
         // A returning visitor. An unknown address gets the same answer and no email: the answer must not tell who has
         // visited the demo.
@@ -72,7 +73,7 @@ namespace MDBNavigator.Accounts.Demo
                 _logger.LogInformation("Demo sign-in link asked for an address that has no visitor; nothing sent");
                 return;
             }
-            await RequestLinkAsync(email, name: null, ct);
+            await RequestLinkAsync(email, name: null, inviteName: null, ct);
         }
 
         // ipAddress: where the request came from, for SessionsPerIpPerHour.
@@ -140,6 +141,8 @@ namespace MDBNavigator.Accounts.Demo
                     Email = link.Email,
                     NormalizedEmail = link.NormalizedEmail,
                     TermsVersion = link.TermsVersion,
+                    // Only a new visitor gets it: an existing visitor keeps the link they first came by.
+                    InviteName = link.InviteName,
                     CreatedAtUtc = now
                 }).Entity;
                 if (link.Name is not null)
@@ -185,15 +188,17 @@ namespace MDBNavigator.Accounts.Demo
             _logger.LogInformation("Demo session started ({ActiveGuests} of {MaxActiveGuests} guests)", activeGuests + 1, _options.MaxActiveGuests);
             if (newVisitor)
             {
-                _logger.LogInformation("New demo visitor");
-                DemoEmails.SendInBackground(_delivery, EmailTemplates.NewDemoVisitor(_options.OwnerEmail, visitor.Name, visitor.Email),
+                // The invite name is the owner's own label, not personal data.
+                _logger.LogInformation("New demo visitor (link: {InviteName})", visitor.InviteName ?? "none");
+                DemoEmails.SendInBackground(_delivery,
+                    EmailTemplates.NewDemoVisitor(_options.OwnerEmail, visitor.Name, visitor.Email, visitor.InviteName),
                     "new demo visitor", _logger);
             }
 
             return new DemoStartResult(DemoStartOutcome.Started, endsAt);
         }
 
-        private async Task RequestLinkAsync(string email, string? name, CancellationToken ct)
+        private async Task RequestLinkAsync(string email, string? name, string? inviteName, CancellationToken ct)
         {
             var now = Now();
             var normalized = _normalizer.NormalizeEmail(email);
@@ -221,6 +226,7 @@ namespace MDBNavigator.Accounts.Demo
                 Email = email,
                 NormalizedEmail = normalized,
                 Name = name,
+                InviteName = inviteName,
                 TermsVersion = DemoTerms.Version,
                 CreatedAtUtc = now,
                 ExpiresAtUtc = now.AddMinutes(_options.LinkValidMinutes)
