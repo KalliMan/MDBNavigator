@@ -1,6 +1,6 @@
 # mdb-navigator-ui
 
-The MDBNavigator web client: React 19, TypeScript and Vite. For the overall project, the API and the streaming contract, see the [root README](../README.md).
+The MDBNavigator web client: React 19, TypeScript and Vite. For the overall project, see the [root README](../README.md); for the API and the streaming contract, [docs/api.md](../docs/api.md).
 
 ## Getting started
 
