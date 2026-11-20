@@ -65,6 +65,8 @@ jobs:
         run: docker build -t mdbnavigator:ci .
       - name: Build the sample database image
         run: docker build -t mdbnavigator-sample-db:ci docker/sample-db
+      - name: Check the demo Compose file
+        run: docker compose -f docker-compose.yml -f compose.demo.yaml config --quiet
       # An image that builds but can't start should fail here, not on a server.
       - name: Start the app and wait for /health
         run: |

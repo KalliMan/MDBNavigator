@@ -23,3 +23,12 @@ RUN set -eux; \
 
 # Ours, after Pagila.
 COPY 90-measurements.sql /docker-entrypoint-initdb.d/
+# The read-only role. Executable, so the entrypoint runs it instead of sourcing it.
+COPY --chmod=755 95-demo-reader.sh /docker-entrypoint-initdb.d/
+
+# Used only by compose.demo.yaml: who may log in, and the guard of demo_reader's settings. The folder is made first:
+# COPY --chmod would give a folder it creates the file's mode, and 644 can't be entered.
+RUN install -d -m 755 /usr/local/share/mdbnavigator
+COPY --chmod=644 demo/pg_hba.conf /usr/local/share/mdbnavigator/demo-pg_hba.conf
+COPY --chmod=755 demo/entrypoint.sh /usr/local/share/mdbnavigator/demo-entrypoint.sh
+COPY --chmod=755 demo/guard-reader.sh /usr/local/share/mdbnavigator/guard-reader.sh

@@ -10,6 +10,14 @@ namespace MDBNavigator.API.Tests.Infrastructure
         public const string AdminEmail = "admin@example.test";
         public const string AdminPassword = "correct-horse-battery";
 
+        private readonly IReadOnlyDictionary<string, string> _settings;
+
+        // settings: a fixture's own settings, applied after the defaults below so they win (LimitsAppFixture).
+        public ApiFactory(IReadOnlyDictionary<string, string>? settings = null)
+        {
+            _settings = settings ?? new Dictionary<string, string>();
+        }
+
         public string AppDbPath { get; } = Path.Combine(Path.GetTempPath(), $"mdbnav-tests-{Guid.NewGuid():N}.db");
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -33,6 +41,11 @@ namespace MDBNavigator.API.Tests.Infrastructure
             builder.UseSetting("RateLimiting:AuthRequestsPerMinute", "10000");
             builder.UseSetting("RateLimiting:ConnectsPerMinute", "10000");
             builder.UseSetting("RateLimiting:QueriesPerMinute", "10000");
+
+            foreach (var (key, value) in _settings)
+            {
+                builder.UseSetting(key, value);
+            }
         }
     }
 }

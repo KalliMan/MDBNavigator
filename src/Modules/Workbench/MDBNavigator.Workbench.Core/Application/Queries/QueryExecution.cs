@@ -5,6 +5,7 @@ using MDBNavigator.Workbench.Application.Queries.RunQuery;
 using Microsoft.Extensions.Logging;
 using System.Data.Common;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace MDBNavigator.Workbench.Application.Queries
 {
@@ -33,7 +34,16 @@ namespace MDBNavigator.Workbench.Application.Queries
         // stoppingToken: the application is shutting down. cancellation: the user's Cancel, or a disconnect.
         public async Task RunAsync(RunQueryCommand command, CancellationTokenSource cancellation, CancellationToken stoppingToken)
         {
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, cancellation.Token);
+            // The run's own limits (MaxRunSeconds, MaxRowsPerRun) stop it through this token, like a Cancel, so the
+            // database stops the statement at once. The outcome tells them apart from the user's Cancel.
+            using var runLimit = new CancellationTokenSource();
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, cancellation.Token, runLimit.Token);
+            if (_options.MaxRunSeconds > 0)
+            {
+                runLimit.CancelAfter(TimeSpan.FromSeconds(_options.MaxRunSeconds));
+            }
+
+            var rowLimitReached = false;
             var stopwatch = Stopwatch.StartNew();
             var stats = new QueryStreamStats();
             var status = CommandExecutionStatus.Completed;
@@ -52,11 +62,20 @@ namespace MDBNavigator.Workbench.Application.Queries
                     _options.BatchSize,
                     commandTimeoutSeconds: _options.CommandTimeoutSeconds,
                     maxRowsPerResultSet: _options.MaxRowsPerResultSet > 0 ? _options.MaxRowsPerResultSet : null,
+                    maxRowBytes: _options.MaxRowBytes > 0 ? _options.MaxRowBytes : null,
                     stats: stats,
                     ct: linkedCts.Token);
 
                 await foreach (var item in stream)
                 {
+                    // Once a limit has stopped the run, nothing more goes to the browser. The stream then ends with an
+                    // exception at its next read or statement (PostgresQueryRunner). Never break out of the loop
+                    // instead: that would dispose the reader, which reads every remaining row first.
+                    if (runLimit.IsCancellationRequested)
+                    {
+                        continue;
+                    }
+
                     switch (item)
                     {
                         case StatementStarted started:
@@ -71,14 +90,32 @@ namespace MDBNavigator.Workbench.Application.Queries
                             break;
                         case QueryBatch batch:
                             await _notifier.SendBatchCommandResult(ToDto(command, batch), command.SessionId);
+                            // More than the limit, not the limit itself: one result of exactly MaxRowsPerResultSet rows
+                            // is complete. The batch that crosses it has been sent.
+                            if (_options.MaxRowsPerRun > 0 && stats.RowCount > _options.MaxRowsPerRun)
+                            {
+                                rowLimitReached = true;
+                                runLimit.Cancel();
+                            }
                             break;
                     }
                 }
             }
             catch (Exception) when (linkedCts.IsCancellationRequested)
             {
-                // Npgsql may surface a cancelled command as OperationCanceledException or PostgresException (57014).
-                status = CommandExecutionStatus.Cancelled;
+                if (runLimit.IsCancellationRequested && !cancellation.IsCancellationRequested && !stoppingToken.IsCancellationRequested)
+                {
+                    // One of this server's limits, not the user: a failure with the reason, shown in the Error tab.
+                    status = CommandExecutionStatus.Failed;
+                    error = AtStatement(rowLimitReached ? RowLimitMessage() : TimeLimitMessage(), current);
+                    _logger.LogInformation("Query execution {ExecutionId} stopped at the run's {Limit} limit",
+                        command.ExecutionId, rowLimitReached ? "row" : "time");
+                }
+                else
+                {
+                    // Npgsql may surface a cancelled command as OperationCanceledException or PostgresException (57014).
+                    status = CommandExecutionStatus.Cancelled;
+                }
             }
             catch (Exception ex) when (ex is DbException or NotConnectedException or ConnectionNotAllowedException)
             {
@@ -133,6 +170,14 @@ namespace MDBNavigator.Workbench.Application.Queries
             Truncated = batch.Truncated,
             SkippingRest = batch.SkippingRest
         };
+
+        private string TimeLimitMessage() =>
+            string.Create(CultureInfo.InvariantCulture,
+                $"Stopped after {_options.MaxRunSeconds} seconds, this server's time limit for one run.");
+
+        private string RowLimitMessage() =>
+            string.Create(CultureInfo.InvariantCulture,
+                $"Stopped after more than {_options.MaxRowsPerRun:N0} rows in total, this server's row limit for one run; the rest of the script was not run.");
 
         // A script's error says which statement failed; a single statement needs no such hint.
         private static string AtStatement(string error, StatementStarted? statement) =>

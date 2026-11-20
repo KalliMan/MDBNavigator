@@ -1,0 +1,65 @@
+# The public demo: docker-compose.yml with these changes on top.
+#   docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build
+# Strangers run SQL here, so only the sample database can be reached, only as the read-only demo_reader, and every
+# run is limited. What each part does and why: docs/security.md, "Public demo".
+# Not here yet: HTTPS (roadmap 0.5c) and the guests' way in (0.5b).
+
+# Rotated logs, so a busy demo can't fill the disk: 5 files of 10 MB per container.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  app:
+    environment:
+      # Only the bundled database.
+      ConnectionGuard__Mode: AllowList
+      ConnectionGuard__Allow__0: sample-db
+      # Limits per run (README, "Configuration"). demo_reader's statement_timeout (30 s) stops a long statement with
+      # PostgreSQL's clear message; a guest can SET it to 0, and then MaxRunSeconds stops the run. CommandTimeoutSeconds
+      # stays off: it would race the statement_timeout and report only "Exception while reading from stream".
+      QueryExecution__MaxRunSeconds: "60"
+      QueryExecution__MaxRowsPerResultSet: "50000"
+      QueryExecution__MaxRowsPerRun: "50000"
+      QueryExecution__MaxRowBytes: "1048576"
+      QueryExecution__MaxConcurrentQueries: "4"
+      RateLimiting__MaxRunningQueriesPerUser: "1"
+      RateLimiting__QueriesPerMinute: "20"
+      ConnectionCache__SlidingExpirationMinutes: "60"
+    networks:
+      - default
+      - sample-db-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging: *logging
+
+  sample-db:
+    # tini as PID 1, for the settings guard that runs beside PostgreSQL.
+    init: true
+    entrypoint: ["/usr/local/share/mdbnavigator/demo-entrypoint.sh"]
+    command:
+      - postgres
+      # Who may log in: demo_reader from the app's network, nobody else over the network.
+      - -c
+      - hba_file=/usr/local/share/mdbnavigator/demo-pg_hba.conf
+      # Disk for sorts and hashes, per session. Only the superuser can change it.
+      - -c
+      - temp_file_limit=1GB
+    # Only on the internal network: no way out to the internet, and only the app can reach it.
+    networks:
+      - sample-db-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    logging: *logging
+
+networks:
+  sample-db-net:
+    internal: true

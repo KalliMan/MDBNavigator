@@ -81,6 +81,7 @@ Then `BatchCommandResult` messages, zero or more per statement:
 ```
 
 - `fields` is present only on the first batch of a result set.
+- A batch has up to `BatchSize` rows, fewer when its values add up to about 1 MB, so a result with wide rows comes in smaller messages.
 - Every result set that returns columns ends with exactly one batch where `isLastBatch` is `true`. That batch can have no rows, which is how an empty result still delivers its columns. A result set can be a single batch that is both first and last.
 - `resultSetIndex` is the statement's `statementIndex`. Statements that return no columns (`INSERT`, `UPDATE`, DDL) send no batches, so indexes can skip numbers.
 - `truncated` and `skippingRest` are set only on a result set's last batch. `truncated`: the result has more rows than `MaxRowsPerResultSet` and stops here. `skippingRest`: the server is still reading the statement's remaining rows and throwing them away, so the next statement starts when that is done (see [how a script runs](#how-a-script-runs)).
@@ -105,6 +106,8 @@ Then `BatchCommandResult` messages, zero or more per statement:
 
 The server side is `JsonCellValue.cs` and the client type is `CellValue` in `mdb-navigator-ui/src/models/databaseCommand/result/cellValue.ts`. Change them together.
 
+**Cut values:** with `MaxRowBytes` set, a value that would take its row past that many bytes arrives as a string: text and JSON as their first 1,000 characters followed by `… [cut: 196 KB in total]`, anything else as `[too large to show: 98 KB]`. Values of 1 KB or less are never cut. The size is the value's size as the database sent it. This is `CutCellText.cs`.
+
 **4. Receive exactly one `CommandFinished` message**, which always comes after the run's last batch:
 
 ```json
@@ -118,7 +121,7 @@ The server side is `JsonCellValue.cs` and the client type is `CellValue` in `mdb
 | `recordsAffected` | Rows changed by `INSERT`/`UPDATE`/`DELETE`, summed over the script's statements. `-1` when no statement reported a count. |
 | `elapsedMs` | Time from when a worker started the run. Time spent waiting in the queue is not included. |
 | `truncated` | `true` when at least one result set stopped at `MaxRowsPerResultSet`. |
-| `error` | Message for `Failed` runs, including the server's detail and hint. For a script with several statements it starts with the failing one: `Statement 2 of 5 (line 14): ...`. Batches sent before the error stay valid. |
+| `error` | Message for `Failed` runs, including the server's detail and hint. For a script with several statements it starts with the failing one: `Statement 2 of 5 (line 14): ...`. Batches sent before the error stay valid. A run stopped by one of the server's run limits is also `Failed`, with the reason: `Stopped after 60 seconds, this server's time limit for one run.` or `Stopped after more than 50,000 rows in total, this server's row limit for one run; the rest of the script was not run.` |
 
 **Cancelling:** `POST /api/databaseCommand/cancel/{executionId}`. The outcome arrives as the run's `CommandFinished` with status `Cancelled`. Disconnecting a connection cancels all of its runs. Starting a run with an `executionId` that is already running cancels the earlier one.
 
@@ -132,6 +135,7 @@ The server splits the script into statements at its semicolons and runs them one
 - **Each statement commits on its own.** To make several statements all-or-nothing, put them between `BEGIN` and `COMMIT`; a long data script is also much faster that way. A transaction still open when the script ends is rolled back, because the connection is closed.
 - **The first failing statement stops the script.** Earlier statements keep their results and, outside a transaction, their changes.
 - **The row limit counts per result set.** A statement that only reads (`SELECT`, `TABLE`, `VALUES`, `WITH` or `SHOW`, without `INSERT`, `UPDATE`, `DELETE` or `MERGE` in it) and runs outside a transaction is cancelled at the limit, which is immediate. Any other statement is read to its end with the remaining rows thrown away, because cancelling it would undo its changes or abort the open transaction. For a very large result that takes a while; the run can be cancelled as usual.
+- **Run limits**, off unless set: `MaxRunSeconds` stops a run that takes longer, and `MaxRowsPerRun` stops it once more than that many rows have been streamed (the batch that crosses the limit is still sent). Both stop the statement in the database at once, like Cancel, and end the run as `Failed` with the reason. A run that is stopped (by a limit or by Cancel) between two statements doesn't start the next one.
 - A `SELECT` that calls a function which changes data, and returns more rows than the limit, is cancelled like any other `SELECT`, and the function's changes are undone. Run it between `BEGIN` and `COMMIT` to have it read to the end.
 
 The splitter and these rules are `PostgresScriptSplitter` and `PostgresStatementRules` in the PostgreSQL provider, with unit tests.

@@ -149,8 +149,17 @@ Connect to the bundled PostgreSQL:
 - **Your own databases** on this machine are at the host `host.docker.internal`.
 - **Settings:** copy `.env.example` to `.env` to change the admin's email and password, the port, or to set a key so saved connections can remember passwords.
 - **Starting over:** `docker compose down -v` removes the app's data and the sample database; the next `up` creates both again.
+- **Read-only user:** `demo_reader` (password `demo-reader`, or `MDBNAV_DEMO_READER_PASSWORD` in `.env`) may only read the sample data, as guests of the public demo do. It is created with the sample database, so an existing setup gets it after `docker compose down -v`.
 
 This setup is for one machine: the port is open to `localhost` only, there is no HTTPS, and the password has a default. Before opening it to anyone else, set your own password in `.env` and put a reverse proxy with TLS in front (see `ReverseProxy:TrustedNetworks`).
+
+### Public demo setup
+
+```sh
+docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build
+```
+
+The same two services, locked down for strangers: connections only to the sample database as `demo_reader`, which only the app may use, run limits, the database on an internal network, container and log limits. What it does and why: [public demo](docs/security.md#public-demo). HTTPS and the guests' way in follow with roadmap steps 0.5b and 0.5c.
 
 ## Configuration
 
@@ -162,6 +171,9 @@ Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be ove
 | `QueryExecution:CommandTimeoutSeconds` | `0` | Database command timeout, per statement. `0` means no timeout; long queries are stopped with the cancel endpoint. |
 | `QueryExecution:MaxConcurrentQueries` | `8` | Background workers running streamed queries in parallel. Further runs wait in a queue. |
 | `QueryExecution:MaxRowsPerResultSet` | `100000` | Rows streamed per result set. A longer result stops there and is marked `truncated`; the rest of the script still runs. `0` means unlimited. See [how a script runs](docs/api.md#how-a-script-runs). |
+| `QueryExecution:MaxRunSeconds` | `0` | Longest a run may take; a longer run stops with an error. Unlike `CommandTimeoutSeconds`, SQL can't switch it off. `0` means no limit. |
+| `QueryExecution:MaxRowsPerRun` | `0` | Rows streamed per run, over all its result sets. A run that goes past it stops with an error, and the rest of the script is not run. `0` means unlimited. |
+| `QueryExecution:MaxRowBytes` | `0` | Bytes of values read per row. A value that would take a row past it is cut: text and JSON keep their first 1,000 characters, anything else shows only its size. Values of 1 KB or less are never cut. `0` means unlimited. See [how a script runs](docs/api.md#how-a-script-runs). |
 | `ConnectionCache:SlidingExpirationMinutes` | `480` | A connection's settings are dropped after this long without use, and the user has to reconnect. |
 | `Auth:Mode` | `Accounts` | `Accounts`: sign-in required. `None`: no sign-in; only requests from the local machine are served, and saved connections belong to one local user. Connections saved in one mode don't show up in the other. |
 | `Auth:SignUp` | `Open` | `Closed`: nobody can create an account; the first admin comes from `Auth:Admin`. |
@@ -190,6 +202,7 @@ The server opens database connections for its users, so an instance with open si
 - **Sign-in** with accounts; each user's connections and results are separate ([design](docs/specs/authentication.md)).
 - **Connection guardrails:** with open sign-up, the server's own network (localhost, private ranges, cloud metadata) can't be reached.
 - **Rate limits** on connecting and running queries, per user, and an optional CAPTCHA on sign-up and after repeated failed connects.
+- **Run limits** for public instances: time and rows per run, and a size limit per row, so one query can't hold a worker or fill the server's memory. The [public demo setup](docs/security.md#public-demo) uses them with a read-only database user.
 - **Passwords** of saved connections are remembered only when a key is configured, encrypted with AES-GCM and never sent back to the browser.
 - **Security headers,** including a Content Security Policy.
 

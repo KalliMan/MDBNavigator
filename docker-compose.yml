@@ -32,6 +32,8 @@ services:
       POSTGRES_USER: sample
       POSTGRES_PASSWORD: sample
       POSTGRES_DB: pagila
+      # The read-only user demo_reader, created with the sample data (docker/sample-db/95-demo-reader.sh).
+      DEMO_READER_PASSWORD: ${MDBNAV_DEMO_READER_PASSWORD:-demo-reader}
     volumes:
       - sample-db-data:/var/lib/postgresql/data
     healthcheck:

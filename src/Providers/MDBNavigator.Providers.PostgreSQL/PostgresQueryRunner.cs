@@ -1,12 +1,21 @@
 using MDBNavigator.Providers.Abstractions;
 using MDBNavigator.Providers.Abstractions.Queries;
 using Npgsql;
+using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace MDBNavigator.Providers.PostgreSQL
 {
     internal sealed class PostgresQueryRunner : IQueryRunner
     {
+        // Values of this size or less are always read whole: numbers, dates, booleans, short text. Only big values are
+        // cut, so a number column never shows a note instead of a number.
+        private const int SmallValueBytes = 1024;
+
+        // A batch is sent when it has batchSize rows or its values reach this many bytes, so wide rows don't pile up
+        // hundreds of megabytes in one message.
+        private const int BatchTargetBytes = 1024 * 1024;
+
         private readonly NpgsqlConnection _connection;
 
         public PostgresQueryRunner(NpgsqlConnection connection)
@@ -29,6 +38,7 @@ namespace MDBNavigator.Providers.PostgreSQL
             int batchSize,
             int? commandTimeoutSeconds = null,
             int? maxRowsPerResultSet = null,
+            int? maxRowBytes = null,
             QueryStreamStats? stats = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
@@ -38,6 +48,11 @@ namespace MDBNavigator.Providers.PostgreSQL
 
             for (var index = 0; index < statements.Count; index++)
             {
+                // A run stopped between two statements (Cancel, or one of the run's limits) doesn't start the next one.
+                // Checked only here, where no reader is open: throwing in the middle of a result would make disposing
+                // the reader read all of its remaining rows first.
+                ct.ThrowIfCancellationRequested();
+
                 var statement = statements[index];
                 yield return new StatementStarted { StatementIndex = index, StatementCount = statements.Count, Line = statement.Line };
 
@@ -48,7 +63,9 @@ namespace MDBNavigator.Providers.PostgreSQL
                 {
                     batch.Timeout = commandTimeoutSeconds.Value;
                 }
-                await using var reader = await batch.ExecuteReaderAsync(ct);
+                // SequentialAccess: values come off the network one by one instead of the whole row first, so a value
+                // that is cut is never held in memory (Npgsql skips its bytes).
+                await using var reader = await batch.ExecuteReaderAsync(CommandBehavior.SequentialAccess, ct);
 
                 var cancelled = false;
                 if (reader.FieldCount > 0)
@@ -62,6 +79,7 @@ namespace MDBNavigator.Providers.PostgreSQL
                         .ToArray();
 
                     var batchRows = new List<object?[]>(batchSize);
+                    long batchBytes = 0;
                     var batchIndex = 0;
                     var isFirstBatch = true;
                     long resultRows = 0;
@@ -69,10 +87,9 @@ namespace MDBNavigator.Providers.PostgreSQL
 
                     while (await reader.ReadAsync(ct))
                     {
-                        var row = new object?[reader.FieldCount];
-                        for (int i = 0; i < reader.FieldCount; i++)
-                            row[i] = reader.IsDBNull(i) ? null : JsonCellValue.From(reader.GetValue(i));
+                        var (row, rowBytes) = await ReadRowAsync(reader, columns, maxRowBytes, ct);
                         batchRows.Add(row);
+                        batchBytes += rowBytes;
                         resultRows++;
                         if (stats != null) stats.RowCount++;
 
@@ -84,7 +101,7 @@ namespace MDBNavigator.Providers.PostgreSQL
                             break;
                         }
 
-                        if (batchRows.Count == batchSize)
+                        if (batchRows.Count == batchSize || batchBytes >= BatchTargetBytes)
                         {
                             yield return new QueryBatch
                             {
@@ -98,6 +115,7 @@ namespace MDBNavigator.Providers.PostgreSQL
                             isFirstBatch = false;
                             batchIndex++;
                             batchRows.Clear();
+                            batchBytes = 0;
                         }
                     }
 
@@ -145,6 +163,73 @@ namespace MDBNavigator.Providers.PostgreSQL
 
                 inTransaction = PostgresStatementRules.InTransactionAfter(statement, inTransaction);
             }
+        }
+
+        // One row's values, in column order (SequentialAccess allows no going back), as JSON cell values, and the
+        // bytes read, for the batch's size. Async reads only: in SequentialAccess a synchronous read of a big value
+        // would block a thread on the network.
+        private static async Task<(object?[] Row, long Bytes)> ReadRowAsync(
+            NpgsqlDataReader reader, ColumnInfo[] columns, int? maxRowBytes, CancellationToken ct)
+        {
+            var row = new object?[columns.Length];
+            long rowBytes = 0;
+            for (var i = 0; i < columns.Length; i++)
+            {
+                if (await reader.IsDBNullAsync(i, ct))
+                {
+                    continue;
+                }
+
+                // The value's size as PostgreSQL sent it, for every type. IsDBNullAsync has read it already.
+                var size = reader.GetBytes(i, 0, null, 0, 0);
+                if (maxRowBytes.HasValue && size > SmallValueBytes && rowBytes + size > maxRowBytes.Value)
+                {
+                    var cut = await CutValueAsync(reader, i, columns[i].Category, size, ct);
+                    row[i] = cut;
+                    rowBytes += cut.Length;
+                    continue;
+                }
+
+                row[i] = JsonCellValue.From(await reader.GetFieldValueAsync<object>(i, ct));
+                rowBytes += size;
+            }
+
+            return (row, rowBytes);
+        }
+
+        // Text and JSON keep their beginning, so the user still sees what the value is; anything else gets only its size.
+        private static async Task<string> CutValueAsync(
+            NpgsqlDataReader reader, int ordinal, DbTypeCategory category, long size, CancellationToken ct)
+        {
+            string? preview = null;
+            if (category is DbTypeCategory.Text or DbTypeCategory.Json)
+            {
+                try
+                {
+                    using var text = await reader.GetTextReaderAsync(ordinal, ct);
+                    var buffer = new char[CutCellText.PreviewChars];
+                    var read = 0;
+                    int count;
+                    while (read < buffer.Length && (count = await text.ReadAsync(buffer.AsMemory(read), ct)) > 0)
+                    {
+                        read += count;
+                    }
+
+                    // Half of a surrogate pair at the end is not a character.
+                    if (read > 0 && char.IsHighSurrogate(buffer[read - 1]))
+                    {
+                        read--;
+                    }
+
+                    preview = new string(buffer, 0, read);
+                }
+                catch (InvalidCastException)
+                {
+                    // A text type Npgsql can't read as a stream (from an extension): the size alone.
+                }
+            }
+
+            return CutCellText.For(preview, size);
         }
 
         // json and jsonb arrive as strings, so the .NET type alone would call them Text.

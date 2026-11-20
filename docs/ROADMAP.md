@@ -10,7 +10,7 @@ Streamed query execution over SignalR (batches, cancellation, row limit, paralle
 
 ## Phase 0: Foundation
 
-Needed before anything goes public. Each sub-phase is one reviewable step. Order of what is left: 0.7 (modular structure), 0.4 (Docker), 0.5 (live demo), then the rest of 0.3c.
+Needed before anything goes public. Each sub-phase is one reviewable step. Order of what is left: 0.5 (live demo), then the rest of 0.3.
 
 ### 0.1 Authentication, part 1
 
@@ -84,9 +84,9 @@ Rules: inside a module, Infrastructure → Core → Contracts → SharedKernel. 
 
 | Step | Contents | Size |
 |---|---|---|
-| **0.5a** Demo mode | Connections locked to the bundled sample database, through a read-only role with a statement timeout and a connection limit. The database is reset regularly. A guest can switch the role's timeout off (`SET statement_timeout = 0`), so the app's own `QueryExecution:CommandTimeoutSeconds` is set too, and the containers get memory and CPU limits. | M |
-| **0.5b** Getting in | Decide how visitors get in without a sign-up wall, for example a guest option. | S–M |
-| **0.5c** Hosting | Deploy and keep it running. | M |
+| **0.5a** Demo database and limits | `compose.demo.yaml`: connections only to the bundled sample database, as a read-only role (`demo_reader`) that only the app's network may use; every other login is refused. The role's settings are put back when a guest changes them, its statements are logged, and the database has no way out to the internet. New run limits for every instance, off by default: time per run, rows per run, and bytes per row (larger values are cut). Container memory, CPU and log limits. No reset is needed: guests can't write. Plan: [plans/0.5a-demo-database-limits.md](plans/0.5a-demo-database-limits.md). | M |
+| **0.5b** Invite links and guests | Sign-up stays closed. An invite link with a secret code (changeable) opens a short form: name, email and the demo terms. A sign-in link by email starts a 10-minute guest session; then the guest is signed out and the account deleted. Returning visitors sign in by email, up to 3 sessions a day. Guests get no account page. Violations (permission errors, refused connections, limit hits) are counted: about 20 end the session and block the address and the email for 24 hours. The owner gets an email for every new visitor and every block. The visitor list is kept for 90 days after the last visit. | M–L |
+| **0.5c** Hosting | Deploy and keep it running: a small VPS, Caddy for HTTPS, DNS at Cloudflare (`mdbnavigator.com`), the mail records for sending through Brevo, security updates. | M |
 
 ### 0.6 Cleanups
 

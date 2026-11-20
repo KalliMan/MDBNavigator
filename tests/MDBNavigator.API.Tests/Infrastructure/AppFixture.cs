@@ -14,7 +14,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
 
     // One PostgreSQL container and one app for every test; the tests share them through the "API" collection.
     // Tests that depend on state use a fresh account (NewUserAsync), so they don't need to run in any order.
-    public sealed class AppFixture : IAsyncLifetime
+    public class AppFixture : IAsyncLifetime
     {
         public const string Database = "postgres";
         public const string PgUser = "postgres";
@@ -36,6 +36,18 @@ namespace MDBNavigator.API.Tests.Infrastructure
             .WithDatabase(Database)
             .Build();
 
+        private readonly IReadOnlyDictionary<string, string>? _settings;
+
+        public AppFixture() : this(null)
+        {
+        }
+
+        // For a fixture whose app runs with other settings (LimitsAppFixture).
+        protected AppFixture(IReadOnlyDictionary<string, string>? settings)
+        {
+            _settings = settings;
+        }
+
         public ApiFactory Factory { get; private set; } = null!;
         public string PgHost { get; private set; } = "";
         public int PgPort { get; private set; }
@@ -52,7 +64,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
                 throw new InvalidOperationException($"The sample schema failed (exit code {schema.ExitCode}): {schema.Stderr}");
             }
 
-            Factory = new ApiFactory();
+            Factory = new ApiFactory(_settings);
             // Starts the app: Program.cs runs to the end, including the app database's migrations and the admin seed.
             _ = Factory.Server;
 

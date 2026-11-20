@@ -7,6 +7,7 @@ How MDBNavigator protects an instance that strangers can use: which databases th
 - [Security headers](#security-headers)
 - [Connection credentials](#connection-credentials)
 - [Remembered passwords](#remembered-passwords)
+- [Public demo](#public-demo)
 
 ## Connection guardrails
 
@@ -85,3 +86,40 @@ Off unless `SavedConnections:PasswordKey` is set. Then the connect dialog offers
 Generate a key with `openssl rand -base64 32` (PowerShell: `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`) and set it with `dotnet user-secrets set SavedConnections:PasswordKey <key> --project src/MDBNavigator.API`, or as the environment variable `SavedConnections__PasswordKey`.
 
 On an instance with open sign-up, setting the key means the server holds strangers' database passwords. Leave it unset there unless that is intended.
+
+## Public demo
+
+`compose.demo.yaml` turns the Compose setup into an instance strangers may use: they run any SQL they like, but only against the bundled sample database, and only to read (`docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build`). Guests letting themselves in and HTTPS follow with roadmap steps 0.5b and 0.5c.
+
+Why not let guests use their own databases instead: the server would then connect anywhere for anyone, and could be used to guess passwords on, or probe, other people's servers, from the demo's address.
+
+**The database**
+
+- Guests connect as `demo_reader`, which may read Pagila and `demo.measurements` and nothing else: no writing, no creating (Pagila's dump gives everyone `CREATE` on `public`; that is taken back), no temporary tables, no large objects, no other database.
+- `rewards_report()` runs as its owner, the superuser, so guests can't call it. Nor `pg_cancel_backend` and `pg_terminate_backend`: guests share one role and could end each other's queries.
+- Only `demo_reader`, only to `pagila` and only from the app's network may log in (`docker/sample-db/demo/pg_hba.conf`). The superuser is refused over the network even with its password. No password is checked for `demo_reader` there: any PostgreSQL role can change its own password, and a guest who did would lock everyone else out.
+- Any role can also change its own default settings (`ALTER ROLE ... SET`, inside `BEGIN READ WRITE`). A guard in the database container puts `demo_reader`'s back every 10 seconds and logs a warning when they had been changed: `default_transaction_read_only = on`, `statement_timeout = 30s`, `idle_in_transaction_session_timeout = 60s` and `log_statement = all`.
+- Every statement `demo_reader` runs is logged (`docker compose logs sample-db`), to look back at what someone tried.
+- `temp_file_limit = 1GB` caps the disk one session's sorts and hashes may use; guests can't change it.
+- The database is on an internal Docker network: only the app reaches it, and it has no way out to the internet.
+- There is nothing to reset: guests can't change anything.
+
+**The app**
+
+| Setting | Demo | Default |
+|---|---|---|
+| `ConnectionGuard:Mode`, `Allow` | `AllowList`, `sample-db` | from `Auth` |
+| `QueryExecution:MaxRunSeconds` | 60 | 0 |
+| `QueryExecution:MaxRowsPerResultSet` | 50,000 | 100,000 |
+| `QueryExecution:MaxRowsPerRun` | 50,000 | 0 |
+| `QueryExecution:MaxRowBytes` | 1 MB | 0 |
+| `QueryExecution:MaxConcurrentQueries` | 4 | 8 |
+| `RateLimiting:MaxRunningQueriesPerUser` | 1 | 3 |
+| `RateLimiting:QueriesPerMinute` | 20 | 60 |
+| `ConnectionCache:SlidingExpirationMinutes` | 60 | 480 |
+
+A long statement is stopped by `demo_reader`'s `statement_timeout` (30 s), with PostgreSQL's own message. A guest can `SET statement_timeout = 0`. That lasts one run (each run opens its own connection, and Npgsql resets the session when the connection goes back to its pool), and within that run `MaxRunSeconds` stops it. `QueryExecution:CommandTimeoutSeconds` stays off: it would race the `statement_timeout`, and when it wins the guest sees only "Exception while reading from stream".
+
+**The containers:** the app may use 512 MB and one CPU, the database 1 GB and one CPU. Logs are rotated at five files of 10 MB per container.
+
+**What remains possible:** `SET work_mem` to a large value lets one query use a lot of memory; the container limit caps it, and at worst PostgreSQL restarts. Guests see each other's query text in `pg_stat_activity`. Both are accepted for public sample data.
