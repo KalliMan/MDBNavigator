@@ -17,6 +17,169 @@ namespace MDBNavigator.Accounts.Persistence.Migrations.Sqlite
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
+            modelBuilder.Entity("MDBNavigator.Accounts.Demo.DemoGuestSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("EndsAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ends_at_utc");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("VisitorId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("visitor_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_demo_guest_sessions");
+
+                    b.HasIndex("EndsAtUtc")
+                        .HasDatabaseName("ix_demo_guest_sessions_ends_at_utc");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_demo_guest_sessions_user_id");
+
+                    b.HasIndex("VisitorId", "StartedAtUtc")
+                        .HasDatabaseName("ix_demo_guest_sessions_visitor_id_started_at_utc");
+
+                    b.ToTable("demo_guest_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("MDBNavigator.Accounts.Demo.DemoSignInLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("email");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("normalized_email");
+
+                    b.Property<string>("TermsVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("terms_version");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTime?>("UsedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("used_at_utc");
+
+                    b.HasKey("Id")
+                        .HasName("pk_demo_sign_in_links");
+
+                    b.HasIndex("CreatedAtUtc")
+                        .HasDatabaseName("ix_demo_sign_in_links_created_at_utc");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_demo_sign_in_links_token_hash");
+
+                    b.HasIndex("NormalizedEmail", "CreatedAtUtc")
+                        .HasDatabaseName("ix_demo_sign_in_links_normalized_email_created_at_utc");
+
+                    b.ToTable("demo_sign_in_links", (string)null);
+                });
+
+            modelBuilder.Entity("MDBNavigator.Accounts.Demo.DemoVisitor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("email");
+
+                    b.Property<DateTime>("LastVisitAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_visit_at_utc");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("normalized_email");
+
+                    b.Property<DateTime>("TermsAcceptedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("terms_accepted_at_utc");
+
+                    b.Property<string>("TermsVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("terms_version");
+
+                    b.Property<int>("VisitCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("visit_count");
+
+                    b.HasKey("Id")
+                        .HasName("pk_demo_visitors");
+
+                    b.HasIndex("LastVisitAtUtc")
+                        .HasDatabaseName("ix_demo_visitors_last_visit_at_utc");
+
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique()
+                        .HasDatabaseName("ix_demo_visitors_normalized_email");
+
+                    b.ToTable("demo_visitors", (string)null);
+                });
+
             modelBuilder.Entity("MDBNavigator.Accounts.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -279,6 +442,16 @@ namespace MDBNavigator.Accounts.Persistence.Migrations.Sqlite
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("MDBNavigator.Accounts.Demo.DemoGuestSession", b =>
+                {
+                    b.HasOne("MDBNavigator.Accounts.Demo.DemoVisitor", null)
+                        .WithMany()
+                        .HasForeignKey("VisitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_demo_guest_sessions_demo_visitors_visitor_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

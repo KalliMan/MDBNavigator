@@ -10,7 +10,18 @@ The HTTP endpoints, the error format, and the contract for streamed query result
 
 All endpoints are under `/api`. With `Auth:Mode = Accounts` they require sign-in (the `mdbnav_session` cookie from `POST /api/auth/login?useCookies=true`); a request without it gets `401`. Every request must also carry an `id` header with the client's tab id. The UI generates one per browser tab and keeps it in `sessionStorage`. Connections, running queries and SignalR messages are scoped to the session `{userId}:{tabId}`, so a tab id alone never reaches another user's data. A request without exactly one `id` header gets `400`. [`MDBNavigator.API.http`](../src/MDBNavigator.API/MDBNavigator.API.http) has sample requests.
 
-Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode, sign-up, providers, email, CAPTCHA provider and Turnstile site key), `register`, `login`, `logout`, `me`, `external/{provider}`, the signed-in user's own `account` (password, linked providers, deletion), plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](specs/authentication.md).
+Sign-in endpoints (`/api/auth`): `settings` (anonymous: mode, sign-up, providers, email, CAPTCHA provider and Turnstile site key, and `demo`: `{ contactEmail, sessionMinutes, connectionName }` or `null`), `register`, `login`, `logout`, `me`, `external/{provider}`, the signed-in user's own `account` (password, linked providers, deletion), plus Identity's `confirmEmail`, `resendConfirmationEmail`, `forgotPassword`, `resetPassword` and `manage/info`. See the [authentication spec](specs/authentication.md).
+
+For a demo guest, `me` also returns `guest: { name, endsAtUtc, secondsLeft }` (otherwise `null`; the guest's `email` is made up), `logout` ends the session for good and deletes the guest's account at once, and `account/*` and `manage/*` answer `403`.
+
+Demo endpoints (`/api/demo`, anonymous, only with `Demo:Enabled`; otherwise `404`). They don't need the `id` header:
+
+| Method and path | Purpose |
+|---|---|
+| `POST demo/join` | The invite form. Body: `{ inviteCode, name, email, termsVersion }`, plus a `Captcha-Token` header when a CAPTCHA is set. `204` once the link is on its way, and also when the address has had its hourly number of links (then nothing is sent). `403` for a wrong invite code; `400` with error codes `InvalidName`, `InvalidEmail`, `TermsNotAccepted` or `TermsChanged` (the UI showed an older text). Rate limited per IP address and hour. |
+| `POST demo/sign-in-link` | A returning visitor asks for a new link. Body: `{ email, termsVersion }`, plus `Captcha-Token`. Always `204` for a valid request: an address that has never used a link gets no email, and the answer doesn't say so. |
+| `POST demo/start` | Body: `{ token }` from the emailed link. Signs the browser in as a new guest (the session cookie, for `Demo:SessionMinutes`). `204`; `400` when the link is unknown, used or expired; `429` with a message when the visitor has used today's sessions, the demo is full, or too many sessions started from the address within the hour. A refused start doesn't use up the link. |
+| `POST demo/connect` | Guests only (`403` otherwise), with the `id` header. Opens the guest's connection to the demo database with the server's own settings and returns the same as `databaseConnection/connect`, with `connectionName` from `Demo:Connection:Name`. |
 
 Errors are returned as JSON:
 

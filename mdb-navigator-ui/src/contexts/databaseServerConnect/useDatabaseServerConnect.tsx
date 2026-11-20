@@ -47,6 +47,20 @@ export default function useDatabaseServerConnectContext() {
     return false;
   }
 
+  // A demo guest: the server opens its connection to the sample database. Resolves false on an error, which the
+  // connect dialog then shows.
+  async function connectDemo(name: string): Promise<boolean> {
+    context!.dispatch({ type: DatabaseServerConnectActionTypes.Connecting, payload: null });
+    try {
+      const result = await agent.demoApi.connect();
+      context!.dispatch({ type: DatabaseServerConnectActionTypes.Connected, payload: result, display: { name, color: null } });
+      return true;
+    } catch (error: unknown) {
+      context!.dispatch({ type: DatabaseServerConnectActionTypes.Error, payload: getErrorMessage(error) });
+      return false;
+    }
+  }
+
   // Only opens the reconnect dialog; the request happens in reconnect().
   function promptReconnectWithSettings(connectionId: string) {
     context!.dispatch({
@@ -124,6 +138,7 @@ export default function useDatabaseServerConnectContext() {
     reconnectDatabaseServer,
     reconnectDatabaseServerId,
     connect,
+    connectDemo,
     connectNewDatabase,
     cancelConnectDialog,
     disconnect,

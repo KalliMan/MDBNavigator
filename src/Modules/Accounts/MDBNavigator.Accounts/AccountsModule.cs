@@ -1,3 +1,4 @@
+using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
 using MDBNavigator.Accounts.Persistence;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace MDBNavigator.Accounts
@@ -26,11 +28,14 @@ namespace MDBNavigator.Accounts
         }
 
         // Identity with its API endpoints (mapped by the API under /api/auth), the session cookie, the external providers,
-        // and the Data Protection keys in the app database. Only for Auth:Mode = Accounts, after AddAppDatabase.
-        public static IServiceCollection AddAccounts(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        // the Data Protection keys in the app database, and the demo's guests. Only for Auth:Mode = Accounts, after
+        // AddAppDatabase.
+        public static IServiceCollection AddAccounts(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment,
+            DemoOptions demo)
         {
             var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
             ValidateEmailOptions(email, environment);
+            demo.Validate(email);
 
             services.AddIdentityApiEndpoints<ApplicationUser>(options =>
                 {
@@ -67,12 +72,33 @@ namespace MDBNavigator.Accounts
                         : CookieSecurePolicy.Always;
                     options.ExpireTimeSpan = TimeSpan.FromDays(14);
                     options.SlidingExpiration = true;
+
+                    // Identity's own check (the security stamp) first, then a demo guest's session (GuestSessionValidator).
+                    // Identity sets its handler when it adds the cookie, which runs before this.
+                    var identityCheck = options.Events.OnValidatePrincipal;
+                    options.Events.OnValidatePrincipal = async context =>
+                    {
+                        await identityCheck(context);
+                        await GuestSessionValidator.ValidateAsync(context);
+                    };
                 });
 
             // Google / Microsoft / GitHub, each only when configured.
             services.AddAuthentication().AddExternalProviders(configuration);
             services.AddScoped<ExternalLogins>();
             services.AddScoped<AccountManagement>();
+
+            // Demo guests: ending and cleaning up guests runs even with the demo off, so leftovers still go and visitors are
+            // still deleted on time. Letting new guests in needs the demo on.
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddScoped<GuestSessions>();
+            services.AddSingleton<DemoCleanup>();
+            services.AddHostedService<DemoCleanupService>();
+            if (demo.Enabled)
+            {
+                services.AddSingleton<GuestStartGate>();
+                services.AddScoped<DemoAccess>();
+            }
 
             // Without stored keys, every restart would sign everybody out.
             services.AddDataProtection()

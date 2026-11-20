@@ -155,9 +155,16 @@ const databaseCommandApi = {
     requests.get<string>(`/databaseCommand/insertTableScript/${id(connectionId)}`, { database, schema, table }),
 }
 
+// A demo guest's connection to the sample database: the server fills in the settings, so the password never reaches
+// the browser.
+const demoApi = {
+  connect: (): Promise<ConnectedResult> => requests.post<ConnectedResult>('/demo/connect', {}),
+};
+
 const agent = {
   databaseConnectionApi,
   savedConnectionsApi,
+  demoApi,
   databaseSchemaApi,
   databaseCommandApi
 };

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
 
 namespace MDBNavigator.API.Tests.Infrastructure
@@ -11,11 +13,14 @@ namespace MDBNavigator.API.Tests.Infrastructure
         public const string AdminPassword = "correct-horse-battery";
 
         private readonly IReadOnlyDictionary<string, string> _settings;
+        private readonly Action<IServiceCollection>? _configureServices;
 
         // settings: a fixture's own settings, applied after the defaults below so they win (LimitsAppFixture).
-        public ApiFactory(IReadOnlyDictionary<string, string>? settings = null)
+        // configureServices: replaces app services after the app registered its own (DemoAppFixture: email, clock).
+        public ApiFactory(IReadOnlyDictionary<string, string>? settings = null, Action<IServiceCollection>? configureServices = null)
         {
             _settings = settings ?? new Dictionary<string, string>();
+            _configureServices = configureServices;
         }
 
         public string AppDbPath { get; } = Path.Combine(Path.GetTempPath(), $"mdbnav-tests-{Guid.NewGuid():N}.db");
@@ -45,6 +50,11 @@ namespace MDBNavigator.API.Tests.Infrastructure
             foreach (var (key, value) in _settings)
             {
                 builder.UseSetting(key, value);
+            }
+
+            if (_configureServices is not null)
+            {
+                builder.ConfigureTestServices(_configureServices);
             }
         }
     }

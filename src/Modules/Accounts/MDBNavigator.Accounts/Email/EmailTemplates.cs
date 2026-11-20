@@ -21,6 +21,24 @@ namespace MDBNavigator.Accounts.Email
             link,
             outro: "If you didn't ask for this, you can ignore this email; your password stays the same.");
 
+        public static EmailMessage DemoLink(string to, string link, int linkValidMinutes, int sessionMinutes) => Build(
+            to,
+            subject: "Your MDBNavigator demo link",
+            intro: $"Here is your link to the MDBNavigator demo. It works once, within {linkValidMinutes} minutes. "
+                + $"Your {sessionMinutes}-minute session starts when you press Start on the page it opens.",
+            buttonText: "Open the demo",
+            link,
+            outro: "If you didn't ask for this, you can ignore this email.");
+
+        // To the demo's owner (Demo:OwnerEmail).
+        public static EmailMessage NewDemoVisitor(string to, string visitorName, string visitorEmail)
+        {
+            var text = $"{visitorName} ({visitorEmail}) confirmed their email and started a first demo session.";
+            return new EmailMessage(to, "New MDBNavigator demo visitor",
+                $"""<div style="font-family:sans-serif;max-width:480px;line-height:1.5"><p>{HtmlEncoder.Default.Encode(text)}</p></div>""",
+                text + "\n");
+        }
+
         private static EmailMessage Build(string to, string subject, string intro, string buttonText, string link, string outro)
         {
             var html = HtmlEncoder.Default;

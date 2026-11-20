@@ -5,6 +5,11 @@ import useAuth from "./contexts/auth/useAuth";
 import DatabaseContextProvider from "./contexts/DatabaseContextProvider";
 import AccountPage from "./features/account/AccountPage";
 import CheckInboxPage from "./features/auth/CheckInboxPage";
+import DemoCheckInboxPage from "./features/demo/DemoCheckInboxPage";
+import DemoEndedPage from "./features/demo/DemoEndedPage";
+import DemoJoinPage from "./features/demo/DemoJoinPage";
+import DemoSignInPage from "./features/demo/DemoSignInPage";
+import DemoStartPage from "./features/demo/DemoStartPage";
 import ConfirmEmailPage from "./features/auth/ConfirmEmailPage";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import LoginPage from "./features/auth/LoginPage";
@@ -19,7 +24,8 @@ import Loader from "./ui/loader/Loader";
 // So when the session ends (a 401), the same user can sign in again and find every tab, query and result as it was.
 // A different user, or Log out, reloads the page instead (see AuthContextProvider).
 export default function Root() {
-  const { status, reload } = useAuth();
+  const { status, settings, user, reload } = useAuth();
+  const isGuest = !!user?.guest;
   const location = useLocation();
   const workspaceAllowed = status === 'signedIn' || status === 'local';
 
@@ -62,7 +68,22 @@ export default function Root() {
             <Route path="/confirm-email" element={<ConfirmEmailPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/account" element={status === 'signedIn' ? <AccountPage /> : <Navigate to="/login?returnTo=%2Faccount" replace />} />
+            {/* A demo guest's account is thrown away at the end of the session: nothing to manage. */}
+            <Route path="/account" element={
+              status !== 'signedIn' ? <Navigate to="/login?returnTo=%2Faccount" replace />
+                : isGuest ? <Navigate to="/" replace />
+                : <AccountPage />
+            } />
+          </>
+        )}
+        {/* The public demo (Demo:Enabled). */}
+        {status !== 'local' && settings?.demo && (
+          <>
+            <Route path="/demo" element={<DemoJoinPage />} />
+            <Route path="/demo/sign-in" element={<DemoSignInPage />} />
+            <Route path="/demo/check-inbox" element={<DemoCheckInboxPage />} />
+            <Route path="/demo/start" element={<DemoStartPage />} />
+            <Route path="/demo/ended" element={<DemoEndedPage />} />
           </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />

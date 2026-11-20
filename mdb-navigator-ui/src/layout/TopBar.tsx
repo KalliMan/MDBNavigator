@@ -4,9 +4,12 @@ import { Link, useNavigate } from "react-router";
 import useOutsideClick from "../common/sharedHooks/useOutsideClick";
 import useAuth from "../contexts/auth/useAuth";
 import useTheme from "../contexts/theme/useTheme";
+import DemoCountdown from "../features/demo/DemoCountdown";
 
 export default function TopBar() {
-  const { status, user } = useAuth();
+  const { status, user, signOut } = useAuth();
+  // Time up: sign out like Log out, which ends the session on the server and leads to /demo/ended.
+  const endDemo = useCallback(() => void signOut(), [signOut]);
 
   // Above dialogs (ModalWindow is z-50): the connect dialog is mandatory while there is no connection, and
   // Log out must stay reachable.
@@ -23,10 +26,20 @@ export default function TopBar() {
           Local mode
         </span>
       )}
+      {user?.guest && <DemoCountdown secondsLeft={user.guest.secondsLeft} onEnd={endDemo} />}
       <ThemeToggle />
-      {user && <UserMenu email={user.email} signInMethod={user.signInMethod} />}
+      {user && (user.guest
+        ? <UserMenu label={user.guest.name} detail="Demo session" signOutText="End the demo" />
+        : <UserMenu label={user.email} detail={signInMethodText(user.signInMethod)} signOutText="Log out" showAccount />)}
     </header>
   );
+}
+
+function signInMethodText(signInMethod: string | null) {
+  if (!signInMethod) {
+    return null;
+  }
+  return signInMethod === 'Password' ? 'Signed in with a password' : `Signed in with ${signInMethod}`;
 }
 
 function ThemeToggle() {
@@ -46,7 +59,16 @@ function ThemeToggle() {
   );
 }
 
-function UserMenu({ email, signInMethod }: { email: string; signInMethod: string | null }) {
+interface UserMenuProps {
+  // The email, or a demo guest's name (a guest's email is made up).
+  label: string;
+  detail: string | null;
+  signOutText: string;
+  // A demo guest has no account page.
+  showAccount?: boolean;
+}
+
+function UserMenu({ label, detail, signOutText, showAccount = false }: UserMenuProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -63,37 +85,35 @@ function UserMenu({ email, signInMethod }: { email: string; signInMethod: string
         className="flex h-7 items-center gap-2 rounded-[3px] px-1.5 text-fg hover:bg-hover cursor-pointer"
       >
         <span className="flex size-5 items-center justify-center rounded-full bg-accent text-[11px] font-semibold uppercase text-on-accent" aria-hidden="true">
-          {email.charAt(0)}
+          {label.charAt(0)}
         </span>
-        <span className="max-w-56 truncate">{email}</span>
+        <span className="max-w-56 truncate">{label}</span>
         <LuChevronDown size={14} className="text-fg-muted" aria-hidden="true" />
       </button>
 
       {open && (
         <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-64 rounded border border-line bg-canvas py-1 shadow-lg">
           <div className="border-b border-line-subtle px-3 py-2">
-            <p className="truncate font-medium text-fg">{email}</p>
-            {signInMethod && (
-              <p className="text-xs text-fg-muted">
-                {signInMethod === 'Password' ? 'Signed in with a password' : `Signed in with ${signInMethod}`}
-              </p>
-            )}
+            <p className="truncate font-medium text-fg">{label}</p>
+            {detail && <p className="text-xs text-fg-muted">{detail}</p>}
           </div>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => { setOpen(false); void navigate('/account'); }}
-            className="h-8 w-full px-3 text-left text-fg hover:bg-hover cursor-pointer"
-          >
-            Account
-          </button>
+          {showAccount && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { setOpen(false); void navigate('/account'); }}
+              className="h-8 w-full px-3 text-left text-fg hover:bg-hover cursor-pointer"
+            >
+              Account
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
             onClick={() => void signOut()}
             className="h-8 w-full px-3 text-left text-fg hover:bg-hover cursor-pointer"
           >
-            Log out
+            {signOutText}
           </button>
         </div>
       )}

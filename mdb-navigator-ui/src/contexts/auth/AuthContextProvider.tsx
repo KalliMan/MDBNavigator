@@ -15,6 +15,11 @@ export default function AuthContextProvider({ children }: React.PropsWithChildre
   const [state, setState] = useState<AuthState>({ status: 'loading', settings: null, user: null, sessionExpired: false });
   // Whose workspace (tabs, connections, results) is open in this page. Another user must never see it.
   const workspaceOwner = useRef<string | null>(null);
+  // A demo guest's session doesn't come back: when it ends, the page goes to /demo/ended instead of the sign-in page.
+  const isGuest = useRef(false);
+  useEffect(() => {
+    isGuest.current = !!state.user?.guest;
+  }, [state.user]);
 
   const reload = useCallback(async () => {
     setState(s => ({ ...s, status: 'loading' }));
@@ -41,8 +46,14 @@ export default function AuthContextProvider({ children }: React.PropsWithChildre
   // An API call answered 401: the session ended. The workspace stays in memory (hidden) so the same user can
   // continue where they were after signing in again.
   useEffect(() => {
-    setUnauthorizedHandler(() =>
-      setState(s => s.status === 'signedIn' ? { ...s, status: 'signedOut', user: null, sessionExpired: true } : s));
+    setUnauthorizedHandler(() => {
+      if (isGuest.current) {
+        // The server ended it (time up). A full load clears the guest's workspace; the server already removed the cookie.
+        window.location.assign('/demo/ended');
+        return;
+      }
+      setState(s => s.status === 'signedIn' ? { ...s, status: 'signedOut', user: null, sessionExpired: true } : s);
+    });
     return () => setUnauthorizedHandler(null);
   }, []);
 
@@ -62,12 +73,14 @@ export default function AuthContextProvider({ children }: React.PropsWithChildre
     return true;
   }, []);
 
+  // For a demo guest also when the time is up: the server then ends the session for good and deletes the account.
   const signOut = useCallback(async () => {
+    const destination = isGuest.current ? '/demo/ended' : '/login';
     try {
       await authApi.logout();
     } finally {
       // A full reload clears every tab, result and connection from memory.
-      window.location.assign('/login');
+      window.location.assign(destination);
     }
   }, []);
 

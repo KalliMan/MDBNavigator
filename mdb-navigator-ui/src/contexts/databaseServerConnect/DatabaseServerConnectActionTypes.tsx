@@ -18,7 +18,8 @@ export type DatabaseConnectDialogCancelledAction = {
 
 export type DatabaseConnectingAction = {
   type: DatabaseServerConnectActionTypes.Connecting;
-  payload: ConnectionSettings;
+  // Null for a demo guest's connection, whose settings only the server knows.
+  payload: ConnectionSettings | null;
 };
 
 // Chosen in the connect dialog: the name shown for the connection (null: the server name) and its color

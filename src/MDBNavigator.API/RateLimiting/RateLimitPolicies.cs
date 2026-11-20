@@ -1,3 +1,4 @@
+using MDBNavigator.Accounts.Demo;
 using MDBNavigator.API.Core;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Globalization;
@@ -14,8 +15,9 @@ namespace MDBNavigator.API.RateLimiting
         public const string Connect = "connect";
         public const string Query = "query";
         public const string Captcha = "captcha";
+        public const string DemoLink = "demo-link";
 
-        public static IServiceCollection AddRateLimits(this IServiceCollection services, RateLimitingOptions options)
+        public static IServiceCollection AddRateLimits(this IServiceCollection services, RateLimitingOptions options, DemoOptions demo)
         {
             services.AddRateLimiter(limiter =>
             {
@@ -27,7 +29,11 @@ namespace MDBNavigator.API.RateLimiting
                     {
                         var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
                         context.HttpContext.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
-                        message = $"Too many requests. Please try again in {seconds} second{(seconds == 1 ? "" : "s")}.";
+                        // The demo's hourly limits can be most of an hour away.
+                        var minutes = (seconds + 59) / 60;
+                        message = seconds < 120
+                            ? $"Too many requests. Please try again in {seconds} second{(seconds == 1 ? "" : "s")}."
+                            : $"Too many requests. Please try again in {minutes} minutes.";
                     }
                     return new ValueTask(context.HttpContext.Response.WriteAsJsonAsync(
                         new ErrorResponse(StatusCodes.Status429TooManyRequests, message), ct));
@@ -38,6 +44,9 @@ namespace MDBNavigator.API.RateLimiting
                 // ALTCHA challenges: per IP address too (the sign-up page has no user yet), with a limit of its own, so
                 // a widget fetching a new challenge doesn't use up the sign-in attempts.
                 limiter.AddPolicy(Captcha, http => PerMinute(GetIpAddress(http), options.AuthRequestsPerMinute));
+                // Demo link requests send email: per IP address and hour, on top of the CAPTCHA and the limit per
+                // recipient (DemoAccess), so one address can't make the server mail many people.
+                limiter.AddPolicy(DemoLink, http => Fixed(GetIpAddress(http), demo.LinkRequestsPerIpPerHour, TimeSpan.FromHours(1)));
 
                 // Per user: each connect opens a connection to a host the user picks, and each query occupies a worker.
                 limiter.AddPolicy(Connect, http => PerMinute(GetUserOrIpAddress(http), options.ConnectsPerMinute));
@@ -47,11 +56,13 @@ namespace MDBNavigator.API.RateLimiting
             return services;
         }
 
-        private static RateLimitPartition<string> PerMinute(string key, int permitLimit) => permitLimit > 0
+        private static RateLimitPartition<string> PerMinute(string key, int permitLimit) => Fixed(key, permitLimit, TimeSpan.FromMinutes(1));
+
+        private static RateLimitPartition<string> Fixed(string key, int permitLimit, TimeSpan window) => permitLimit > 0
             ? RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = permitLimit,
-                Window = TimeSpan.FromMinutes(1),
+                Window = window,
                 QueueLimit = 0
             })
             : RateLimitPartition.GetNoLimiter(key);

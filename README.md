@@ -159,7 +159,11 @@ This setup is for one machine: the port is open to `localhost` only, there is no
 docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build
 ```
 
-The same two services, locked down for strangers: connections only to the sample database as `demo_reader`, which only the app may use, run limits, the database on an internal network, container and log limits. What it does and why: [public demo](docs/security.md#public-demo). HTTPS and the guests' way in follow with roadmap steps 0.5b and 0.5c.
+The same two services, locked down for strangers: connections only to the sample database as `demo_reader`, which only the app may use, run limits, the database on an internal network, container and log limits. What it does and why: [public demo](docs/security.md#public-demo).
+
+Guests get in by invitation: send someone `https://<your address>/demo?code=<invite code>`. They give their name and email and agree to the demo terms, get a sign-in link by email, and press Start for a 10-minute session that is already connected to the sample database. When the time is up they are signed out and the session's account is deleted. Returning visitors ask for a new link at `/demo/sign-in`. You get an email for every new visitor.
+
+Before the first start, set the `MDBNAV_DEMO_*`, `MDBNAV_APP_URL`, `MDBNAV_EMAIL_FROM` and `MDBNAV_SMTP_*` values in `.env` (see `.env.example`); Compose refuses to start without them. The CAPTCHA on the demo forms (ALTCHA) needs HTTPS, or `localhost`. HTTPS itself follows with roadmap step 0.5c.
 
 ## Configuration
 
@@ -185,6 +189,13 @@ Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be ove
 | `RateLimiting:*` | | Limits on sign-in requests, connects and query runs, and the wait after failed connects. See [rate limits](docs/security.md#rate-limits-and-captcha). |
 | `Captcha:Provider` | `None` | `Turnstile` (Cloudflare) or `Altcha` (self-hosted) asks for a CAPTCHA when creating an account and after repeated failed connects. See [CAPTCHA](docs/security.md#rate-limits-and-captcha). |
 | `ConnectionGuard:Mode`, `Allow` | from `Auth` | Which database hosts users may connect to: `Public`, `AllowList` or `Off`. See [connection guardrails](docs/security.md#connection-guardrails). |
+| `Demo:Enabled` | `false` | Invited guests try the app in short sessions, connected to a sample database. Needs `Auth:Mode = Accounts`, email, and the `Demo` settings below; the app doesn't start without them. See [public demo](docs/security.md#public-demo). |
+| `Demo:InviteCode` | | The secret in invite links (`/demo?code=...`), at least 16 characters. Changing it stops every link sent so far. A secret: user secrets or an environment variable. |
+| `Demo:OwnerEmail`, `Demo:ContactEmail` | | Who gets an email for every new visitor; the address in the demo terms for deletion requests. |
+| `Demo:SessionMinutes` | `10` | Length of a guest session (1–120). |
+| `Demo:SessionsPerVisitorPerDay`, `MaxActiveGuests`, `SessionsPerIpPerHour` | `3`, `10`, `3` | Sessions per visitor within 24 hours, guests at once, and sessions started from one IP address within an hour. |
+| `Demo:LinkEmailsPerAddressPerHour`, `LinkRequestsPerIpPerHour`, `LinkValidMinutes` | `3`, `10`, `30` | Sign-in link emails per address and hour (more are silently not sent), link requests per IP address and hour, and how long a link works. |
+| `Demo:Connection:Name`, `ServerName`, `Port`, `UserName`, `Password`, `DatabaseName` | | The PostgreSQL database guests are connected to, and its name in the UI. The server connects them itself, so the password never reaches the browser. `Password` is a secret. |
 | `ReverseProxy:TrustedNetworks` | | The proxies in front of the app, as IP addresses or ranges (`172.16.0.0/12`). Only their `X-Forwarded-For` and `X-Forwarded-Proto` are believed; with the list empty, only a proxy on the same machine. Needed when the proxy runs in another container or host: without it every visitor shares the proxy's address (and its rate limit), and HSTS is not sent. |
 
 Environment variables read by the host:
@@ -203,6 +214,7 @@ The server opens database connections for its users, so an instance with open si
 - **Connection guardrails:** with open sign-up, the server's own network (localhost, private ranges, cloud metadata) can't be reached.
 - **Rate limits** on connecting and running queries, per user, and an optional CAPTCHA on sign-up and after repeated failed connects.
 - **Run limits** for public instances: time and rows per run, and a size limit per row, so one query can't hold a worker or fill the server's memory. The [public demo setup](docs/security.md#public-demo) uses them with a read-only database user.
+- **Demo guests** come in by invitation and an emailed link, for 10-minute sessions in throwaway accounts, with limits per visitor, per address and in total.
 - **Passwords** of saved connections are remembered only when a key is configured, encrypted with AES-GCM and never sent back to the browser.
 - **Security headers,** including a Content Security Policy.
 

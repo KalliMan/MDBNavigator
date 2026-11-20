@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
+import useAuth from "./contexts/auth/useAuth";
 import useDatabaseServerConnectContext from "./contexts/databaseServerConnect/useDatabaseServerConnect";
 import ConnectToServer from "./features/connect/ConnectToServer";
 import Mainbar from "./layout/MainBar";
@@ -28,15 +30,33 @@ function App({ active }: Props) {
     reconnectDatabaseServer,
     reconnectDatabaseServerId,
     connect,
+    connectDemo,
     reconnect,
     cancelConnectDialog
   } = useDatabaseServerConnectContext();
   const { onBatchCommandResult, onStatementStarted, onCommandFinished, onHubStatusChanged } = useDatabaseCommandContext();
+  const { user, settings } = useAuth();
 
   useCommandBatchResultNotifications({ onBatchCommandResult, onStatementStarted, onCommandFinished, onHubStatusChanged });
   const hasConnections = databaseServerConnections.length > 0;
+
+  // A demo guest starts connected to the sample database, opened by the server. Only if that fails does the connect
+  // dialog show (with the error). The workspace is mounted once per page load, and a guest's session is a page load.
+  const isGuest = !!user?.guest;
+  const [demoConnect, setDemoConnect] = useState<'none' | 'pending' | 'done'>(isGuest ? 'pending' : 'none');
+  const demoConnectStarted = useRef(false);
+  const demoConnectionName = settings?.demo?.connectionName ?? 'Sample database';
+  useEffect(() => {
+    // Once, even when React runs effects twice in development.
+    if (!isGuest || demoConnectStarted.current) {
+      return;
+    }
+    demoConnectStarted.current = true;
+    void connectDemo(demoConnectionName).then(() => setDemoConnect('done'));
+  }, [isGuest, connectDemo, demoConnectionName]);
+
   // Without any connection the connect dialog is mandatory; otherwise it can be cancelled.
-  const showConnectModal = active && (connectNewDatabaseServer || !hasConnections);
+  const showConnectModal = active && (connectNewDatabaseServer || (!hasConnections && demoConnect !== 'pending'));
   const showReconnectModal = active && reconnectDatabaseServer && reconnectDatabaseServerId;
   const reconnectedSettings = showReconnectModal
     ? databaseServerConnections.find(conn => conn.connectedResult?.connectionId === reconnectDatabaseServerId)?.connectedResult

@@ -1,6 +1,7 @@
 using MDBNavigator.API;
 using MDBNavigator.API.Auth;
 using MDBNavigator.API.Captcha;
+using MDBNavigator.API.Demo;
 using MDBNavigator.API.Middleware;
 using MDBNavigator.API.RateLimiting;
 using MDBNavigator.API.ReverseProxy;
@@ -9,6 +10,7 @@ using MDBNavigator.Connections.Application.SavedConnections;
 using MDBNavigator.Connections.Infrastructure;
 using MDBNavigator.Connections.Infrastructure.Persistence;
 using MDBNavigator.Accounts;
+using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Providers.PostgreSQL;
 using MDBNavigator.SharedKernel;
 using MDBNavigator.Workbench.Infrastructure;
@@ -20,6 +22,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
 
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
+var demoOptions = builder.Configuration.GetSection(DemoOptions.SectionName).Get<DemoOptions>() ?? new DemoOptions();
 var appDbConnectionString = AppDb.ResolveConnectionString(builder.Configuration, builder.Environment);
 
 var rateLimitingOptions = builder.Configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()
@@ -41,8 +44,8 @@ builder.Services.AddWorkbenchModule(builder.Configuration);
 builder.Services.AddPostgreSQLProvider();
 // Once, after every project has registered its handlers: logging and validation around each of them.
 builder.Services.AddHandlerDecorators();
-builder.Services.AddAuth(authOptions, builder.Configuration, builder.Environment, appDbConnectionString);
-builder.Services.AddRateLimits(rateLimitingOptions);
+builder.Services.AddAuth(authOptions, demoOptions, builder.Configuration, builder.Environment, appDbConnectionString);
+builder.Services.AddRateLimits(rateLimitingOptions, demoOptions);
 builder.Services.AddCaptcha(captchaOptions);
 
 // A year of HTTPS-only. No includeSubDomains or preload: other services on sibling subdomains may still use HTTP,
@@ -108,8 +111,10 @@ if (serveUi)
 }
 
 var controllers = app.MapControllers();
-app.MapAuthEndpoints(authOptions, captchaOptions);
+app.MapAuthEndpoints(authOptions, captchaOptions, demoOptions);
 app.MapCaptchaEndpoints(captchaOptions);
+// Only with Demo:Enabled.
+app.MapDemoEndpoints(demoOptions);
 
 // For the proxy in front and for an uptime monitor: 200 "Healthy" when the app database answers, 503 otherwise.
 // Anonymous, and it says nothing about users' database servers.

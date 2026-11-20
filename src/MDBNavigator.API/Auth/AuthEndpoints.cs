@@ -4,6 +4,7 @@ using MDBNavigator.API.DTOs;
 using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Connections.Application.SavedConnections;
 using MDBNavigator.Accounts;
+using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
 using MDBNavigator.SharedKernel.Captcha;
@@ -16,7 +17,9 @@ namespace MDBNavigator.API.Auth
     // reset, ...) are minimal APIs, and which endpoints exist depends on Auth:Mode.
     public static class AuthEndpoints
     {
-        public static void MapAuthEndpoints(this WebApplication app, AuthOptions options, CaptchaOptions captchaOptions)
+        public const string GuestRefusedMessage = "Demo sessions have no account settings.";
+
+        public static void MapAuthEndpoints(this WebApplication app, AuthOptions options, CaptchaOptions captchaOptions, DemoOptions demo)
         {
             var auth = app.MapGroup("/api/auth");
             // The site key is public (the widget needs it); the secret key never leaves the server.
@@ -27,13 +30,15 @@ namespace MDBNavigator.API.Auth
             {
                 // No accounts, but the CAPTCHA still applies to repeated failed connects.
                 auth.MapGet("settings", (ISavedPasswordProtector passwords) => new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), [],
-                    EmailEnabled: false, captchaProvider, turnstileSiteKey, passwords.Enabled));
+                    EmailEnabled: false, captchaProvider, turnstileSiteKey, passwords.Enabled, Demo: null));
                 return;
             }
 
+            // Only what the UI shows: the guest's connection is opened by the server (DemoController).
+            var demoSettings = demo.Enabled ? new DemoSettingsDto(demo.ContactEmail, demo.SessionMinutes, demo.Connection.Name) : null;
             auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email, ISavedPasswordProtector passwords) =>
                 new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled,
-                    captchaProvider, turnstileSiteKey, passwords.Enabled));
+                    captchaProvider, turnstileSiteKey, passwords.Enabled, demoSettings));
 
             // Identity's endpoints: login (?useCookies=true for the web session), register, confirmEmail,
             // resendConfirmationEmail, forgotPassword, resetPassword, manage/info, ...
@@ -42,19 +47,45 @@ namespace MDBNavigator.API.Auth
                 .AddEndpointFilter(async (context, next) =>
                     IsRegister(context.HttpContext.Request)
                         ? await CheckRegisterAsync(context.HttpContext, options) ?? await next(context)
-                        : await next(context))
+                        // A guest could otherwise give its account a real email (manage/info) and keep it.
+                        : IsManage(context.HttpContext.Request) && GuestSessions.IsGuest(context.HttpContext.User)
+                            ? Error(StatusCodes.Status403Forbidden, GuestRefusedMessage)
+                            : await next(context))
                 .MapIdentityApi<ApplicationUser>();
 
-            auth.MapGet("me", async (ClaimsPrincipal principal, UserManager<ApplicationUser> users) =>
-                    await users.GetUserAsync(principal) is { } user
-                        ? Results.Ok(new CurrentUserDto(user.Email ?? string.Empty, await users.IsInRoleAsync(user, RoleNames.Admin), SignInMethod(principal)))
-                        // The cookie is valid but the account is gone.
-                        : Results.Unauthorized())
+            auth.MapGet("me", async (ClaimsPrincipal principal, UserManager<ApplicationUser> users, GuestSessions guests, TimeProvider time,
+                    CancellationToken ct) =>
+                {
+                    // The cookie is valid but the account is gone.
+                    if (await users.GetUserAsync(principal) is not { } user)
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    GuestDto? guest = null;
+                    if (GuestSessions.IsGuest(principal))
+                    {
+                        if (await guests.GetAsync(principal, ct) is not { } info)
+                        {
+                            return Results.Unauthorized();
+                        }
+                        var secondsLeft = (int)Math.Ceiling((info.EndsAtUtc - time.GetUtcNow().UtcDateTime).TotalSeconds);
+                        guest = new GuestDto(info.Name, info.EndsAtUtc, Math.Max(0, secondsLeft));
+                    }
+
+                    return Results.Ok(new CurrentUserDto(user.Email ?? string.Empty, await users.IsInRoleAsync(user, RoleNames.Admin),
+                        SignInMethod(principal), guest));
+                })
                 .RequireAuthorization();
 
-            // Allowed without a valid session, so a stale cookie can always be cleared.
-            auth.MapPost("logout", async (SignInManager<ApplicationUser> signInManager) =>
+            // Allowed without a valid session, so a stale cookie can always be cleared. A demo guest's session ends here
+            // for good: its place frees up and its account is deleted at once.
+            auth.MapPost("logout", async (ClaimsPrincipal principal, SignInManager<ApplicationUser> signInManager, GuestSessions guests) =>
             {
+                if (GuestSessions.IsGuest(principal))
+                {
+                    await guests.EndAsync(principal, CancellationToken.None);
+                }
                 await signInManager.SignOutAsync();
                 return Results.NoContent();
             });
@@ -66,7 +97,12 @@ namespace MDBNavigator.API.Auth
         // The signed-in user's own account (the UI's /account page).
         private static void MapAccount(RouteGroupBuilder auth)
         {
-            var account = auth.MapGroup("account").RequireAuthorization();
+            // A demo guest's account is thrown away at the end of the session: nothing to manage.
+            var account = auth.MapGroup("account")
+                .RequireAuthorization()
+                .AddEndpointFilter(async (context, next) => GuestSessions.IsGuest(context.HttpContext.User)
+                    ? Error(StatusCodes.Status403Forbidden, GuestRefusedMessage)
+                    : await next(context));
 
             account.MapGet("", async (ClaimsPrincipal principal, AccountManagement accounts) =>
                 await accounts.GetAsync(principal) is { } info ? Results.Ok(info) : Results.Unauthorized());
@@ -166,6 +202,13 @@ namespace MDBNavigator.API.Auth
                 return Error(StatusCodes.Status403Forbidden, "Creating accounts is switched off on this server.");
             }
 
+            return await CheckCaptchaAsync(http);
+        }
+
+        // Null when no CAPTCHA is configured or the Captcha-Token header holds a valid, unused token; otherwise 428.
+        // Also used by the demo's link requests.
+        internal static async Task<IResult?> CheckCaptchaAsync(HttpContext http)
+        {
             var captcha = http.RequestServices.GetRequiredService<ICaptchaVerifier>();
             if (!captcha.Enabled)
             {
@@ -182,10 +225,14 @@ namespace MDBNavigator.API.Auth
                 : Error(StatusCodes.Status428PreconditionRequired, "The CAPTCHA check didn't pass. Please try it again.");
         }
 
-        private static IResult Error(int statusCode, string message)
+        internal static IResult Error(int statusCode, string message)
             => Results.Json(new ErrorResponse(statusCode, message), statusCode: statusCode);
 
         private static bool IsRegister(HttpRequest request)
             => request.Path.Value?.EndsWith("/register", StringComparison.OrdinalIgnoreCase) == true;
+
+        // Identity's manage/info and manage/2fa.
+        private static bool IsManage(HttpRequest request)
+            => request.Path.Value?.Contains("/manage/", StringComparison.OrdinalIgnoreCase) == true;
     }
 }

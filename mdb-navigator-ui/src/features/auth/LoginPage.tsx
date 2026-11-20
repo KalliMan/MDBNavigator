@@ -98,6 +98,13 @@ export default function LoginPage() {
         <SubmitButton busy={busy}>Sign in</SubmitButton>
       </form>
 
+      {settings?.demo && (
+        <p className="text-center text-sm text-fg-muted">
+          Tried the demo before?{' '}
+          <Link to="/demo/sign-in" className="font-medium text-accent-strong hover:underline">Get a new link</Link>
+        </p>
+      )}
+
       {settings?.signUp === 'Open' && (
         <p className="text-center text-sm text-fg-muted">
           No account?{' '}

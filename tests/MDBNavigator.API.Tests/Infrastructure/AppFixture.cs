@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using Testcontainers.PostgreSql;
@@ -48,6 +49,15 @@ namespace MDBNavigator.API.Tests.Infrastructure
             _settings = settings;
         }
 
+        // Once the container runs (PgHost and PgPort are set): the app's own settings. DemoAppFixture adds the container
+        // as the demo connection.
+        protected virtual IReadOnlyDictionary<string, string>? AppSettings() => _settings;
+
+        // App services to replace, after the app registered its own.
+        protected virtual void ConfigureServices(IServiceCollection services)
+        {
+        }
+
         public ApiFactory Factory { get; private set; } = null!;
         public string PgHost { get; private set; } = "";
         public int PgPort { get; private set; }
@@ -64,7 +74,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
                 throw new InvalidOperationException($"The sample schema failed (exit code {schema.ExitCode}): {schema.Stderr}");
             }
 
-            Factory = new ApiFactory(_settings);
+            Factory = new ApiFactory(AppSettings(), ConfigureServices);
             // Starts the app: Program.cs runs to the end, including the app database's migrations and the admin seed.
             _ = Factory.Server;
 

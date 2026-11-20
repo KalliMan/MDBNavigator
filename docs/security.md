@@ -89,7 +89,7 @@ On an instance with open sign-up, setting the key means the server holds strange
 
 ## Public demo
 
-`compose.demo.yaml` turns the Compose setup into an instance strangers may use: they run any SQL they like, but only against the bundled sample database, and only to read (`docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build`). Guests letting themselves in and HTTPS follow with roadmap steps 0.5b and 0.5c.
+`compose.demo.yaml` turns the Compose setup into an instance strangers may use: they run any SQL they like, but only against the bundled sample database, and only to read (`docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build`). HTTPS follows with roadmap step 0.5c.
 
 Why not let guests use their own databases instead: the server would then connect anywhere for anyone, and could be used to guess passwords on, or probe, other people's servers, from the demo's address.
 
@@ -121,5 +121,20 @@ Why not let guests use their own databases instead: the server would then connec
 A long statement is stopped by `demo_reader`'s `statement_timeout` (30 s), with PostgreSQL's own message. A guest can `SET statement_timeout = 0`. That lasts one run (each run opens its own connection, and Npgsql resets the session when the connection goes back to its pool), and within that run `MaxRunSeconds` stops it. `QueryExecution:CommandTimeoutSeconds` stays off: it would race the `statement_timeout`, and when it wins the guest sees only "Exception while reading from stream".
 
 **The containers:** the app may use 512 MB and one CPU, the database 1 GB and one CPU. Logs are rotated at five files of 10 MB per container.
+
+**Guests** (`Demo` settings, off unless `Demo:Enabled`)
+
+Sign-up stays closed. Someone the owner invites opens `/demo?code=<invite code>`, gives a name and an email, agrees to the demo terms, and gets a sign-in link by email. The link opens a page with a Start button, and Start begins a session of `Demo:SessionMinutes` (10).
+
+- **The invite code** is a secret of at least 16 characters, compared in constant time. Changing it stops every invite link sent so far; returning visitors don't need it.
+- **The emailed link** proves the address: the visitor is recorded only when a link is used, so nobody can put a name on someone else's email, and the visitor list holds only confirmed addresses. A link works once, for 30 minutes, and only its SHA-256 hash is stored. Nothing happens when the link is merely opened (a mail scanner may do that); the session starts with the Start button.
+- **One throwaway account per session:** no password, an email at the reserved `.invalid` domain, role `Guest`. The session cookie expires with the session and is never renewed; on every request a guest's session is also checked in the database, so a session that ended early stops at once. When it ends (time up, or End the demo), the account is deleted with everything it had: saved connections, cached credentials, running queries, through the same clean-up as deleting an account. A background job does this within a minute of the end, and also removes links after a day.
+- **Guests have no account page** and can't use Identity's `manage` endpoints, so a guest account can't be given a real email or a password and kept.
+- **The demo connection** is opened by the server (`POST /api/demo/connect`) with `Demo:Connection`, so its password never reaches the browser. The connection shows its server, user and database, like any other.
+- **Limits:** `SessionsPerVisitorPerDay` (3 within 24 hours), `MaxActiveGuests` (10), `SessionsPerIpPerHour` (3, counting only starts that worked). Sessions start one at a time, so the counts can't be raced. A refused start leaves the link usable.
+- **Email can't be used to flood someone:** a CAPTCHA (ALTCHA in `compose.demo.yaml`), `LinkRequestsPerIpPerHour` (10), and at most `LinkEmailsPerAddressPerHour` (3) links to one address within an hour. More are not sent, and the answer is the same.
+- **Nothing tells who has visited:** a returning visitor's link request gets the same answer whether or not the address is known, and every email is sent after the answer, so the timing doesn't tell either.
+- **Personal data:** the visitor list (name, email, the terms' version and when they were agreed to, visits) is deleted 90 days after the last visit, a promise in the terms, so the clean-up runs even after the demo is switched off. Names and emails never go into the log; the owner gets them by email (`Demo:OwnerEmail`) for every new visitor.
+- The per-address counts are kept in memory, like the rate limits, and start over on a restart.
 
 **What remains possible:** `SET work_mem` to a large value lets one query use a lot of memory; the container limit caps it, and at worst PostgreSQL restarts. Guests see each other's query text in `pg_stat_activity`. Both are accepted for public sample data.

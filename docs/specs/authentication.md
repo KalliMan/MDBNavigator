@@ -120,9 +120,28 @@ Opened from the user menu ("Account"), under the workspace's top bar.
 - **Delete account:** needs the password, or for an account without one, its email typed in. The last admin can't delete their account. Deleting removes the account and its provider links, signs out, and on the server forgets the user's cached connections and cancels their running queries, in all their tabs.
 - The workspace stays hidden but mounted while the page is open, and its dialogs (e.g. the mandatory connect dialog) don't show over it.
 
+## Demo guests
+
+Roadmap 0.5b. With `Demo:Enabled`, invited people try the app without an account of their own. The limits and why they are there: [security.md](../security.md#public-demo). Settings: the README's [Configuration](../../README.md#configuration).
+
+- **Visitors and guests are kept apart.** A visitor (`demo_visitors`: name, email, terms version and time, visits) is the person; a guest is a throwaway Identity account (role `Guest`) for one session. A visitor is created, or updated, when a link is used, never by the form alone.
+- **Flow:** `/demo?code=` (form) → `POST /api/demo/join` → email → `/demo/start?token=` → Start (`POST /api/demo/start`) → the workspace, connected to the demo database (`POST /api/demo/connect`). Returning visitors: `/demo/sign-in` → `POST /api/demo/sign-in-link` → the same email and start page. Both forms show the demo terms; the version agreed to (`DemoTerms.Version` on the server, `DEMO_TERMS_VERSION` in the UI, kept equal) is recorded.
+- **Session:** the cookie is persistent with `ExpiresUtc` at the session's end and `AllowRefresh = false`. The cookie's `OnValidatePrincipal` runs Identity's check, then for guests checks that their session row (`demo_guest_sessions`) hasn't ended.
+- **Ending:** at the end of the countdown, on "End the demo" (`logout`) and on a 401, the UI does a full load of `/demo/ended`. `logout` deletes a guest's account at once; otherwise the clean-up job does it within a minute.
+- **What guests can't do:** `/account` and its endpoints, Identity's `manage/*`. In the UI the user menu shows the visitor's name, "Demo session" and "End the demo", and the top bar a countdown ("Demo · 7 min left", in seconds during the last minute), counted from the server's `secondsLeft`.
+
+| Path | Page |
+|---|---|
+| `/demo` | Invite form with `?code=`; without it, a note that the demo is by invitation |
+| `/demo/sign-in` | A returning visitor's form (email and terms) |
+| `/demo/check-inbox` | "A link is on its way", the same whether or not one was sent |
+| `/demo/start` | The emailed link: Start begins the session |
+| `/demo/ended` | After the session |
+
+The sign-in page links returning demo visitors to `/demo/sign-in`.
+
 ## Open questions
 
 
 - **`Auth:Mode = None` inside Docker.** Requests reach the container from the Docker network, not from loopback, so the local-machine check would reject them. Decide in 0.4 whether `None` is allowed there, and how.
-- **Getting into the public demo** without a sign-up wall (0.5b).
 - **Two-factor authentication.** Identity supports it, but it's not planned for Phase 0.

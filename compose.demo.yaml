@@ -1,8 +1,9 @@
 # The public demo: docker-compose.yml with these changes on top.
 #   docker compose -f docker-compose.yml -f compose.demo.yaml up -d --build
 # Strangers run SQL here, so only the sample database can be reached, only as the read-only demo_reader, and every
-# run is limited. What each part does and why: docs/security.md, "Public demo".
-# Not here yet: HTTPS (roadmap 0.5c) and the guests' way in (0.5b).
+# run is limited. Invited guests get in through an emailed link (README, "Public demo setup"), so the MDBNAV_DEMO_* and
+# MDBNAV_SMTP_* values must be set in .env (see .env.example). What each part does and why: docs/security.md, "Public demo".
+# Not here yet: HTTPS (roadmap 0.5c).
 
 # Rotated logs, so a busy demo can't fill the disk: 5 files of 10 MB per container.
 x-logging: &logging
@@ -28,6 +29,27 @@ services:
       RateLimiting__MaxRunningQueriesPerUser: "1"
       RateLimiting__QueriesPerMinute: "20"
       ConnectionCache__SlidingExpirationMinutes: "60"
+      # Guests: invite link, emailed sign-in link, 10-minute sessions (README, "Configuration", Demo). Self-hosted CAPTCHA
+      # on the demo forms: no third-party account needed.
+      Captcha__Provider: Altcha
+      Demo__Enabled: "true"
+      Demo__InviteCode: ${MDBNAV_DEMO_INVITE_CODE:?set MDBNAV_DEMO_INVITE_CODE in .env}
+      Demo__OwnerEmail: ${MDBNAV_DEMO_OWNER_EMAIL:?set MDBNAV_DEMO_OWNER_EMAIL in .env}
+      Demo__ContactEmail: ${MDBNAV_DEMO_CONTACT_EMAIL:?set MDBNAV_DEMO_CONTACT_EMAIL in .env}
+      Demo__Connection__Name: Sample database (Pagila)
+      Demo__Connection__ServerName: sample-db
+      Demo__Connection__Port: "5432"
+      Demo__Connection__UserName: demo_reader
+      Demo__Connection__Password: ${MDBNAV_DEMO_READER_PASSWORD:-demo-reader}
+      Demo__Connection__DatabaseName: pagila
+      # The sign-in links go out by email.
+      Email__Delivery: Smtp
+      Email__AppBaseUrl: ${MDBNAV_APP_URL:?set MDBNAV_APP_URL in .env}
+      Email__FromAddress: ${MDBNAV_EMAIL_FROM:?set MDBNAV_EMAIL_FROM in .env}
+      Email__Smtp__Host: ${MDBNAV_SMTP_HOST:-smtp-relay.brevo.com}
+      Email__Smtp__Port: ${MDBNAV_SMTP_PORT:-587}
+      Email__Smtp__Username: ${MDBNAV_SMTP_USERNAME:?set MDBNAV_SMTP_USERNAME in .env}
+      Email__Smtp__Password: ${MDBNAV_SMTP_PASSWORD:?set MDBNAV_SMTP_PASSWORD in .env}
     networks:
       - default
       - sample-db-net

@@ -43,6 +43,14 @@ const authApi = {
   unlinkProvider: (provider: string) => http.delete(`/auth/account/logins/${encodeURIComponent(provider)}`).then(() => undefined),
   // The password, or for an account without one, its email typed in as confirmation.
   deleteAccount: (proof: { password?: string; email?: string }) => http.post('/auth/account/delete', proof).then(() => undefined),
+
+  // The public demo. termsVersion: DEMO_TERMS_VERSION, the terms the visitor agreed to.
+  demoJoin: (inviteCode: string, name: string, email: string, termsVersion: string, captchaToken: string | null) =>
+    http.post('/demo/join', { inviteCode, name, email, termsVersion }, { headers: captchaHeaders(captchaToken) }).then(() => undefined),
+  demoSignInLink: (email: string, termsVersion: string, captchaToken: string | null) =>
+    http.post('/demo/sign-in-link', { email, termsVersion }, { headers: captchaHeaders(captchaToken) }).then(() => undefined),
+  // Signs this browser in as a new guest (sets the session cookie).
+  demoStart: (token: string) => http.post('/demo/start', { token }).then(() => undefined),
 };
 
 // A solved CAPTCHA travels in a header: Identity's register endpoint has a fixed body.

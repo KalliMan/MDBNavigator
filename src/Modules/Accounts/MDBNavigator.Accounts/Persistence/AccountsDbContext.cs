@@ -1,3 +1,4 @@
+using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Accounts.Identity;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +13,11 @@ namespace MDBNavigator.Accounts.Persistence
         : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IDataProtectionKeyContext
     {
         public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
+        // The public demo's guests (Demo/).
+        public DbSet<DemoVisitor> DemoVisitors => Set<DemoVisitor>();
+        public DbSet<DemoSignInLink> DemoSignInLinks => Set<DemoSignInLink>();
+        public DbSet<DemoGuestSession> DemoGuestSessions => Set<DemoGuestSession>();
 
         // The same options at runtime and for the EF Core tools, so migrations match what the app uses.
         public static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString)
@@ -30,6 +36,41 @@ namespace MDBNavigator.Accounts.Persistence
             builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
             builder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
             builder.Entity<DataProtectionKey>().ToTable("data_protection_keys");
+
+            builder.Entity<DemoVisitor>(visitor =>
+            {
+                visitor.ToTable("demo_visitors");
+                visitor.Property(v => v.Name).HasMaxLength(DemoVisitor.NameMaxLength);
+                visitor.Property(v => v.Email).HasMaxLength(DemoVisitor.EmailMaxLength);
+                visitor.Property(v => v.NormalizedEmail).HasMaxLength(DemoVisitor.EmailMaxLength);
+                visitor.Property(v => v.TermsVersion).HasMaxLength(20);
+                visitor.HasIndex(v => v.NormalizedEmail).IsUnique();
+                visitor.HasIndex(v => v.LastVisitAtUtc);
+            });
+
+            builder.Entity<DemoSignInLink>(link =>
+            {
+                link.ToTable("demo_sign_in_links");
+                link.Property(l => l.TokenHash).HasMaxLength(64);
+                link.Property(l => l.Email).HasMaxLength(DemoVisitor.EmailMaxLength);
+                link.Property(l => l.NormalizedEmail).HasMaxLength(DemoVisitor.EmailMaxLength);
+                link.Property(l => l.Name).HasMaxLength(DemoVisitor.NameMaxLength);
+                link.Property(l => l.TermsVersion).HasMaxLength(20);
+                link.HasIndex(l => l.TokenHash).IsUnique();
+                // The links sent to one address within the last hour.
+                link.HasIndex(l => new { l.NormalizedEmail, l.CreatedAtUtc });
+                link.HasIndex(l => l.CreatedAtUtc);
+            });
+
+            builder.Entity<DemoGuestSession>(session =>
+            {
+                session.ToTable("demo_guest_sessions");
+                // Checked on every request of a guest (GuestSessionValidator).
+                session.HasIndex(s => s.UserId).IsUnique();
+                session.HasIndex(s => new { s.VisitorId, s.StartedAtUtc });
+                session.HasIndex(s => s.EndsAtUtc);
+                session.HasOne<DemoVisitor>().WithMany().HasForeignKey(s => s.VisitorId).OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }
