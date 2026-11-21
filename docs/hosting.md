@@ -37,6 +37,8 @@ The public half is `~\.ssh\id_ed25519.pub`; that is the one you give Hetzner.
 
 ## 2. The server
 
+A new Hetzner account may be asked to verify itself before it can create anything ("increased level of risk"): by card, which in 2026 took a €25 prepayment that became account credit (it shows on the balance about a day later), or by an ID document, checked by hand. Create a project (`mdbnavigator`) and switch on 2FA for the account.
+
 **First the firewall** (Hetzner Console → Firewalls → Create Firewall), named `mdbnavigator`:
 
 | Direction | Protocol | Port |
@@ -52,8 +54,8 @@ Outbound stays open. The firewall is the provider's, not `ufw` on the server: Do
 **Then the server** (Hetzner Console → Servers → Add Server):
 
 - Location: one in the EU.
-- Image: Ubuntu 24.04.
-- Type: shared vCPU, x86, the smallest with 2 vCPU and 4 GB RAM.
+- Image: Ubuntu 24.04 or 26.04 (both LTS; Docker has packages for both, checked 2026-11-21). The demo's server runs 26.04.
+- Type: Shared Resources → **Cost-Optimized**, x86, **CX23** (2 vCPU, 4 GB; €7.19 a month with its IPv4 address, VAT included, in 2026). Hetzner preselects Regular Performance, whose 2 vCPU / 4 GB type costs about three times as much. Cost-Optimized has "limited availability": if CX23 is greyed out in one EU location, try another.
 - Networking: public IPv4 and IPv6 both on. IPv6 costs nothing; it just gets no DNS record (section 3).
 - SSH key: the one from section 1.
 - Firewall: `mdbnavigator`.
@@ -90,14 +92,17 @@ nslookup www.<domain> 1.1.1.1
 
 ## 4. Mail records
 
-- **Cloudflare Email Routing** (Email → Email Routing) already forwards `support@<domain>` to your own inbox, and added its MX, SPF (`TXT @ "v=spf1 include:_spf.mx.cloudflare.net ~all"`) and DKIM records. Leave them as they are.
-- **Brevo:** Senders, Domains & Dedicated IPs → Domains → add `<domain>` → Authenticate. Add exactly the records Brevo shows (a `brevo-code` TXT, the DKIM records and a DMARC record), with these rules:
-  - Every one **DNS only**. A proxied DKIM CNAME breaks DKIM.
-  - **Never a second SPF record.** If Brevo asks for an SPF include, add it to the existing record: `v=spf1 include:_spf.mx.cloudflare.net include:<Brevo's> ~all`.
-  - The DMARC record is `_dmarc` TXT `v=DMARC1; p=none` for now.
+- **Cloudflare Email Routing** (Email Service → Email Routing → Onboard Domain → `<domain>`) forwards `support@<domain>` to your own inbox. Accept the records it adds: three MX, SPF (`TXT @ "v=spf1 include:_spf.mx.cloudflare.net ~all"`) and DKIM (`cf2024-1._domainkey`); leave them as they are. Then Routing rules → Create routing rule: custom address `support`, action Send to an email, your own inbox, and confirm that inbox from the email Cloudflare sends. Leave Catch-all disabled: it would forward spam sent to any guessed address. Test by sending to `support@<domain>` from another mailbox.
+- **Brevo:** Senders, Domains & Dedicated IPs → Domains → Add a domain → `<domain>`.
+  - **Branded subdomain:** leave it empty. It only makes Brevo's click-tracking links look like your domain; the sign-in links must not be tracked at all.
+  - **Setup method: Manual.** "Automatic" gives Brevo write access to the domain's DNS and may add a second SPF record.
+  - Add exactly the records Brevo shows (in 2026: a `brevo-code` TXT on `@`, CNAMEs `brevo1._domainkey` and `brevo2._domainkey`, and a `_dmarc` TXT), with these rules:
+    - Every CNAME **DNS only**: Cloudflare proxies new CNAMEs by default, and a proxied DKIM CNAME breaks DKIM. Ignore Cloudflare's banner that asks for proxying.
+    - **Never a second SPF record.** Brevo asked for none in 2026 (its mail passes DMARC through DKIM). If it does ask for an SPF include, add it to the existing record: `v=spf1 include:_spf.mx.cloudflare.net include:<Brevo's> ~all`.
+    - DMARC: Brevo's value, `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com`. `rua` sends Brevo the daily reports of mail sent as the domain (counts and sending servers, nothing about visitors), which Brevo shows you.
 
-  Press Verify in Brevo until it shows the domain as authenticated. If Brevo asks for a verified sender, add `support@<domain>`.
-- An **SMTP key:** Brevo → SMTP & API → SMTP → Generate a new SMTP key. The login shown there is `MDBNAV_SMTP_USERNAME`, the key is `MDBNAV_SMTP_PASSWORD`.
+  Press Verify records in Brevo until every record is green, then Authenticate domain. Then Senders → Add a sender: `MDBNavigator`, `support@<domain>` (its confirmation code arrives through the forwarding).
+- An **SMTP key:** Brevo → SMTP & API → SMTP → Generate a new SMTP key. The login shown there is `MDBNAV_SMTP_USERNAME`, the key is `MDBNAV_SMTP_PASSWORD`. **The key expires after a year** (the table shows "Expires on"): put a reminder in your calendar a few weeks before, or the sign-in emails stop (section 11).
 
 DMARC is tightened in section 8, after a test email shows it passing.
 
@@ -226,7 +231,9 @@ Then in the browser:
 3. Start the session. `select * from demo.measurements` streams rows (DevTools → Network: `batchCommandResult` with status `101`, a WebSocket).
 4. End the demo.
 
-Now tighten DMARC: Cloudflare → the `_dmarc` TXT record → `v=DMARC1; p=quarantine`.
+Now tighten DMARC: Cloudflare → the `_dmarc` TXT record → change only `p=none` to `p=quarantine`, keeping the rest (`v=DMARC1; p=quarantine; rua=mailto:rua@dmarc.brevo.com`).
+
+Also check the link in that email: it must point straight to `https://demo.<domain>/...`. If it goes through a Brevo address, switch off click tracking in Brevo's transactional settings: a tracked sign-in link passes through Brevo's servers.
 
 Optional: https://www.ssllabs.com/ssltest/ with "Do not show the results on the boards" ticked gives grade A.
 
@@ -268,6 +275,7 @@ In `/opt/mdbnavigator`:
 | After a reboot | nothing: the containers start by themselves |
 | Start over | `docker compose down -v` deletes the visitor list, the admin account and the certificates; mind Let's Encrypt's limit of 5 identical certificates a week |
 | Packages (NuGet, npm) | updated in the repository, then "Put new code live" |
+| Brevo's SMTP key expires (yearly) | generate a new one (section 4), put it in `.env` as `MDBNAV_SMTP_PASSWORD`, `docker compose up -d`, then delete the old key in Brevo |
 
 ## 12. When something is wrong
 

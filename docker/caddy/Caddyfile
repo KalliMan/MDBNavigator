@@ -3,11 +3,14 @@
 # MDBNAV_REDIRECT_DOMAINS (compose.demo.yaml's default: www.<MDBNAV_DOMAIN>) are the other names that lead to it.
 # Why each choice: docs/security.md, "Public demo".
 {
-	# No access log, and not this one either: when the app can't answer (e.g. while it restarts), Caddy would log the
-	# visitor's address and the whole URL. URLs carry invite codes and sign-in links, and addresses are personal data.
-	# The app's own log says what went wrong.
+	# No access log, and none of these either, because each writes the visitor's address (and some the whole URL and
+	# headers). URLs carry invite codes and sign-in links, and addresses are personal data. The app's own log and the
+	# /health monitor say what went wrong.
+	#   http.log.error               when the app can't answer (e.g. while it restarts)
+	#   http.handlers.reverse_proxy  when a visitor drops the connection mid-answer (seen on the live demo, 2026-11-21)
+	#   http.stdlib                  failed TLS handshakes, mostly scanners
 	log default {
-		exclude http.log.error
+		exclude http.log.error http.handlers.reverse_proxy http.stdlib
 	}
 	# The http:// block at the end redirects to HTTPS instead, so that answer carries no Server header either. Caddy's
 	# own redirect would answer first for the names above, with the header.
