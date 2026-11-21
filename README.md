@@ -6,7 +6,7 @@ A database client that runs in the browser: connect to a database server, browse
 
 **Query results stream into the grid while the query is still running**: the first rows show at once, even for a million-row result, and the run can be cancelled at any time.
 
-**Try it:** the [live demo](https://demo.mdbnavigator.com/?code=GITHUB_INVITE_CODE) gives you a 10-minute session, already connected to a read-only sample database (Pagila, and a table of a million rows). Give your name and email, and the sign-in link comes by email.
+**Try it:** the [live demo](https://demo.mdbnavigator.com/?code=82411ca43b0571c0578431eed50a03b4) gives you a 10-minute session, already connected to a read-only sample database (Pagila, and a table of a million rows). Give your name and email, and the sign-in link comes by email.
 
 ## Screenshots
 
