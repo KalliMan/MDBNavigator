@@ -1,6 +1,7 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using MimeKit.Utils;
 
 namespace MDBNavigator.Accounts.Email
 {
@@ -16,7 +17,12 @@ namespace MDBNavigator.Accounts.Email
         public async Task SendAsync(EmailMessage message, CancellationToken ct)
         {
             using var mime = new MimeMessage();
-            mime.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress));
+            var from = new MailboxAddress(_options.FromName, _options.FromAddress);
+            mime.From.Add(from);
+            // MimeKit's default Message-ID ends in this machine's host name, which in Docker is the container's id
+            // (e.g. "@2b9359c114d8"). Spam filters score a Message-ID without a real domain against the email, so it
+            // gets the sender's domain instead.
+            mime.MessageId = MimeUtils.GenerateMessageId(from.Domain);
             mime.To.Add(MailboxAddress.Parse(message.To));
             mime.Subject = message.Subject;
             mime.Body = new BodyBuilder { HtmlBody = message.HtmlBody, TextBody = message.TextBody }.ToMessageBody();
