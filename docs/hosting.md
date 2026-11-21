@@ -192,7 +192,7 @@ The repository is cloned over HTTPS, so the server holds no GitHub credentials. 
 | `MDBNAV_ADMIN_EMAIL`, `MDBNAV_ADMIN_PASSWORD` | your email; the random password (the admin can sign in on the public site) |
 | `MDBNAV_DEMO_READER_PASSWORD` | random |
 | `MDBNAV_PASSWORD_KEY` | empty (no remembered passwords on an instance strangers use) |
-| `MDBNAV_DEMO_CODE_LINKEDIN`, `MDBNAV_DEMO_CODE_CV`, `MDBNAV_DEMO_CODE_FRIENDS` | random, one each |
+| `MDBNAV_DEMO_CODE_LINKEDIN`, `MDBNAV_DEMO_CODE_CV`, `MDBNAV_DEMO_CODE_FRIENDS`, `MDBNAV_DEMO_CODE_GITHUB` | random, one each (the GitHub one goes into the README's demo link, so it is public) |
 | `MDBNAV_DEMO_OWNER_EMAIL` | your own inbox |
 | `MDBNAV_DEMO_CONTACT_EMAIL` | `support@<domain>` |
 | `MDBNAV_DOMAIN` | `demo.<domain>` |

@@ -6,6 +6,8 @@ A database client that runs in the browser: connect to a database server, browse
 
 **Query results stream into the grid while the query is still running**: the first rows show at once, even for a million-row result, and the run can be cancelled at any time.
 
+**Try it:** the [live demo](https://demo.mdbnavigator.com/?code=GITHUB_INVITE_CODE) gives you a 10-minute session, already connected to a read-only sample database (Pagila, and a table of a million rows). Give your name and email, and the sign-in link comes by email.
+
 ## Screenshots
 
 ### Application view
@@ -163,7 +165,7 @@ The same two services, locked down for strangers, plus Caddy in front for HTTPS:
 
 Guests get in by invitation: send someone `https://<your address>/?code=<invite code>`. It opens a start page (what MDBNavigator is, with screenshots) whose "Try the demo" button leads on. Visitors give their name and email and agree to the demo terms, get a sign-in link by email, and press Start for a 10-minute session that is already connected to the sample database. When the time is up they are signed out and the session's account is deleted. Returning visitors ask for a new link at `/demo/sign-in`. You get an email for every new visitor, naming the link they came by.
 
-Before the first start, set the `MDBNAV_DEMO_*` (an invite code each in `MDBNAV_DEMO_CODE_LINKEDIN`, `MDBNAV_DEMO_CODE_CV` and `MDBNAV_DEMO_CODE_FRIENDS`, at least one; a blank one switches that link off), `MDBNAV_DOMAIN`, `MDBNAV_EMAIL_FROM` and `MDBNAV_SMTP_*` values in `.env` (see `.env.example`); Compose refuses to start without them. To try it on your own machine, use `MDBNAV_DOMAIN=localhost`: Caddy then uses a certificate of its own, which the browser warns about once.
+Before the first start, set the `MDBNAV_DEMO_*` (an invite code each in `MDBNAV_DEMO_CODE_LINKEDIN`, `MDBNAV_DEMO_CODE_CV`, `MDBNAV_DEMO_CODE_FRIENDS` and `MDBNAV_DEMO_CODE_GITHUB`, at least one; a blank one switches that link off), `MDBNAV_DOMAIN`, `MDBNAV_EMAIL_FROM` and `MDBNAV_SMTP_*` values in `.env` (see `.env.example`); Compose refuses to start without them. To try it on your own machine, use `MDBNAV_DOMAIN=localhost`: Caddy then uses a certificate of its own, which the browser warns about once.
 
 To try the demo while developing, put the `Demo` settings (all but `Enabled`) in the API's user secrets and start the **https-demo** launch profile: it is the `https` profile with `Demo__Enabled=true`, so the usual profile stays without the demo. In Development, emails go to the log unless `Email:Delivery` says otherwise.
 

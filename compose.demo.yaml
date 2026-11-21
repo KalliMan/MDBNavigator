@@ -44,6 +44,8 @@ services:
       Demo__InviteCodes__1__Code: ${MDBNAV_DEMO_CODE_CV:-}
       Demo__InviteCodes__2__Name: Friends
       Demo__InviteCodes__2__Code: ${MDBNAV_DEMO_CODE_FRIENDS:-}
+      Demo__InviteCodes__3__Name: GitHub
+      Demo__InviteCodes__3__Code: ${MDBNAV_DEMO_CODE_GITHUB:-}
       Demo__OwnerEmail: ${MDBNAV_DEMO_OWNER_EMAIL:?set MDBNAV_DEMO_OWNER_EMAIL in .env}
       Demo__ContactEmail: ${MDBNAV_DEMO_CONTACT_EMAIL:?set MDBNAV_DEMO_CONTACT_EMAIL in .env}
       Demo__Connection__Name: Sample database (Pagila)
