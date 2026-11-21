@@ -23,13 +23,16 @@ namespace MDBNavigator.API.Tests.Infrastructure
         public const string UserPassword = "smoke-test-password";
 
         // Read-only for the tests: nobody changes these objects.
-        private const string SampleSchema = """
+        private const string SampleSchema = """"
             create table smoke_items (id int primary key, name varchar(50) not null, note text);
             insert into smoke_items values (1, 'one', null), (2, 'two', 'x');
             create view smoke_items_view as select id, name from smoke_items;
             create function smoke_add(a int, b int) returns int language sql as 'select a + b';
             create procedure smoke_noop() language sql as 'select 1';
-            """;
+            create schema "Smoke ""Quoted""";
+            create table "Smoke ""Quoted"""."Mixed Case" ("Order Id" int primary key, "Note" text);
+            create function smoke_add(a text, b text) returns text language sql as 'select a || b';
+            """";
 
         private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17-alpine")
             .WithUsername(PgUser)

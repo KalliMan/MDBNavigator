@@ -10,7 +10,7 @@ Streamed query execution over SignalR (batches, cancellation, row limit, paralle
 
 ## Phase 0: Foundation
 
-Needed before anything goes public. Each sub-phase is one reviewable step. Order of what is left: 0.5 (live demo), then the rest of 0.3.
+Needed before anything goes public. Each sub-phase is one reviewable step. Phase 0 is done.
 
 ### 0.1 Authentication, part 1
 
@@ -37,9 +37,9 @@ Design: [specs/authentication.md](specs/authentication.md).
 
 | Step | Contents | Size |
 |---|---|---|
-| **0.3a** UI unit tests (Vitest) | Reducers, `batchBuffer`, `formatCell`, the auth context. Started in 1.3a (Vitest, the grid's pure functions). | S–M |
-| **0.3b** Provider tests (xUnit) | PostgreSQL identifier quoting, generated scripts, `JsonCellValue`. Started in 1.3e (xUnit, the script splitter). | M |
-| **0.3c** API tests (xUnit) | Handlers and the auth flows against a real Postgres. Started in 0.7b (the smoke tests). | M |
+| **0.3a** UI unit tests (Vitest) | Reducers, `batchBuffer`, `formatCell` and the grid's other pure functions (Vitest, in Node). The auth context has no unit tests: it is glue around the API, whose sign-in flows the API tests cover, and testing it would need a DOM. Plan: [plans/0.3-test-gaps.md](plans/0.3-test-gaps.md). | S–M |
+| **0.3b** Provider tests (xUnit) | PostgreSQL identifier quoting, the scripts built in C#, `JsonCellValue`, the script splitter. Plan: [plans/0.3-test-gaps.md](plans/0.3-test-gaps.md). | M |
+| **0.3c** API tests (xUnit) | The API against a real PostgreSQL: sign-in, accounts, connections, schema, scripts with names that need quoting, queries, limits, saved connections, the demo, plus email confirmation, password reset, closed sign-up and lockout. Plan: [plans/0.3-test-gaps.md](plans/0.3-test-gaps.md). | M |
 
 ### 0.7 Modular structure
 

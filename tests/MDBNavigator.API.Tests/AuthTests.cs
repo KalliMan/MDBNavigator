@@ -79,6 +79,26 @@ namespace MDBNavigator.API.Tests
                 .ShouldBeAsync(HttpStatusCode.BadRequest);
         }
 
+        // Lockout.MaxFailedAccessAttempts is 5 (AccountsModule). A new account, never the admin: the admin is shared by
+        // the other tests, and the lockout lasts minutes.
+        [Fact]
+        public async Task Five_wrong_passwords_lock_the_account()
+        {
+            var (session, email, password) = await _fixture.NewUserAsync();
+            session.Dispose();
+            using var client = _fixture.CreateAnonymousClient();
+
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                await client.PostAsJsonAsync("/api/auth/login?useCookies=true", new { email, password = "not-the-password" })
+                    .ShouldBeAsync(HttpStatusCode.Unauthorized);
+            }
+
+            // The right password no longer works: that is the lockout.
+            await client.PostAsJsonAsync("/api/auth/login?useCookies=true", new { email, password })
+                .ShouldBeAsync(HttpStatusCode.Unauthorized);
+        }
+
         [Fact]
         public async Task A_request_without_a_tab_id_is_refused()
         {
