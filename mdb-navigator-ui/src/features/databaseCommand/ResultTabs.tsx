@@ -3,6 +3,8 @@ import { ERROR_TAB_ID } from './runStatus';
 
 export interface ResultTabInfo {
   id: string;
+  // Shown instead of "Result N" and the row count (the plan view's "Plan" tab).
+  label?: string;
   rowCount: number;
   // True while this result's rows are still arriving.
   arriving: boolean;
@@ -41,8 +43,8 @@ export default function ResultTabs({ results, activeId, hasError, onSelect }: Pr
               active ? 'border-b-accent bg-canvas font-semibold text-fg' : 'border-b-transparent text-fg-muted hover:bg-hover'
             }`}
           >
-            Result {index + 1}
-            {result.truncated ? (
+            {result.label ?? `Result ${index + 1}`}
+            {result.label ? null : result.truncated ? (
               <span className="font-normal text-warning" title="The server stopped this result at its row limit (QueryExecution:MaxRowsPerResultSet)">
                 first {result.rowCount.toLocaleString('en-US')} rows
               </span>

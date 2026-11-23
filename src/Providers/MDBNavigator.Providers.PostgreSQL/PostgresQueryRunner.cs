@@ -165,6 +165,95 @@ namespace MDBNavigator.Providers.PostgreSQL
             }
         }
 
+        // The plan of one statement (see PostgresExplain). The statement is built before anything goes to the server,
+        // so a script that can't be explained fails without a connection round trip.
+        public async IAsyncEnumerable<QueryStreamItem> StreamPlan(
+            string script,
+            bool analyze,
+            int? commandTimeoutSeconds = null,
+            int? maxRowBytes = null,
+            [EnumeratorCancellation] CancellationToken ct = default)
+        {
+            var (text, line) = PostgresExplain.Build(script, analyze);
+            yield return new StatementStarted { StatementIndex = 0, StatementCount = 1, Line = line };
+
+            var plan = await ReadPlanAsync(text, analyze, commandTimeoutSeconds, maxRowBytes, ct);
+            yield return new QueryBatch
+            {
+                ResultSetIndex = 0,
+                IsFirstBatch = true,
+                IsLastBatch = true,
+                BatchIndex = 0,
+                Columns = [new ColumnInfo("QUERY PLAN", DbTypeCategory.Json, "json")],
+                Rows = [[plan]]
+            };
+        }
+
+        // EXPLAIN ANALYZE runs the statement, so it goes between BEGIN and ROLLBACK, never COMMIT, on this run's own
+        // connection. They are separate commands, not one script: the splitter would count three statements.
+        private async Task<string> ReadPlanAsync(string text, bool analyze, int? commandTimeoutSeconds, int? maxRowBytes, CancellationToken ct)
+        {
+            if (analyze)
+            {
+                await ExecuteAsync("BEGIN", commandTimeoutSeconds, ct);
+            }
+
+            try
+            {
+                await using var batch = NewBatch(text, commandTimeoutSeconds);
+                string plan;
+                await using (var reader = await batch.ExecuteReaderAsync(CommandBehavior.SequentialAccess, ct))
+                {
+                    if (!await reader.ReadAsync(ct))
+                    {
+                        throw new InvalidOperationException("EXPLAIN returned no plan.");
+                    }
+
+                    // The size first, so a plan over the limit is refused instead of read: a cut JSON can't be parsed.
+                    var size = reader.GetBytes(0, 0, null, 0, 0);
+                    if (maxRowBytes.HasValue && size > maxRowBytes.Value)
+                    {
+                        throw new InvalidScriptException(
+                            $"The plan is {CutCellText.Size(size)}, more than this server's limit of {CutCellText.Size(maxRowBytes.Value)} per row (QueryExecution:MaxRowBytes).");
+                    }
+
+                    plan = await reader.GetFieldValueAsync<string>(0, ct);
+                }
+                return plan;
+            }
+            finally
+            {
+                if (analyze)
+                {
+                    try
+                    {
+                        await ExecuteAsync("ROLLBACK", commandTimeoutSeconds, CancellationToken.None);
+                    }
+                    catch (Exception)
+                    {
+                        // After a cancel or a broken connection the ROLLBACK can fail. Nothing is left behind: the run's
+                        // connection is closed when the run ends, and closing it rolls back an open transaction too.
+                    }
+                }
+            }
+        }
+
+        private async Task ExecuteAsync(string statement, int? commandTimeoutSeconds, CancellationToken ct)
+        {
+            await using var batch = NewBatch(statement, commandTimeoutSeconds);
+            await batch.ExecuteNonQueryAsync(ct);
+        }
+
+        private NpgsqlBatch NewBatch(string text, int? commandTimeoutSeconds)
+        {
+            var batch = new NpgsqlBatch(_connection) { BatchCommands = { new NpgsqlBatchCommand(text) } };
+            if (commandTimeoutSeconds.HasValue)
+            {
+                batch.Timeout = commandTimeoutSeconds.Value;
+            }
+            return batch;
+        }
+
         // One row's values, in column order (SequentialAccess allows no going back), as JSON cell values, and the
         // bytes read, for the batch's size. Async reads only: in SequentialAccess a synchronous read of a big value
         // would block a thread on the network.

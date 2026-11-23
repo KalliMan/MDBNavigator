@@ -1,10 +1,11 @@
 import Editor, { OnMount } from "@monaco-editor/react";
 import { MONACO_THEMES } from "./monacoSetup";
 import { KeyCode, KeyMod } from "monaco-editor";
+import type { editor } from "monaco-editor";
 import { LanguageIdEnum } from "monaco-sql-languages";
 
 import { useEffect, useRef, useState } from "react";
-import { LuPlay, LuSquare } from "react-icons/lu";
+import { LuGauge, LuListTree, LuPlay, LuSquare } from "react-icons/lu";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
 import useDatabaseCommandSelector from "../../contexts/databaseCommand/useDatabaseCommandSelector";
@@ -12,6 +13,9 @@ import useDatabaseServerConnectContext from "../../contexts/databaseServerConnec
 import { QueryTarget } from "../../models/databaseCommand/query/queryTarget";
 import useTheme from "../../contexts/theme/useTheme";
 import { MONO_FONT } from "../../utils/fonts";
+import { PlanMode } from "../../models/databaseCommand/query/planMode";
+import { mayChangeData } from "../queryPlan/queryPlan";
+import AnalyzeConfirm from "./AnalyzeConfirm";
 import QueryTargetPicker from "./QueryTargetPicker";
 
 interface Props {
@@ -49,6 +53,10 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
     latest.current = { canExecute, query: databaseCommandQuery, target, execute: executeDatabaseSQLCommand };
   });
   const [sqlQuery, setSqlQuery] = useState<string>(databaseCommandQuery.cmdQuery);
+  // The editor, for the selection: Explain works on the selected statement.
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  // The statement waiting for the user's yes before Explain Analyze runs it (it may change data).
+  const [pendingAnalyze, setPendingAnalyze] = useState<string | null>(null);
   // Queries opened with executeImmediately (e.g. "Select Top 100") run once when their tab opens.
   const autoRunDone = useRef(false);
 
@@ -69,10 +77,33 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
   }
 
   // Runs the editor text where the tab now points (1.2d); the query object in context state is never modified.
-  function run(cmdQuery: string) {
+  // plan: ask for the plan of one statement instead of running the text (Explain, Explain Analyze).
+  function run(cmdQuery: string, plan: PlanMode | null = null) {
     const { query, target: where, execute } = latest.current;
     setTargetNote(null);
-    void execute({ ...query, connectionId: where.connectionId, databaseName: where.databaseName, cmdQuery });
+    void execute({ ...query, connectionId: where.connectionId, databaseName: where.databaseName, cmdQuery }, plan);
+  }
+
+  // What Explain works on: the selection, or the whole editor when nothing is selected. (Run always runs the whole editor.)
+  function explainText(): string {
+    const editorInstance = editorRef.current;
+    const selection = editorInstance?.getSelection();
+    if (editorInstance && selection && !selection.isEmpty()) {
+      return editorInstance.getModel()?.getValueInRange(selection) ?? '';
+    }
+    return editorInstance?.getValue() ?? sqlQuery;
+  }
+
+  // Reads through `latest` like the editor's keys do, so F7 never works with an older render's state.
+  function explain(plan: PlanMode) {
+    if (!latest.current.canExecute) return;
+    const text = explainText();
+    // Analyze runs the statement (rolled back): the user is asked first when it may change data.
+    if (plan === 'Analyze' && mayChangeData(text)) {
+      setPendingAnalyze(text);
+      return;
+    }
+    run(text, plan);
   }
 
   function handleExecute() {
@@ -83,11 +114,14 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
     cancelDatabaseSQLCommand(databaseCommandQuery.id);
   }
 
-  const handleEditorMount: OnMount = (editor) => {
-    editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
+  const handleEditorMount: OnMount = (mounted) => {
+    editorRef.current = mounted;
+    mounted.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
       if (!latest.current.canExecute) return;
-      run(editor.getValue());
+      run(mounted.getValue());
     });
+    mounted.addCommand(KeyCode.F7, () => explain('Estimate'));
+    mounted.addCommand(KeyMod.Shift | KeyCode.F7, () => explain('Analyze'));
   };
 
   return (
@@ -115,6 +149,29 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
         >
           <LuSquare size={13} aria-hidden="true" />
         </button>
+        <span className="mx-1 h-[18px] w-px bg-line" aria-hidden="true" />
+        <span className="flex" title={executeDisabledReason ?? 'Explain: the plan for the selected statement, or the whole editor, without running it (F7)'}>
+          <button
+            type="button"
+            onClick={() => explain('Estimate')}
+            disabled={!canExecute}
+            className="flex h-7 items-center gap-1.5 rounded-[3px] px-2 font-medium text-fg hover:bg-hover disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent cursor-pointer"
+          >
+            <LuListTree size={14} aria-hidden="true" />
+            Explain
+          </button>
+        </span>
+        <span className="flex" title={executeDisabledReason ?? 'Explain Analyze: runs the statement to show real times; its changes are rolled back (Shift+F7)'}>
+          <button
+            type="button"
+            onClick={() => explain('Analyze')}
+            disabled={!canExecute}
+            className="flex h-7 items-center gap-1.5 rounded-[3px] px-2 font-medium text-fg hover:bg-hover disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent cursor-pointer"
+          >
+            <LuGauge size={14} aria-hidden="true" />
+            Analyze
+          </button>
+        </span>
         <span className="mx-1 h-[18px] w-px bg-line" aria-hidden="true" />
         <QueryTargetPicker
           target={target}
@@ -152,6 +209,16 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
           onMount={handleEditorMount}
         />
       </div>
+      {pendingAnalyze !== null && (
+        <AnalyzeConfirm
+          onConfirm={() => {
+            const text = pendingAnalyze;
+            setPendingAnalyze(null);
+            run(text, 'Analyze');
+          }}
+          onClose={() => setPendingAnalyze(null)}
+        />
+      )}
     </div>
   );
 }

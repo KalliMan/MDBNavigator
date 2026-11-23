@@ -44,19 +44,30 @@ namespace MDBNavigator.API.Tests.Infrastructure
         public Task<HubListener> ListenAsync() => HubListener.StartAsync(_fixture.Factory, TabId, Cookie);
 
         // Starts an execution without waiting for it; the response is the 202 (or whatever the API answered).
-        public Task<HttpResponseMessage> PostExecuteAsync(string connectionId, string sql, string executionId)
-            => Client.PostAsJsonAsync("/api/databaseCommand", new
-            {
-                connectionId,
-                databaseName = AppFixture.Database,
-                cmdQuery = sql,
-                executionId
-            });
+        // plan: "Estimate" or "Analyze" asks for the plan of one statement. Left out of the body when null: the enum
+        // is not nullable, so "plan": null would be a 400.
+        public Task<HttpResponseMessage> PostExecuteAsync(string connectionId, string sql, string executionId, string? plan = null)
+            => plan is null
+                ? Client.PostAsJsonAsync("/api/databaseCommand", new
+                {
+                    connectionId,
+                    databaseName = AppFixture.Database,
+                    cmdQuery = sql,
+                    executionId
+                })
+                : Client.PostAsJsonAsync("/api/databaseCommand", new
+                {
+                    connectionId,
+                    databaseName = AppFixture.Database,
+                    cmdQuery = sql,
+                    executionId,
+                    plan
+                });
 
-        public async Task<QueryRun> RunAsync(string connectionId, string sql, HubListener hub)
+        public async Task<QueryRun> RunAsync(string connectionId, string sql, HubListener hub, string? plan = null)
         {
             var executionId = Guid.NewGuid().ToString();
-            var response = await PostExecuteAsync(connectionId, sql, executionId);
+            var response = await PostExecuteAsync(connectionId, sql, executionId, plan);
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
             var finished = await hub.WaitForFinishedAsync(executionId, FinishTimeout);

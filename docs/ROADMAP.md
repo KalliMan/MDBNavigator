@@ -136,7 +136,7 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 
 | Feature | Size | Notes |
 |---|---|---|
-| EXPLAIN plan viewer | M | The query plan as a tree, with the expensive steps highlighted. |
+| **2.1** EXPLAIN plan viewer | M | The query plan as a tree, with the expensive steps highlighted. Explain (F7) and Explain Analyze (Shift+F7, rolled back), as an indented tree with expensive steps and bad row estimates marked. Plan: [plans/2.1-explain-plan-viewer.md](plans/2.1-explain-plan-viewer.md). |
 | Edit table data in the grid | L | Generates `UPDATE`/`INSERT`/`DELETE` from the primary key, shows a preview, then applies it. |
 | ER diagram | M–L | Built from the foreign keys. |
 | Server activity view | M | Running sessions, cancel or kill a query, locks, table sizes (`pg_stat_activity` and related views). |

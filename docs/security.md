@@ -73,6 +73,10 @@ In development the UI comes from the Vite dev server, which needs inline scripts
 
 Connection settings are held in server memory only, per browser tab and connection. The password is encrypted with a key that exists only in the running process. A restart drops every connection, and users reconnect.
 
+## Explain Analyze
+
+`EXPLAIN ANALYZE` measures a statement by running it. The server always runs it inside a transaction and rolls the transaction back, and the UI asks first when the statement may change data. A rollback undoes the statement's changes to the data, but not everything: sequence values stay used, and anything done outside the database (`dblink`, a function that writes files or sends messages) stays done. It is an ordinary run otherwise: the same run limits, rate limits and database permissions apply, so on the public demo it can only read.
+
 ## Remembered passwords
 
 Off unless `SavedConnections:PasswordKey` is set. Then the connect dialog offers "Remember password" for a saved connection, and the server keeps that password encrypted with AES-GCM in the app database.

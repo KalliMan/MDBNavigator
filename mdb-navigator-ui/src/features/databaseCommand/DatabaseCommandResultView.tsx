@@ -7,6 +7,7 @@ import { ResultMode } from './ResultToolbar';
 import ResultError from './ResultError';
 import ResultPlaceholder from './ResultPlaceholder';
 import { ERROR_TAB_ID } from './runStatus';
+import QueryPlanView from '../queryPlan/QueryPlanView';
 
 
 interface Props {
@@ -30,9 +31,13 @@ export function DatabaseCommandResultView({ databaseCommandQueryId, activeTabId,
   }
 
   const errorActive = activeTabId === ERROR_TAB_ID;
+  // A plan run has one result set, the plan; it gets its own view and a "Plan" tab instead of "Result 1".
+  const planResult = command?.plan ? resultSets[0] : undefined;
   const tabs = (
     <ResultTabs
-      results={resultSets.map(rs => ({ id: rs.id, rowCount: rs.rows.length, arriving: isExecuting && !rs.isComplete, truncated: rs.truncated }))}
+      results={planResult
+        ? [{ id: planResult.id, label: 'Plan', rowCount: 1, arriving: false, truncated: false }]
+        : resultSets.map(rs => ({ id: rs.id, rowCount: rs.rows.length, arriving: isExecuting && !rs.isComplete, truncated: rs.truncated }))}
       activeId={activeTabId ?? ''}
       hasError={!!error}
       onSelect={onActiveTabChange}
@@ -52,7 +57,12 @@ export function DatabaseCommandResultView({ databaseCommandQueryId, activeTabId,
           </div>
         </>
       )}
-      {resultSets.map((resultSet, index) => {
+      {planResult && (
+        <div className={!errorActive ? 'min-h-0 flex-1' : 'hidden'}>
+          <QueryPlanView key={planResult.id} resultSet={planResult} tabs={tabs} isActive={!errorActive} />
+        </div>
+      )}
+      {!planResult && resultSets.map((resultSet, index) => {
         const shown = !errorActive && resultSet.id === activeTabId;
         return (
           <div key={resultSet.id} className={shown ? 'min-h-0 flex-1' : 'hidden'}>

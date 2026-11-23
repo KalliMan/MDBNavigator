@@ -6,6 +6,7 @@ import { CellValue } from "../../models/databaseCommand/result/cellValue";
 import { HubStatus } from "../../services/commandResultHub";
 import type { BatchBuffer } from "./batchBuffer";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
+import type { PlanMode } from "../../models/databaseCommand/query/planMode";
 
 export type DatabaseCommandStats = {
   rowCount: number;
@@ -37,6 +38,8 @@ export type DatabaseCommand = {
   stats: DatabaseCommandStats | null;
   ranOn: RanOn | null;
   runningStatement: RunningStatement | null;
+  // Set when the run asked for a plan; the result view then shows the plan instead of a grid.
+  plan: PlanMode | null;
 
   query: DatabaseSQLCommandQuery | null;
   resultSets: ResultSet[];
@@ -70,6 +73,7 @@ function createCommand(id: string): DatabaseCommand {
     stats: null,
     ranOn: null,
     runningStatement: null,
+    plan: null,
     query: null,
     resultSets: []
   };
@@ -118,7 +122,7 @@ function appendBatches(resultSets: ResultSet[], batches: DatabaseCommandBatchRes
 export function databaseCommandReducer(state: DatabaseCommandState, action: DatabaseCommandActions): DatabaseCommandState {
   switch(action.type) {
     case DatabaseCommandActionTypes.Executing: {
-      const { commandId, executionId, ranOn } = action.payload;
+      const { commandId, executionId, ranOn, plan } = action.payload;
       const running: Partial<DatabaseCommand> = {
         isExecuting: true,
         executionId,
@@ -126,6 +130,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         stats: null,
         ranOn,
         runningStatement: null,
+        plan,
         resultSets: [],
         error: null
       };

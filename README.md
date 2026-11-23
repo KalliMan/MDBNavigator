@@ -25,6 +25,7 @@ A database client that runs in the browser: connect to a database server, browse
 ## Features
 
 - **Streamed results.** Rows arrive over SignalR in batches while the query runs, into a virtualized grid that stays fast with large and wide results. Cancel at any time; a row limit per result set (100,000 by default) protects the browser.
+- **Query plans.** Explain (F7) shows the plan PostgreSQL would use for the selected statement as a tree, with each step's share of the cost. Explain Analyze (Shift+F7) runs the statement inside a transaction that is rolled back, and shows real times, rows and buffers. Expensive steps, and row estimates that were off by 10× or more, are marked.
 - Scripts run statement by statement, as in psql. Each result set gets its own tab; a failing statement stops the script and gets an Error tab with its number and line.
 - Several connections at once, each with a schema tree (databases, schemas, tables with columns and indexes, views, functions, procedures).
 - Script generation: select the first N rows, `CREATE`, `INSERT` and `DROP` for tables, plus definitions and `CREATE`/`DROP` scripts for views, functions and procedures.

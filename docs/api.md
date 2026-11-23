@@ -68,6 +68,8 @@ Content-Type: application/json
 
 The response is `202 Accepted` with `{ "id": "{executionId}" }`. The run is queued and starts once a worker is free.
 
+Add `"plan": "Estimate"` or `"plan": "Analyze"` to get the plan of one statement instead of running the script. The provider puts `EXPLAIN (FORMAT JSON)` (or `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`) in front of it. With `Analyze` the statement really runs, inside a transaction that is rolled back. The run then sends one `StatementStarted` and one result set: a single batch with one column `QUERY PLAN` (category `Json`) and one row, whose value is EXPLAIN's JSON as a string. A script that isn't exactly one statement, an `EXPLAIN` statement, or a plan larger than `MaxRowBytes` ends with `CommandFinished` `Failed` and a message. An unknown `plan` value is a `400`.
+
 **3. Receive the run's messages.** Before each statement of the script, one `StatementStarted`:
 
 ```json

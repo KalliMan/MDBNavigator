@@ -93,13 +93,26 @@ namespace MDBNavigator.API.Tests
             Assert.Equal(LimitsAppFixture.MaxRowsPerResultSet, run.Finished.GetProperty("rowCount").GetInt32());
         }
 
-        private async Task<QueryRun> RunAsync(string sql)
+        [Fact]
+        public async Task A_plan_larger_than_the_row_limit_is_refused()
+        {
+            // The plan repeats the 20,000 values in its filter, far over the row limit of 64 KB. A cut JSON cannot be
+            // read, so the plan is refused with a message instead.
+            var sql = $"select * from smoke_items where id in ({string.Join(", ", Enumerable.Range(1, 20000))})";
+
+            var run = await RunAsync(sql, plan: "Estimate");
+
+            Assert.Equal("Failed", Status(run));
+            Assert.Contains("per row (QueryExecution:MaxRowBytes)", run.Finished.GetProperty("error").GetString());
+        }
+
+        private async Task<QueryRun> RunAsync(string sql, string? plan = null)
         {
             var (session, _, _) = await _fixture.NewUserAsync();
             using var signedIn = session;
             var connectionId = await session.ConnectAsync();
             await using var hub = await session.ListenAsync();
-            return await session.RunAsync(connectionId, sql, hub);
+            return await session.RunAsync(connectionId, sql, hub, plan);
         }
 
         private static string? Status(QueryRun run) => run.Finished.GetProperty("status").GetString();

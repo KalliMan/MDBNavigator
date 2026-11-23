@@ -10,6 +10,7 @@ namespace MDBNavigator.Workbench.Application.Queries.RunQuery
             RuleFor(x => x.ExecutionId).NotEmpty().WithMessage("ExecutionId is required.");
             RuleFor(x => x.DatabaseName).NotEmpty().WithMessage("DatabaseName is required.");
             RuleFor(x => x.CmdQuery).NotEmpty().WithMessage("CmdQuery is required.");
+            RuleFor(x => x.Plan).IsInEnum().WithMessage("Plan must be None, Estimate or Analyze.");
         }
     }
 }

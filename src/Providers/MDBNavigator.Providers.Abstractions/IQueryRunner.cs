@@ -18,5 +18,17 @@ namespace MDBNavigator.Providers.Abstractions
             int? maxRowBytes = null,
             QueryStreamStats? stats = null,
             CancellationToken ct = default);
+
+        // The plan of one statement, in the provider's own format (PostgreSQL: EXPLAIN's JSON). Yields one StatementStarted
+        // (statement 0 of 1) and one QueryBatch: first and last, one column "QUERY PLAN" of category Json, one row whose value
+        // is the plan as a string. analyze: the statement really runs, inside a transaction that is rolled back afterwards.
+        // Throws InvalidScriptException before anything runs when the script is not exactly one statement that can be explained,
+        // and when the plan is larger than maxRowBytes.
+        IAsyncEnumerable<QueryStreamItem> StreamPlan(
+            string script,
+            bool analyze,
+            int? commandTimeoutSeconds = null,
+            int? maxRowBytes = null,
+            CancellationToken ct = default);
     }
 }

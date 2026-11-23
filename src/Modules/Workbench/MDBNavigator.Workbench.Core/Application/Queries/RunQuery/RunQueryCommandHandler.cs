@@ -5,7 +5,8 @@ using MDBNavigator.SharedKernel.Violations;
 
 namespace MDBNavigator.Workbench.Application.Queries.RunQuery
 {
-    public record RunQueryCommand(string SessionId, string ConnectionId, string ExecutionId, string DatabaseName, string CmdQuery)
+    public record RunQueryCommand(string SessionId, string ConnectionId, string ExecutionId, string DatabaseName, string CmdQuery,
+        QueryPlanMode Plan = QueryPlanMode.None)
         : ICommand<CommandAcknowledgedDto>;
 
     public class RunQueryCommandHandler : ICommandHandler<RunQueryCommand, CommandAcknowledgedDto>

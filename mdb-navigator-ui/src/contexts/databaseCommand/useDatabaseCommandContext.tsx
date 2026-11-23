@@ -9,6 +9,7 @@ import { StatementStartedResult } from "../../models/databaseCommand/result/stat
 import { CommandFinishedResult } from "../../models/databaseCommand/result/commandFinishedResult";
 import { HubStatus, waitUntilConnected } from "../../services/commandResultHub";
 import { getErrorMessage } from "../../utils/errorMessage";
+import type { PlanMode } from "../../models/databaseCommand/query/planMode";
 
 export const DatabaseCommandContext = createContext<DatabaseCommandContextType | null>(null);
 
@@ -28,7 +29,8 @@ export default function useDatabaseCommandContext(){
     }
   }
 
-  async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery) {
+  // plan: ask for the plan of one statement (Explain, Explain Analyze) instead of running the script.
+  async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery, plan: PlanMode | null = null) {
     // A tab runs one query at a time: a still running previous run is stopped on the server.
     const previous = context!.state.commands.find(c => c.id === cmdQuery.id);
     if (previous?.isExecuting && previous.executionId) {
@@ -42,6 +44,7 @@ export default function useDatabaseCommandContext(){
         commandId: cmdQuery.id,
         executionId,
         ranOn: { connectionId: cmdQuery.connectionId, databaseName: cmdQuery.databaseName },
+        plan,
       }
     });
 
@@ -52,7 +55,8 @@ export default function useDatabaseCommandContext(){
         connectionId: cmdQuery.connectionId,
         databaseName: cmdQuery.databaseName,
         cmdQuery: cmdQuery.cmdQuery,
-        executionId
+        executionId,
+        ...(plan ? { plan } : {})
       });
       // data arrives via SignalR BatchCommandResult, the run ends with CommandFinished
     } catch (error) {

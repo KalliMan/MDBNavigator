@@ -68,14 +68,23 @@ namespace MDBNavigator.Workbench.Application.Queries
                 await using var database = await _connector
                     .OpenAsync(command.SessionId, command.ConnectionId, command.DatabaseName, linkedCts.Token);
 
-                var stream = database.Queries.StreamQuery(
-                    command.CmdQuery,
-                    _options.BatchSize,
-                    commandTimeoutSeconds: _options.CommandTimeoutSeconds,
-                    maxRowsPerResultSet: _options.MaxRowsPerResultSet > 0 ? _options.MaxRowsPerResultSet : null,
-                    maxRowBytes: _options.MaxRowBytes > 0 ? _options.MaxRowBytes : null,
-                    stats: stats,
-                    ct: linkedCts.Token);
+                // A plan run asks the provider for the plan of one statement; everything after this (limits, the
+                // stream, the outcome) is the same as for any run.
+                var stream = command.Plan == QueryPlanMode.None
+                    ? database.Queries.StreamQuery(
+                        command.CmdQuery,
+                        _options.BatchSize,
+                        commandTimeoutSeconds: _options.CommandTimeoutSeconds,
+                        maxRowsPerResultSet: _options.MaxRowsPerResultSet > 0 ? _options.MaxRowsPerResultSet : null,
+                        maxRowBytes: _options.MaxRowBytes > 0 ? _options.MaxRowBytes : null,
+                        stats: stats,
+                        ct: linkedCts.Token)
+                    : database.Queries.StreamPlan(
+                        command.CmdQuery,
+                        analyze: command.Plan == QueryPlanMode.Analyze,
+                        commandTimeoutSeconds: _options.CommandTimeoutSeconds,
+                        maxRowBytes: _options.MaxRowBytes > 0 ? _options.MaxRowBytes : null,
+                        ct: linkedCts.Token);
 
                 await foreach (var item in stream)
                 {
@@ -129,10 +138,11 @@ namespace MDBNavigator.Workbench.Application.Queries
                     status = CommandExecutionStatus.Cancelled;
                 }
             }
-            catch (Exception ex) when (ex is DbException or NotConnectedException or ConnectionNotAllowedException)
+            catch (Exception ex) when (ex is DbException or NotConnectedException or ConnectionNotAllowedException or InvalidScriptException)
             {
-                // An error in the user's SQL (syntax, missing table, constraint...), an expired connection or a
-                // host the connection guard now refuses (its name resolves elsewhere) is expected, not a server fault.
+                // An error in the user's SQL (syntax, missing table, constraint...), an expired connection, a
+                // host the connection guard now refuses (its name resolves elsewhere), or a script that can't be
+                // explained as asked (InvalidScriptException; its message is for the user) is expected, not a server fault.
                 _logger.LogWarning("Query execution {ExecutionId} failed: {Message}", command.ExecutionId, ex.Message);
                 status = CommandExecutionStatus.Failed;
                 // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).

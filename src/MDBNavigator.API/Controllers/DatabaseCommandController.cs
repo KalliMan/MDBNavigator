@@ -18,7 +18,7 @@ namespace MDBNavigator.API.Controllers
         public async Task<IActionResult> Execute([FromBody] DatabaseSQLCommandQuery value,
             [FromServices] ICommandHandler<RunQueryCommand, CommandAcknowledgedDto> handler, CancellationToken cancellationToken)
             => Accepted(await handler.Handle(
-                new RunQueryCommand(SessionId, value.ConnectionId, value.ExecutionId, value.DatabaseName, value.CmdQuery), cancellationToken));
+                new RunQueryCommand(SessionId, value.ConnectionId, value.ExecutionId, value.DatabaseName, value.CmdQuery, value.Plan), cancellationToken));
 
         // The outcome is reported by the CommandFinished hub message (status Cancelled).
         [HttpPost("cancel/{executionId}")]

@@ -9,6 +9,7 @@ interface Props {
 
 // A result as CSV text, in a read-only Monaco editor (already bundled): it handles 100,000 lines and gives
 // selection, Ctrl+A, Ctrl+C and find without new code. The plaintext language is part of the editor core.
+// Also used for the plan's JSON (QueryPlanView).
 export default function ResultCsvView({ text }: Props) {
   const { theme } = useTheme();
 

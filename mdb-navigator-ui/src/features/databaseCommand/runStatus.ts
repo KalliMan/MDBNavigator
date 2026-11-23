@@ -1,11 +1,20 @@
 import { RunningStatement } from "../../contexts/databaseCommand/DatabaseCommandReducer";
 import { ResultSet } from "../../models/databaseCommand/result/resultSet";
+import type { PlanMode } from "../../models/databaseCommand/query/planMode";
 
 // The status bar's text while a run is going.
 export function executingLabel(
   statement: RunningStatement | null,
-  resultSets: Pick<ResultSet, 'resultSetIndex' | 'skippingRest'>[]
+  resultSets: Pick<ResultSet, 'resultSetIndex' | 'skippingRest'>[],
+  plan: PlanMode | null = null
 ): string {
+  // A plan run is one statement and one result: no statement counter, nothing skipped.
+  if (plan === 'Estimate') {
+    return 'Explaining...';
+  }
+  if (plan === 'Analyze') {
+    return 'Running EXPLAIN ANALYZE...';
+  }
   if (statement) {
     // A result set's last batch says the server is skipping its remaining rows; the statement that is running
     // is then that result set's own, so a flag left on an earlier result set never shows here.

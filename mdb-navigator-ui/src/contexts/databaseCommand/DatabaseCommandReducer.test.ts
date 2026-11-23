@@ -25,6 +25,7 @@ function command(overrides: Partial<DatabaseCommand> = {}): DatabaseCommand {
     stats: null,
     ranOn: null,
     runningStatement: null,
+    plan: null,
     query: null,
     resultSets: [],
     ...overrides,
@@ -84,7 +85,7 @@ describe('Executing', () => {
   it('adds a command for an unknown id', () => {
     const next = reduce(initialDatabaseCommandState, {
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn },
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null },
     })
 
     expect(next.commands).toHaveLength(1)
@@ -111,7 +112,7 @@ describe('Executing', () => {
 
     const next = reduce(state, {
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn },
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null },
     })
 
     expect(next.commands).toHaveLength(1)
@@ -125,6 +126,20 @@ describe('Executing', () => {
       stats: null,
       runningStatement: null,
     })
+  })
+
+  it('stores the plan mode of the run, and a later normal run clears it', () => {
+    const planned = reduce(initialDatabaseCommandState, {
+      type: DatabaseCommandActionTypes.Executing,
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: 'Analyze' },
+    })
+    expect(planned.commands[0].plan).toBe('Analyze')
+
+    const normal = reduce(planned, {
+      type: DatabaseCommandActionTypes.Executing,
+      payload: { commandId: 'cmd-1', executionId: 'run-2', ranOn, plan: null },
+    })
+    expect(normal.commands[0].plan).toBeNull()
   })
 })
 

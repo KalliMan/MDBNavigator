@@ -53,7 +53,7 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery, target,
     && (ranOn.connectionId !== target.connectionId || ranOn.databaseName !== target.databaseName)
     ? `${findConnection(databaseServerConnections, ranOn.connectionId)?.name ?? target.serverName} · ${ranOn.databaseName}`
     : null;
-  const runningLabel = executingLabel(command?.runningStatement ?? null, resultSets);
+  const runningLabel = executingLabel(command?.runningStatement ?? null, resultSets, command?.plan ?? null);
 
   if (!databaseCommandQuery) {
     return null;

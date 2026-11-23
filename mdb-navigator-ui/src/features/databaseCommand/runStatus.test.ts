@@ -31,6 +31,14 @@ describe('executingLabel', () => {
     const resultSets = [{ resultSetIndex: 0, skippingRest: true }]
     expect(executingLabel({ index: 1, count: 3 }, resultSets)).toBe('Executing statement 2 of 3...')
   })
+
+  it('says "Explaining..." for a plan', () => {
+    expect(executingLabel({ index: 0, count: 1 }, [], 'Estimate')).toBe('Explaining...')
+  })
+
+  it('says "Running EXPLAIN ANALYZE..." for an analyzed plan', () => {
+    expect(executingLabel(null, [], 'Analyze')).toBe('Running EXPLAIN ANALYZE...')
+  })
 })
 
 describe('rowLimitText', () => {
