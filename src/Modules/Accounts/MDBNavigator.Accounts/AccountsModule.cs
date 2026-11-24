@@ -1,3 +1,4 @@
+using Gatehouse.Accounts;
 using MDBNavigator.Accounts.Demo;
 using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
@@ -34,15 +35,17 @@ namespace MDBNavigator.Accounts
         public static IServiceCollection AddAccounts(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment,
             DemoOptions demo)
         {
+            // Gatehouse.Accounts binds and checks this section itself, when the host starts (AddGatehouseAccountEmails below).
+            // Read here too, because two things need it while the services are registered: the demo's check and Identity's
+            // RequireConfirmedEmail.
             var email = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
-            ValidateEmailOptions(email, environment);
             demo.Validate(email);
 
             services.AddIdentityApiEndpoints<ApplicationUser>(options =>
                 {
                     options.User.RequireUniqueEmail = true;
                     // Only when email can be sent. Applies to password sign-in; provider sign-in doesn't depend on it
-                    // (see ExternalLogins).
+                    // (Gatehouse.Accounts' sign-in rules).
                     options.SignIn.RequireConfirmedEmail = email.Enabled;
 
                     // Length over composition rules (current NIST guidance).
@@ -84,9 +87,15 @@ namespace MDBNavigator.Accounts
                     };
                 });
 
-            // Google / Microsoft / GitHub, each only when configured.
-            services.AddAuthentication().AddExternalProviders(configuration);
-            services.AddScoped<ExternalLogins>();
+            // Google / Microsoft / GitHub, each only when configured (Authentication:{Provider}:ClientId and ClientSecret), and
+            // the rules that find, link or create the account: Gatehouse.Accounts. Where it offers a choice we keep our rule:
+            // an account whose email was never confirmed is not linked to a provider account with the same email (the package's
+            // default would hand it over), and a new account through a provider that doesn't verify emails stays unconfirmed
+            // (the default). Must come after AddIdentityApiEndpoints.
+            services.AddGatehouseExternalSignIn<ApplicationUser, AppExternalAccountHooks>(configuration, options =>
+            {
+                options.UnconfirmedAccountWithSameEmail = UnconfirmedAccountRule.Refuse;
+            });
             services.AddScoped<AccountManagement>();
 
             // Demo guests: ending and cleaning up guests runs even with the demo off, so leftovers still go and visitors are
@@ -110,38 +119,12 @@ namespace MDBNavigator.Accounts
                 .SetApplicationName("MDBNavigator")
                 .PersistKeysToDbContext<AccountsDbContext>();
 
-            services.AddSingleton(email);
-            if (email.Enabled)
-            {
-                services.AddSingleton<IEmailDelivery>(sp => email.Delivery == EmailDelivery.Log
-                    ? ActivatorUtilities.CreateInstance<LogEmailDelivery>(sp)
-                    : ActivatorUtilities.CreateInstance<SmtpEmailDelivery>(sp));
-                // Replaces Identity's default sender, which sends nothing. Without email that default stays.
-                services.AddSingleton<IEmailSender<ApplicationUser>, IdentityEmailSender>();
-            }
+            // The email settings (checked when the host starts), delivery over SMTP, to the log or not at all, and Identity's
+            // email sender: Gatehouse.Accounts. The texts are ours (AccountEmailComposer). With Email:Delivery None nothing is
+            // sent, and the package logs a warning for each email that would have gone out.
+            services.AddGatehouseAccountEmails<ApplicationUser, AccountEmailComposer>(configuration);
 
             return services;
-        }
-
-        // Fails at startup rather than at the first email.
-        private static void ValidateEmailOptions(EmailOptions email, IHostEnvironment environment)
-        {
-            if (!email.Enabled)
-            {
-                return;
-            }
-            if (email.Delivery == EmailDelivery.Log && !environment.IsDevelopment())
-            {
-                throw new InvalidOperationException("Email:Delivery 'Log' is allowed in Development only.");
-            }
-            if (!Uri.TryCreate(email.AppBaseUrl, UriKind.Absolute, out _))
-            {
-                throw new InvalidOperationException("Email:AppBaseUrl must be the app's absolute address, e.g. https://mdbnavigator.example.com.");
-            }
-            if (email.Delivery == EmailDelivery.Smtp && (email.Smtp.Host.Length == 0 || email.FromAddress.Length == 0))
-            {
-                throw new InvalidOperationException("Email:Smtp:Host and Email:FromAddress must be set when Email:Delivery is 'Smtp'.");
-            }
         }
     }
 }

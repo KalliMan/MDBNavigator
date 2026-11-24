@@ -1,3 +1,4 @@
+using Gatehouse.Accounts;
 using System.Text.Encodings.Web;
 
 namespace MDBNavigator.Accounts.Email

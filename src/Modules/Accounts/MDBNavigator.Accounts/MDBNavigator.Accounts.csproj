@@ -7,11 +7,8 @@
     <ProjectReference Include="..\..\..\Shared\MDBNavigator.SharedKernel\MDBNavigator.SharedKernel.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AspNet.Security.OAuth.GitHub" />
     <PackageReference Include="EFCore.NamingConventions" />
-    <PackageReference Include="MailKit" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" />
+    <PackageReference Include="Gatehouse.Accounts" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />

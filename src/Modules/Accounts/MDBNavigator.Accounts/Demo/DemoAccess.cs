@@ -1,3 +1,4 @@
+using Gatehouse.Accounts;
 using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
 using MDBNavigator.Accounts.Persistence;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
@@ -42,7 +44,7 @@ namespace MDBNavigator.Accounts.Demo
         private readonly ILogger<DemoAccess> _logger;
 
         public DemoAccess(AccountsDbContext db, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signInManager,
-            ILookupNormalizer normalizer, IEmailDelivery delivery, EmailOptions email, DemoOptions options, GuestStartGate gate,
+            ILookupNormalizer normalizer, IEmailDelivery delivery, IOptions<EmailOptions> email, DemoOptions options, GuestStartGate gate,
             TimeProvider time, ILogger<DemoAccess> logger)
         {
             _db = db;
@@ -50,7 +52,7 @@ namespace MDBNavigator.Accounts.Demo
             _signInManager = signInManager;
             _normalizer = normalizer;
             _delivery = delivery;
-            _email = email;
+            _email = email.Value;
             _options = options;
             _gate = gate;
             _time = time;
@@ -233,7 +235,7 @@ namespace MDBNavigator.Accounts.Demo
             });
             await _db.SaveChangesAsync(ct);
 
-            var link = QueryHelpers.AddQueryString($"{_email.AppBaseUrl.TrimEnd('/')}/demo/start", "token", token);
+            var link = QueryHelpers.AddQueryString($"{_email.FrontendBaseUrl.TrimEnd('/')}/demo/start", "token", token);
             DemoEmails.SendInBackground(_delivery, EmailTemplates.DemoLink(email, link, _options.LinkValidMinutes, _options.SessionMinutes),
                 "demo link", _logger);
         }

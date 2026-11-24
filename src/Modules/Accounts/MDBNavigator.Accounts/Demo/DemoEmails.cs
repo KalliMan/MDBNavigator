@@ -1,4 +1,4 @@
-using MDBNavigator.Accounts.Email;
+using Gatehouse.Accounts;
 using Microsoft.Extensions.Logging;
 
 namespace MDBNavigator.Accounts.Demo
@@ -18,7 +18,8 @@ namespace MDBNavigator.Accounts.Demo
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Sending the {EmailKind} email failed", kind);
+                    // The type only: an SMTP server's answer in the exception often holds the recipient's address.
+                    logger.LogError("Sending the {EmailKind} email failed ({ExceptionType})", kind, ex.GetType().Name);
                 }
             });
         }

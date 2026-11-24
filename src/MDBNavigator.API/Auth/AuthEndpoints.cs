@@ -1,3 +1,4 @@
+using Gatehouse.Accounts;
 using MDBNavigator.API.Captcha;
 using MDBNavigator.API.Core;
 using MDBNavigator.API.DTOs;
@@ -5,11 +6,11 @@ using MDBNavigator.API.RateLimiting;
 using MDBNavigator.Connections.Application.SavedConnections;
 using MDBNavigator.Accounts;
 using MDBNavigator.Accounts.Demo;
-using MDBNavigator.Accounts.Email;
 using MDBNavigator.Accounts.Identity;
 using MDBNavigator.SharedKernel.Captcha;
 using MDBNavigator.SharedKernel.Violations;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace MDBNavigator.API.Auth
@@ -39,8 +40,8 @@ namespace MDBNavigator.API.Auth
             var demoSettings = demo.Enabled
                 ? new DemoSettingsDto(demo.ContactEmail, demo.SessionMinutes, demo.Connection.Name, demo.ViolationsBeforeBlock, demo.BlockHours)
                 : null;
-            auth.MapGet("settings", async (ExternalLogins logins, EmailOptions email, ISavedPasswordProtector passwords) =>
-                new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), await logins.GetProvidersAsync(), email.Enabled,
+            auth.MapGet("settings", (ExternalProviderList providers, IOptions<EmailOptions> email, ISavedPasswordProtector passwords) =>
+                new AuthSettingsDto(options.Mode.ToString(), options.SignUp.ToString(), providers.Names, email.Value.Enabled,
                     captchaProvider, turnstileSiteKey, passwords.Enabled, demoSettings));
 
             // Identity's endpoints: login (?useCookies=true for the web session), register, confirmEmail,
@@ -93,7 +94,13 @@ namespace MDBNavigator.API.Auth
                 return Results.NoContent();
             });
 
-            MapExternalSignIn(auth, options);
+            // Sign-in with Google/Microsoft/GitHub, from Gatehouse.Accounts. The browser navigates to
+            // /api/auth/external/{provider} (a link, not a fetch call), goes to the provider, comes back to the provider's return
+            // path (/api/auth/signin-..., handled by ASP.NET Core), then to /api/auth/external/callback, which redirects to the
+            // app or to the sign-in page with an error code. Mapped on the app, not on the group above: the package builds the
+            // callback address from its own prefix. Closed sign-up is AppExternalAccountHooks'.
+            app.MapExternalSignIn<ApplicationUser>()
+                .RequireRateLimiting(RateLimitPolicies.Auth);
             MapAccount(auth);
         }
 
@@ -126,8 +133,8 @@ namespace MDBNavigator.API.Auth
                 .RequireRateLimiting(RateLimitPolicies.Auth);
 
             // Linking is a browser navigation like provider sign-in, but back to the account page.
-            account.MapGet("link/{provider}", async (string provider, ClaimsPrincipal principal, ExternalLogins logins, AccountManagement accounts) =>
-                    await logins.FindProviderAsync(provider) is { } scheme
+            account.MapGet("link/{provider}", (string provider, ClaimsPrincipal principal, ExternalProviderList providers, AccountManagement accounts) =>
+                    providers.Find(provider) is { } scheme
                         ? Results.Challenge(accounts.CreateLinkChallenge(scheme, "/api/auth/account/link/callback", principal), [scheme])
                         : Results.Redirect("/account?error=link-failed"))
                 .RequireRateLimiting(RateLimitPolicies.Auth);
@@ -158,47 +165,6 @@ namespace MDBNavigator.API.Auth
                 : Results.ValidationProblem(result.Errors
                     .GroupBy(e => e.Code)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
-
-        // Sign-in with Google/Microsoft/GitHub. The browser navigates here (a link, not a fetch call), goes to the
-        // provider, comes back to the provider's return path (/api/auth/signin-..., handled by ASP.NET Core), then to
-        // the callback, which redirects to the app or to the sign-in page with an error code.
-        private static void MapExternalSignIn(RouteGroupBuilder auth, AuthOptions options)
-        {
-            auth.MapGet("external/{provider}", async (string provider, string? returnTo, ExternalLogins logins) =>
-                {
-                    var scheme = await logins.FindProviderAsync(provider);
-                    if (scheme is null)
-                    {
-                        return Results.Redirect(LoginPage(ExternalProviders.FailedError, returnTo));
-                    }
-
-                    var callback = $"/api/auth/external/callback?returnTo={Uri.EscapeDataString(ReturnUrl.Sanitize(returnTo))}";
-                    return Results.Challenge(logins.CreateChallenge(scheme, callback), [scheme]);
-                })
-                .RequireRateLimiting(RateLimitPolicies.Auth);
-
-            auth.MapGet("external/callback", async (string? returnTo, ExternalLogins logins) =>
-                {
-                    // Closed sign-up: existing accounts can still sign in through a provider, new ones aren't created.
-                    var result = await logins.CompleteAsync(allowNewAccounts: options.SignUp == SignUpMode.Open);
-                    return Results.Redirect(result == ExternalLoginResult.Success
-                        ? ReturnUrl.Sanitize(returnTo)
-                        : LoginPage(ErrorCode(result), returnTo));
-                })
-                .RequireRateLimiting(RateLimitPolicies.Auth);
-        }
-
-        private static string LoginPage(string error, string? returnTo)
-            => $"/login?error={error}&returnTo={Uri.EscapeDataString(ReturnUrl.Sanitize(returnTo))}";
-
-        private static string ErrorCode(ExternalLoginResult result) => result switch
-        {
-            ExternalLoginResult.NoEmail => "external-no-email",
-            ExternalLoginResult.EmailInUse => "external-email-in-use",
-            ExternalLoginResult.LockedOut => "external-locked-out",
-            ExternalLoginResult.SignUpClosed => "external-sign-up-closed",
-            _ => ExternalProviders.FailedError
-        };
 
         // Identity records it in the session: the provider's name for a provider sign-in, "amr" = "pwd" for a password.
         private static string? SignInMethod(ClaimsPrincipal principal)

@@ -1,4 +1,4 @@
-using MDBNavigator.Accounts.Email;
+using Gatehouse.Accounts;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
@@ -36,7 +36,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
             ["Email:Delivery"] = "Smtp",
             ["Email:Smtp:Host"] = "smtp.invalid",
             ["Email:FromAddress"] = "demo-sender@example.test",
-            ["Email:AppBaseUrl"] = "https://demo.example.test",
+            ["Email:FrontendBaseUrl"] = "https://demo.example.test",
             ["Demo:Enabled"] = "true",
             // Three named codes; the third is switched off (empty), as a closed channel is.
             ["Demo:InviteCodes:0:Name"] = "LinkedIn",

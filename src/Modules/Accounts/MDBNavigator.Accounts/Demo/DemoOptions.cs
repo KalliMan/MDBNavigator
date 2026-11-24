@@ -1,4 +1,4 @@
-﻿using MDBNavigator.Accounts.Email;
+﻿using Gatehouse.Accounts;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;

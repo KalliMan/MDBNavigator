@@ -97,6 +97,7 @@ Rules: inside a module, Infrastructure → Core → Contracts → SharedKernel. 
 | **0.6a** | Remove the stray root `package.json`/`package-lock.json`. | S |
 | **0.6b** | Hide "MS SQL Server" in the connect dialog until its provider exists. | S |
 | **0.6c** | Replace MediatR with our own handler interfaces. Moved to 0.7d: the module split touches every handler anyway, and the smoke tests of 0.7b show that nothing changed. | S–M |
+| **0.6d** | Provider sign-in and the sending of account emails come from the owner's NuGet package `Gatehouse.Accounts` instead of MDBNavigator's own copy. `Email:AppBaseUrl` is renamed to `Email:FrontendBaseUrl`. Plan: [plans/0.6d-gatehouse-accounts.md](plans/0.6d-gatehouse-accounts.md). | S |
 
 ## Phase 1: Basics
 

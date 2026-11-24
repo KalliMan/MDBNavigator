@@ -1,4 +1,4 @@
-using MDBNavigator.Accounts.Email;
+using Gatehouse.Accounts;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.RegularExpressions;
@@ -24,7 +24,7 @@ namespace MDBNavigator.API.Tests.Infrastructure
             ["Email:Delivery"] = "Smtp",
             ["Email:Smtp:Host"] = "smtp.invalid",
             ["Email:FromAddress"] = "sender@example.test",
-            ["Email:AppBaseUrl"] = AppBaseUrl,
+            ["Email:FrontendBaseUrl"] = AppBaseUrl,
         })
         {
         }

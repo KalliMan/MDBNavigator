@@ -56,7 +56,7 @@ services:
       Demo__Connection__DatabaseName: pagila
       # The sign-in links go out by email.
       Email__Delivery: Smtp
-      Email__AppBaseUrl: https://${MDBNAV_DOMAIN:?set MDBNAV_DOMAIN in .env}
+      Email__FrontendBaseUrl: https://${MDBNAV_DOMAIN:?set MDBNAV_DOMAIN in .env}
       Email__FromAddress: ${MDBNAV_EMAIL_FROM:?set MDBNAV_EMAIL_FROM in .env}
       Email__Smtp__Host: ${MDBNAV_SMTP_HOST:-smtp-relay.brevo.com}
       Email__Smtp__Port: ${MDBNAV_SMTP_PORT:-587}

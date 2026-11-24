@@ -1,4 +1,4 @@
-using MDBNavigator.Accounts.Email;
+using Gatehouse.Accounts;
 using System.Collections.Concurrent;
 
 namespace MDBNavigator.API.Tests.Infrastructure

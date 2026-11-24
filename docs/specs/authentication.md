@@ -37,8 +37,8 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 | `Captcha:Provider` | `None` (default), `Turnstile`, `Altcha` | Asks for a CAPTCHA when creating an account (and after repeated failed connects). `Turnstile` also needs `Captcha:Turnstile:SiteKey` and `SecretKey`. Details in [security.md](../security.md#rate-limits-and-captcha). |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Each provider is switched on only when both values are set. The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
 | `Email:Delivery` | `None` (default), `Smtp`, `Log` | Email confirmation and password reset are on with `Smtp`, or with `Log` (Development only: emails go to the log). |
-| `Email:AppBaseUrl` | | The app's address for links in emails, e.g. `https://mdbnavigator.example.com`. Required when email is on. |
-| `Email:FromAddress`, `Email:FromName` | | The sender. `FromName` defaults to `MDBNavigator`. |
+| `Email:FrontendBaseUrl` | | The app's address for links in emails, e.g. `https://mdbnavigator.example.com`. Required when email is on. |
+| `Email:FromAddress`, `Email:FromName` | | The sender. `FromName` is `MDBNavigator` in `appsettings.json`. |
 | `Email:Smtp:Host`, `Port` (587), `Username`, `Password` | `smtp-relay.brevo.com`, `587` (in `appsettings.json`) | The mail server. Host and port default to Brevo, so only the login is configured. Port 465 uses TLS from the start, any other port STARTTLS. The password is a secret (user secrets, environment variable). |
 
 ## Server
@@ -51,16 +51,17 @@ The app database is a single SQLite file, `data/mdbnavigator.db` under the app's
 - **Lockout:** 5 failed attempts lock the account for 5 minutes. The sign-in, register, password and email endpoints are rate limited per IP address. `me`, `settings` and `logout` are not, because the UI calls them on every load.
 - **Security headers:** a Content Security Policy and the usual headers on every response ([security.md](../security.md#security-headers)). With Turnstile, the policy allows Cloudflare's script and iframe.
 - **Social login:** the browser goes to `/api/auth/external/{provider}?returnTo=…`, then to the provider, and back through `/api/auth/external/callback`, which redirects into the app or to `/login?error=…`. `returnTo` must be a path on this site; anything else becomes `/`.
-  - **Linking to an existing account** (same email) happens only when **the provider verified the email and the account has confirmed it**. Otherwise someone could register the address first, with a password or through a provider that doesn't verify emails, and end up sharing the real owner's account. In that case the user signs in with the password and links the provider from the account page (0.1e).
+  - The rules below and the redirects come from the [`Gatehouse.Accounts`](https://www.nuget.org/packages/Gatehouse.Accounts) package (0.6d), set to refuse an unconfirmed account (`UnconfirmedAccountWithSameEmail = Refuse`). MDBNavigator adds the new user, closed sign-up and the rate limit.
+  - **Linking to an existing account** (same email) happens only when **the provider verified the email and the account has confirmed it**. Otherwise someone could register the address first, with a password or through a provider that doesn't verify emails, and end up sharing the real owner's account. In that case the user signs in with the password and links the provider from the account page (0.1e). A locked-out account is refused (`external-locked-out`).
   - **Which providers verify:** Google says so per login (`verified_email`). GitHub returns only verified addresses (with the `user:email` scope, also a private primary one). Microsoft is treated as unverified, because work accounts can carry an address their organization never checked.
   - **A new account** through a provider has its email confirmed only when the provider verified it. With `Auth:SignUp = Closed`, no new accounts are created this way; existing ones can still sign in.
   - **Error codes** for the sign-in page: `external-cancelled`, `external-failed`, `external-no-email`, `external-email-in-use`, `external-locked-out`, `external-sign-up-closed`.
-- **Email** is optional. Without it, accounts work right away, and an admin resets passwords. With it:
+- **Email** is optional. Without it, accounts work right away, and an admin resets passwords. Each email that would have been sent is then a warning in the log, without the address. With it:
   - A new account gets a confirmation link and must confirm before **signing in with a password**. Signing in through a provider doesn't require it; the provider vouches for the person.
   - **Turning email on later** affects existing accounts: their emails were never confirmed, so their next password sign-in is refused until they confirm. The sign-in page offers to resend the link.
-  - Links point to UI pages (`/confirm-email`, `/reset-password`) under `Email:AppBaseUrl`. The address is configured, never taken from the request, so a forged `Host` header can't turn a reset link into a link to another site.
+  - Links point to UI pages (`/confirm-email`, `/reset-password`) under `Email:FrontendBaseUrl`. The address is configured, never taken from the request, so a forged `Host` header can't turn a reset link into a link to another site.
   - "Forgot password" answers the same whether or not the account exists, and sends nothing for unknown or unconfirmed addresses. A reset code works once.
-  - A failed send is logged (without the address) rather than failing the request; the user can ask for the email again.
+  - A failed send is logged (without the address and without the mail server's answer, which can hold it) rather than failing the request; the user can ask for the email again.
   - Invalid email settings stop the app at startup with a message.
 - **Sessions:** the session id becomes `userId:tabId`. The tab id still comes from the `id` header. The SignalR hub requires sign-in and puts each connection in the group of its own `userId:tabId`. It no longer trusts the `applicationId` query string.
 - **Data Protection keys** are stored in the app database, so cookies stay valid across restarts and containers.

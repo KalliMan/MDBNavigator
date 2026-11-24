@@ -59,7 +59,7 @@ MDBNavigator.API ──► Accounts                  sign-in, providers, email, 
 
 ## Tech stack
 
-- **Backend:** .NET 10, ASP.NET Core, SignalR, Npgsql and Dapper, EF Core with SQLite, ASP.NET Core Identity, FluentValidation.
+- **Backend:** .NET 10, ASP.NET Core, SignalR, Npgsql and Dapper, EF Core with SQLite, ASP.NET Core Identity, [Gatehouse.Accounts](https://www.nuget.org/packages/Gatehouse.Accounts) (provider sign-in and account emails), FluentValidation.
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS 4, Monaco Editor with `monaco-sql-languages`, `@tanstack/react-virtual`, react-router, immer, axios, `@microsoft/signalr`, react-toastify, Vitest.
 
 ## Running locally
@@ -190,7 +190,7 @@ Settings live in `src/MDBNavigator.API/appsettings.json`. Any setting can be ove
 | `ConnectionStrings:AppDb` | `Data Source=data/mdbnavigator.db` | The app's own SQLite database (accounts, saved connections; used in both auth modes). A relative path is taken from the app's folder. Keep it on a persistent local disk; in Docker, mount the `data` folder as a volume. |
 | `SavedConnections:PasswordKey` | | 32 random bytes in base64 (`openssl rand -base64 32`). When set, saved connections can remember passwords. A secret: user secrets or an environment variable. See [remembered passwords](docs/security.md#remembered-passwords). |
 | `Authentication:{Google\|Microsoft\|GitHub}:ClientId`, `ClientSecret` | | Sign-in with that provider, switched on when both are set (user secrets or environment variables). The provider's app must allow the return address `https://{host}/api/auth/signin-google` (or `-microsoft`, `-github`). |
-| `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:AppBaseUrl` (the app's address for links), and for SMTP `Email:FromAddress`, `Email:Smtp:Username` and `Email:Smtp:Password`. `Email:Smtp:Host` and `Port` default to Brevo (`smtp-relay.brevo.com`, 587); set them only for another mail server. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
+| `Email:Delivery` | `None` | `Smtp` turns on email confirmation and password reset; `Log` (Development only) writes the emails to the log instead. Also needs `Email:FrontendBaseUrl` (the app's address for links; called `Email:AppBaseUrl` before 0.6d), and for SMTP `Email:FromAddress`, `Email:Smtp:Username` and `Email:Smtp:Password`. `Email:Smtp:Host` and `Port` default to Brevo (`smtp-relay.brevo.com`, 587); set them only for another mail server. See the [spec](docs/specs/authentication.md) for what changes for existing accounts. |
 | `RateLimiting:*` | | Limits on sign-in requests, connects and query runs, and the wait after failed connects. See [rate limits](docs/security.md#rate-limits-and-captcha). |
 | `Captcha:Provider` | `None` | `Turnstile` (Cloudflare) or `Altcha` (self-hosted) asks for a CAPTCHA when creating an account and after repeated failed connects. See [CAPTCHA](docs/security.md#rate-limits-and-captcha). |
 | `ConnectionGuard:Mode`, `Allow` | from `Auth` | Which database hosts users may connect to: `Public`, `AllowList` or `Off`. See [connection guardrails](docs/security.md#connection-guardrails). |
@@ -242,7 +242,7 @@ All endpoints are under `/api` and need sign-in plus an `id` header with the bro
 | `src/Shared/MDBNavigator.SharedKernel` | Handler interfaces with their logging and validation decorators, the common errors, the session key. |
 | `src/Providers/MDBNavigator.Providers.Abstractions` | What a database provider must offer, and the types that cross between the app and a provider. No dependencies. |
 | `src/Providers/MDBNavigator.Providers.PostgreSQL` | PostgreSQL provider (Npgsql + Dapper): schema queries, script generation, streaming, cell values, error descriptions. |
-| `src/Modules/Accounts/MDBNavigator.Accounts` | Accounts in the app's SQLite database: ASP.NET Core Identity, external sign-in, email, the account page. |
+| `src/Modules/Accounts/MDBNavigator.Accounts` | Accounts in the app's SQLite database: ASP.NET Core Identity, external sign-in and email sending (the `Gatehouse.Accounts` package), the email texts, the account page. |
 | `src/Modules/Connections/MDBNavigator.Connections.*` | Connect and disconnect, the connection guard and cache, saved connections and remembered passwords (`Contracts`, `Core`, `Infrastructure`). |
 | `src/Modules/Workbench/MDBNavigator.Workbench.*` | The schema tree, script generation, running and cancelling queries, the SignalR hub (`Core`, `Infrastructure`). |
 | `src/MDBNavigator.API` | ASP.NET Core host: controllers, middleware, rate limits, CAPTCHA, security headers. Wires the modules together and serves the built UI in production. |
