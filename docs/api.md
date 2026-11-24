@@ -124,7 +124,7 @@ The server side is `JsonCellValue.cs` and the client type is `CellValue` in `mdb
 **4. Receive exactly one `CommandFinished` message**, which always comes after the run's last batch:
 
 ```json
-{ "executionId": "...", "status": "Completed", "rowCount": 1234, "recordsAffected": 0, "elapsedMs": 87, "truncated": false, "error": null }
+{ "executionId": "...", "status": "Completed", "rowCount": 1234, "recordsAffected": 0, "elapsedMs": 87, "truncated": false, "error": null, "errorOffset": null }
 ```
 
 | Field | Meaning |
@@ -134,7 +134,8 @@ The server side is `JsonCellValue.cs` and the client type is `CellValue` in `mdb
 | `recordsAffected` | Rows changed by `INSERT`/`UPDATE`/`DELETE`, summed over the script's statements. `-1` when no statement reported a count. |
 | `elapsedMs` | Time from when a worker started the run. Time spent waiting in the queue is not included. |
 | `truncated` | `true` when at least one result set stopped at `MaxRowsPerResultSet`. |
-| `error` | Message for `Failed` runs, including the server's detail and hint. For a script with several statements it starts with the failing one: `Statement 2 of 5 (line 14): ...`. Batches sent before the error stay valid. A run stopped by one of the server's run limits is also `Failed`, with the reason: `Stopped after 60 seconds, this server's time limit for one run.` or `Stopped after more than 50,000 rows in total, this server's row limit for one run; the rest of the script was not run.` |
+| `error` | Message for `Failed` runs, including the server's detail and hint (and, for an error inside a function, its `QUERY` and `CONTEXT` lines). For a script with several statements it starts with the failing one: `Statement 2 of 5 (line 14): ...`. Batches sent before the error stay valid. A run stopped by one of the server's run limits is also `Failed`, with the reason: `Stopped after 60 seconds, this server's time limit for one run.` or `Stopped after more than 50,000 rows in total, this server's row limit for one run; the rest of the script was not run.` |
+| `errorOffset` | For a `Failed` run whose error the database placed in the script: the 0-based index of that place in `cmdQuery`, counted in UTF-16 code units, so it can be used on the JavaScript string as it is. For a plan request it points into the statement, not into the `EXPLAIN` the server put in front. `null` when there is no place: runtime errors such as a division by zero, errors inside a function, a lost connection, a run limit. |
 
 **Cancelling:** `POST /api/databaseCommand/cancel/{executionId}`. The outcome arrives as the run's `CommandFinished` with status `Cancelled`. Disconnecting a connection cancels all of its runs. Starting a run with an `executionId` that is already running cancels the earlier one.
 

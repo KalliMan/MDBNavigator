@@ -14,6 +14,7 @@ import {
 } from './DatabaseCommandReducer'
 
 const ranOn = { connectionId: 'c1', databaseName: 'db' }
+const source = { text: 'select 1', line: 1, column: 1 }
 
 function command(overrides: Partial<DatabaseCommand> = {}): DatabaseCommand {
   return {
@@ -26,6 +27,8 @@ function command(overrides: Partial<DatabaseCommand> = {}): DatabaseCommand {
     ranOn: null,
     runningStatement: null,
     plan: null,
+    source: null,
+    errorOffset: null,
     query: null,
     resultSets: [],
     ...overrides,
@@ -85,7 +88,7 @@ describe('Executing', () => {
   it('adds a command for an unknown id', () => {
     const next = reduce(initialDatabaseCommandState, {
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null },
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null, source },
     })
 
     expect(next.commands).toHaveLength(1)
@@ -112,7 +115,7 @@ describe('Executing', () => {
 
     const next = reduce(state, {
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null },
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null, source },
     })
 
     expect(next.commands).toHaveLength(1)
@@ -131,15 +134,28 @@ describe('Executing', () => {
   it('stores the plan mode of the run, and a later normal run clears it', () => {
     const planned = reduce(initialDatabaseCommandState, {
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: 'Analyze' },
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: 'Analyze', source },
     })
     expect(planned.commands[0].plan).toBe('Analyze')
 
     const normal = reduce(planned, {
       type: DatabaseCommandActionTypes.Executing,
-      payload: { commandId: 'cmd-1', executionId: 'run-2', ranOn, plan: null },
+      payload: { commandId: 'cmd-1', executionId: 'run-2', ranOn, plan: null, source },
     })
     expect(normal.commands[0].plan).toBeNull()
+  })
+
+  it('stores what the run sent and clears the error place of an earlier run', () => {
+    const state = stateOf(command({ source: null, errorOffset: 14, status: 'Failed', error: 'boom' }))
+    const sent = { text: 'select * from nope', line: 3, column: 2 }
+
+    const next = reduce(state, {
+      type: DatabaseCommandActionTypes.Executing,
+      payload: { commandId: 'cmd-1', executionId: 'run-1', ranOn, plan: null, source: sent },
+    })
+
+    expect(next.commands[0].source).toEqual(sent)
+    expect(next.commands[0].errorOffset).toBeNull()
   })
 })
 
@@ -347,6 +363,33 @@ describe('CommandFinished', () => {
     expect(next.commands[0].error).toBe('Query execution failed')
   })
 
+  it('Failed keeps the place of the error', () => {
+    const next = reduce(stateOf(running()), {
+      type: DatabaseCommandActionTypes.CommandFinished,
+      payload: finished({ status: 'Failed', error: 'no such table', errorOffset: 14 }),
+    })
+
+    expect(next.commands[0].errorOffset).toBe(14)
+  })
+
+  it('Failed without a place stores null', () => {
+    const next = reduce(stateOf(running()), {
+      type: DatabaseCommandActionTypes.CommandFinished,
+      payload: finished({ status: 'Failed', error: 'division by zero' }),
+    })
+
+    expect(next.commands[0].errorOffset).toBeNull()
+  })
+
+  it('Completed stores no place even if the message has one', () => {
+    const next = reduce(stateOf(running()), {
+      type: DatabaseCommandActionTypes.CommandFinished,
+      payload: finished({ errorOffset: 3 }),
+    })
+
+    expect(next.commands[0].errorOffset).toBeNull()
+  })
+
   it('changes nothing for a message of an older run', () => {
     const state = stateOf(running())
 
@@ -385,6 +428,7 @@ describe('HubStatusChanged', () => {
         runningStatement: null,
         status: 'Failed',
         error: 'Connection to server lost during execution',
+        errorOffset: null,
       })
     }
   })
@@ -423,7 +467,7 @@ describe('Error', () => {
       payload: { commandId: 'a', message: 'could not send' },
     })
 
-    expect(next.commands[0]).toMatchObject({ status: 'Failed', error: 'could not send', isExecuting: false, runningStatement: null })
+    expect(next.commands[0]).toMatchObject({ status: 'Failed', error: 'could not send', isExecuting: false, runningStatement: null, errorOffset: null })
     expect(next.commands[1]).toBe(b)
   })
 })

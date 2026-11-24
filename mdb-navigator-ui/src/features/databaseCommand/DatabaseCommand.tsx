@@ -1,10 +1,11 @@
 import Editor, { OnMount } from "@monaco-editor/react";
 import { MONACO_THEMES } from "./monacoSetup";
-import { KeyCode, KeyMod } from "monaco-editor";
-import type { editor } from "monaco-editor";
+// editor is a value here for its enums (OverviewRulerLane, TrackedRangeStickiness); it is also the type namespace.
+import { KeyCode, KeyMod, editor } from "monaco-editor";
 import { LanguageIdEnum } from "monaco-sql-languages";
 
-import { useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { LuGauge, LuListTree, LuPlay, LuSquare } from "react-icons/lu";
 import { DatabaseSQLCommandQuery } from "../../models/databaseCommand/query/databaseSQLCommandQuery";
 import useDatabaseCommandContext from "../../contexts/databaseCommand/useDatabaseCommandContext";
@@ -17,17 +18,34 @@ import { PlanMode } from "../../models/databaseCommand/query/planMode";
 import { mayChangeData } from "../queryPlan/queryPlan";
 import AnalyzeConfirm from "./AnalyzeConfirm";
 import QueryTargetPicker from "./QueryTargetPicker";
+import { errorSpan, escapeMarkdown } from "./errorLocation";
+import { parseRunError } from "./runStatus";
 
 interface Props {
   databaseCommandQuery: DatabaseSQLCommandQuery;
   target: QueryTarget;
   onTargetChange: (target: QueryTarget) => void;
+  // Set here once the editor is mounted: puts the cursor on the failed run's mark (the Error tab's "Go to error").
+  goToErrorRef: RefObject<(() => void) | null>;
   execute?(query: string): void;
 }
 
-export default function DatabaseCommand({ databaseCommandQuery, target, onTargetChange }: Props) {
+// Where a run's text starts in the editor, 1-based as Monaco counts. Run and Ctrl+Enter send the whole editor.
+type StartsAt = { line: number; column: number };
+const WHOLE_EDITOR: StartsAt = { line: 1, column: 1 };
+
+// How the place the database reported for a failed run looks in the editor (classes in index.css).
+const ERROR_MARK: editor.IModelDecorationOptions = {
+  inlineClassName: 'run-error-mark',
+  linesDecorationsClassName: 'run-error-gutter',
+  overviewRuler: { color: { id: 'editorOverviewRuler.errorForeground' }, position: editor.OverviewRulerLane.Right },
+  // Typing right before or after the mark doesn't make it longer.
+  stickiness: editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+};
+
+export default function DatabaseCommand({ databaseCommandQuery, target, onTargetChange, goToErrorRef }: Props) {
   const { executeDatabaseSQLCommand, cancelDatabaseSQLCommand } = useDatabaseCommandContext();
-  const { isExecuting, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
+  const { command, isExecuting, error, hubStatus } = useDatabaseCommandSelector(databaseCommandQuery.id);
   const { databaseServerConnections } = useDatabaseServerConnectContext();
   const { theme } = useTheme();
   // A tab of a disconnected server stays open (its SQL is kept) but can't run.
@@ -55,8 +73,13 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
   const [sqlQuery, setSqlQuery] = useState<string>(databaseCommandQuery.cmdQuery);
   // The editor, for the selection: Explain works on the selected statement.
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  // The statement waiting for the user's yes before Explain Analyze runs it (it may change data).
-  const [pendingAnalyze, setPendingAnalyze] = useState<string | null>(null);
+  // The failed run's mark. A decoration, so it moves with the text while the user types.
+  const errorMarks = useRef<editor.IEditorDecorationsCollection | null>(null);
+  // The mark is set in an effect, which must run again once the editor exists.
+  const [editorMounted, setEditorMounted] = useState(false);
+  // The statement waiting for the user's yes before Explain Analyze runs it (it may change data), and where its
+  // text starts in the editor.
+  const [pendingAnalyze, setPendingAnalyze] = useState<{ text: string; startsAt: StartsAt } | null>(null);
   // Queries opened with executeImmediately (e.g. "Select Top 100") run once when their tab opens.
   const autoRunDone = useRef(false);
 
@@ -72,38 +95,75 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
     }
   }, [databaseCommandQuery, executeDatabaseSQLCommand]);
 
+  const source = command?.source ?? null;
+  const errorOffset = command?.errorOffset ?? null;
+
+  // Marks the place the database reported for the failed run. A new run clears it (errorOffset is null again).
+  useEffect(() => {
+    const marks = errorMarks.current;
+    const model = editorRef.current?.getModel();
+    if (!editorMounted || !marks || !model) return;
+    marks.clear();
+    if (!source || errorOffset === null) return;
+
+    // Where the sent text started. If the editor no longer has that text there, it was edited while the query
+    // ran, and the offsets mean something else: no mark.
+    const startOffset = model.getOffsetAt({ lineNumber: source.line, column: source.column });
+    if (model.getValue().substring(startOffset, startOffset + source.text.length) !== source.text) return;
+
+    const span = errorSpan(source.text, errorOffset);
+    const start = model.getPositionAt(startOffset + span.start);
+    const end = model.getPositionAt(startOffset + span.end);
+    marks.set([{
+      range: { startLineNumber: start.lineNumber, startColumn: start.column, endLineNumber: end.lineNumber, endColumn: end.column },
+      options: {
+        ...ERROR_MARK,
+        hoverMessage: error ? { value: escapeMarkdown(parseRunError(error).message.split('\n')[0]) } : undefined,
+      },
+    }]);
+  }, [editorMounted, source, errorOffset, error]);
+
+  // The Error tab can't call into a disposed editor.
+  useEffect(() => () => {
+    goToErrorRef.current = null;
+  }, [goToErrorRef]);
+
   function handleEditorChange(value: string | undefined) {
     setSqlQuery(value || "");
   }
 
   // Runs the editor text where the tab now points (1.2d); the query object in context state is never modified.
   // plan: ask for the plan of one statement instead of running the text (Explain, Explain Analyze).
-  function run(cmdQuery: string, plan: PlanMode | null = null) {
+  // startsAt: where that text starts in the editor (a selection's start), for the error's place.
+  function run(cmdQuery: string, plan: PlanMode | null = null, startsAt: StartsAt = WHOLE_EDITOR) {
     const { query, target: where, execute } = latest.current;
     setTargetNote(null);
-    void execute({ ...query, connectionId: where.connectionId, databaseName: where.databaseName, cmdQuery }, plan);
+    void execute({ ...query, connectionId: where.connectionId, databaseName: where.databaseName, cmdQuery }, plan, startsAt);
   }
 
   // What Explain works on: the selection, or the whole editor when nothing is selected. (Run always runs the whole editor.)
-  function explainText(): string {
+  function explainText(): { text: string; startsAt: StartsAt } {
     const editorInstance = editorRef.current;
     const selection = editorInstance?.getSelection();
     if (editorInstance && selection && !selection.isEmpty()) {
-      return editorInstance.getModel()?.getValueInRange(selection) ?? '';
+      return {
+        text: editorInstance.getModel()?.getValueInRange(selection) ?? '',
+        startsAt: { line: selection.startLineNumber, column: selection.startColumn },
+      };
     }
-    return editorInstance?.getValue() ?? sqlQuery;
+    return { text: editorInstance?.getValue() ?? sqlQuery, startsAt: WHOLE_EDITOR };
   }
 
   // Reads through `latest` like the editor's keys do, so F7 never works with an older render's state.
   function explain(plan: PlanMode) {
     if (!latest.current.canExecute) return;
-    const text = explainText();
+    const picked = explainText();
     // Analyze runs the statement (rolled back): the user is asked first when it may change data.
-    if (plan === 'Analyze' && mayChangeData(text)) {
-      setPendingAnalyze(text);
+    if (plan === 'Analyze' && mayChangeData(picked.text)) {
+      setPendingAnalyze(picked);
       return;
     }
-    run(text, plan);
+    run(picked.text, plan, picked.startsAt);
   }
 
   function handleExecute() {
@@ -116,6 +176,20 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
 
   const handleEditorMount: OnMount = (mounted) => {
     editorRef.current = mounted;
+    errorMarks.current = mounted.createDecorationsCollection();
+    goToErrorRef.current = () => {
+      const range = errorMarks.current?.getRange(0);
+      if (!range) {
+        // No mark: the text was edited while the query ran (see the effect above).
+        toast.info("The editor's text changed while the query ran, so the place can't be shown.");
+        return;
+      }
+      const position = range.getStartPosition();
+      mounted.setPosition(position);
+      mounted.revealPositionInCenterIfOutsideViewport(position);
+      mounted.focus();
+    };
+    setEditorMounted(true);
     mounted.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
       if (!latest.current.canExecute) return;
       run(mounted.getValue());
@@ -212,9 +286,9 @@ export default function DatabaseCommand({ databaseCommandQuery, target, onTarget
       {pendingAnalyze !== null && (
         <AnalyzeConfirm
           onConfirm={() => {
-            const text = pendingAnalyze;
+            const pending = pendingAnalyze;
             setPendingAnalyze(null);
-            run(text, 'Analyze');
+            run(pending.text, 'Analyze', pending.startsAt);
           }}
           onClose={() => setPendingAnalyze(null)}
         />

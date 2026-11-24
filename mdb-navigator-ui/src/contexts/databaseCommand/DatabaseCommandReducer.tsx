@@ -7,6 +7,7 @@ import { HubStatus } from "../../services/commandResultHub";
 import type { BatchBuffer } from "./batchBuffer";
 import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/databaseCommandBatchResult";
 import type { PlanMode } from "../../models/databaseCommand/query/planMode";
+import type { RunSource } from "../../models/databaseCommand/query/runSource";
 
 export type DatabaseCommandStats = {
   rowCount: number;
@@ -40,6 +41,10 @@ export type DatabaseCommand = {
   runningStatement: RunningStatement | null;
   // Set when the run asked for a plan; the result view then shows the plan instead of a grid.
   plan: PlanMode | null;
+  // What the current run sent; kept so a failed run can show where its error is.
+  source: RunSource | null;
+  // A failed run: index into source.text of the place the database reported; null when it gave none.
+  errorOffset: number | null;
 
   query: DatabaseSQLCommandQuery | null;
   resultSets: ResultSet[];
@@ -74,6 +79,8 @@ function createCommand(id: string): DatabaseCommand {
     ranOn: null,
     runningStatement: null,
     plan: null,
+    source: null,
+    errorOffset: null,
     query: null,
     resultSets: []
   };
@@ -122,7 +129,7 @@ function appendBatches(resultSets: ResultSet[], batches: DatabaseCommandBatchRes
 export function databaseCommandReducer(state: DatabaseCommandState, action: DatabaseCommandActions): DatabaseCommandState {
   switch(action.type) {
     case DatabaseCommandActionTypes.Executing: {
-      const { commandId, executionId, ranOn, plan } = action.payload;
+      const { commandId, executionId, ranOn, plan, source } = action.payload;
       const running: Partial<DatabaseCommand> = {
         isExecuting: true,
         executionId,
@@ -131,6 +138,8 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         ranOn,
         runningStatement: null,
         plan,
+        source,
+        errorOffset: null,
         resultSets: [],
         error: null
       };
@@ -160,7 +169,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
           ...state,
           commands: state.commands.map(c =>
             c.id === query.id
-              ? { ...c, query, resultSets: [], error: null }
+              ? { ...c, query, resultSets: [], error: null, errorOffset: null }
               : c
           )
         };
@@ -208,6 +217,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
                 runningStatement: null,
                 status: finished.status,
                 error: finished.status === 'Failed' ? finished.error ?? 'Query execution failed' : null,
+                errorOffset: finished.status === 'Failed' ? finished.errorOffset ?? null : null,
                 stats: {
                   rowCount: finished.rowCount,
                   recordsAffected: finished.recordsAffected,
@@ -238,7 +248,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         commands: connectionLost
           ? state.commands.map(c =>
               c.isExecuting && c.executionId !== null
-                ? { ...c, isExecuting: false, runningStatement: null, status: 'Failed', error: CONNECTION_LOST_MESSAGE }
+                ? { ...c, isExecuting: false, runningStatement: null, status: 'Failed', error: CONNECTION_LOST_MESSAGE, errorOffset: null }
                 : c
             )
           : state.commands
@@ -251,7 +261,7 @@ export function databaseCommandReducer(state: DatabaseCommandState, action: Data
         ...state,
         commands: state.commands.map(c =>
           c.id === commandId
-            ? { ...c, isExecuting: false, runningStatement: null, status: 'Failed', error: message }
+            ? { ...c, isExecuting: false, runningStatement: null, status: 'Failed', error: message, errorOffset: null }
             : c
         )
       };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import useDatabaseCommandSelector from '../../contexts/databaseCommand/useDatabaseCommandSelector';
 import { DatabaseCommandSingleResultView } from './DatabaseCommandSingleResultView';
 import { SelectionSize } from '../../ui/dataGrid/selection';
@@ -7,6 +7,7 @@ import { ResultMode } from './ResultToolbar';
 import ResultError from './ResultError';
 import ResultPlaceholder from './ResultPlaceholder';
 import { ERROR_TAB_ID } from './runStatus';
+import { locateError } from './errorLocation';
 import QueryPlanView from '../queryPlan/QueryPlanView';
 
 
@@ -18,12 +19,22 @@ interface Props {
   onActiveTabChange: (tabId: string) => void;
   onSelectionChange: (resultSetId: string, size: SelectionSize | null) => void;
   executingLabel: string;
+  // The Error tab's "Go to error": the parent passes it on to the editor.
+  onGoToError: () => void;
 }
 
-export function DatabaseCommandResultView({ databaseCommandQueryId, activeTabId, onActiveTabChange, onSelectionChange, executingLabel }: Props) {
+export function DatabaseCommandResultView({ databaseCommandQueryId, activeTabId, onActiveTabChange, onSelectionChange, executingLabel, onGoToError }: Props) {
   const { command, isExecuting, error, status, stats, resultSets } = useDatabaseCommandSelector(databaseCommandQueryId);
   // Table or CSV, for all of this query tab's results. It stays when a new run replaces them.
   const [mode, setMode] = useState<ResultMode>('table');
+
+  // Where the database says the failed run's error is. Above the early return below: hooks can't follow a return.
+  const source = command?.source ?? null;
+  const errorOffset = command?.errorOffset ?? null;
+  const location = useMemo(
+    () => (source && errorOffset !== null ? locateError(source, errorOffset) : null),
+    [source, errorOffset]
+  );
 
   if (resultSets.length === 0 && !error) {
     // Statements without a result set (INSERT/UPDATE/DDL) only report affected records; the placeholder says so.
@@ -53,7 +64,7 @@ export function DatabaseCommandResultView({ databaseCommandQueryId, activeTabId,
           {/* The strip the result toolbar draws, with the tabs only: an error has nothing to filter or export. */}
           <div className="flex h-8 flex-none items-center border-b border-line bg-chrome text-xs">{tabs}</div>
           <div className="min-h-0 flex-1">
-            <ResultError error={error} />
+            <ResultError error={error} location={location} onGoToError={onGoToError} />
           </div>
         </>
       )}

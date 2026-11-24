@@ -39,6 +39,36 @@ namespace MDBNavigator.Providers.PostgreSQL.Tests
             Assert.Equal(new[] { 3, 5 }, Lines(script));
         }
 
+        [Fact]
+        public void Offsets_point_at_the_first_character_of_the_text()
+        {
+            var script = "  \n\nSELECT 1;\n\n  SELECT 2  \n";
+
+            Assert.Equal(new[] { 4, 17 }, PostgresScriptSplitter.Split(script).Select(s => s.Offset).ToArray());
+        }
+
+        [Fact]
+        public void A_leading_comment_is_inside_the_offset()
+        {
+            var statement = Assert.Single(PostgresScriptSplitter.Split("-- c\nselect 1"));
+
+            Assert.Equal(0, statement.Offset);
+            Assert.Equal(2, statement.Line);
+        }
+
+        [Theory]
+        [InlineData("select 1; select 2")]
+        [InlineData("\n\n  -- note\nselect 1;\n/* c */ select 2 ;")]
+        [InlineData("select '😀'; select 2")]
+        [InlineData("create function f() returns int begin atomic select 1; end; select 3")]
+        public void The_text_is_the_script_at_the_offset(string script)
+        {
+            foreach (var statement in PostgresScriptSplitter.Split(script))
+            {
+                Assert.Equal(statement.Text, script.Substring(statement.Offset, statement.Text.Length));
+            }
+        }
+
         [Theory]
         [InlineData("")]
         [InlineData("   ")]

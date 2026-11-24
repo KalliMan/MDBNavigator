@@ -5,6 +5,7 @@ import { DatabaseCommandBatchResult } from "../../models/databaseCommand/result/
 import { StatementStartedResult } from "../../models/databaseCommand/result/statementStartedResult";
 import type { RanOn } from "./DatabaseCommandReducer";
 import type { PlanMode } from "../../models/databaseCommand/query/planMode";
+import type { RunSource } from "../../models/databaseCommand/query/runSource";
 
 export enum DatabaseCommandActionTypes {
   Executing = 'command/executing',
@@ -21,7 +22,8 @@ export type ExecutingAction = {
   type: DatabaseCommandActionTypes.Executing;
   // ranOn: where this run goes. The tab's target can change afterwards (1.2d), so the run keeps its own copy.
   // plan: the run asks for the plan of one statement instead of running the script; null for a normal run.
-  payload: { commandId: string; executionId: string; ranOn: RanOn; plan: PlanMode | null };
+  // source: the text that was sent and where it started in the editor, for the error's place.
+  payload: { commandId: string; executionId: string; ranOn: RanOn; plan: PlanMode | null; source: RunSource };
 };
 
 export type CommandQueriedAction = {

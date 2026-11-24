@@ -54,7 +54,7 @@ namespace MDBNavigator.Providers.PostgreSQL
                 ct.ThrowIfCancellationRequested();
 
                 var statement = statements[index];
-                yield return new StatementStarted { StatementIndex = index, StatementCount = statements.Count, Line = statement.Line };
+                yield return new StatementStarted { StatementIndex = index, StatementCount = statements.Count, Line = statement.Line, Offset = statement.Offset };
 
                 // A batch command's text goes to the server untouched. Npgsql searches an NpgsqlCommand's text for
                 // semicolons and splits it again, which breaks a function body written as BEGIN ATOMIC ... END.
@@ -174,8 +174,8 @@ namespace MDBNavigator.Providers.PostgreSQL
             int? maxRowBytes = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
-            var (text, line) = PostgresExplain.Build(script, analyze);
-            yield return new StatementStarted { StatementIndex = 0, StatementCount = 1, Line = line };
+            var (text, line, offset, prefixLength) = PostgresExplain.Build(script, analyze);
+            yield return new StatementStarted { StatementIndex = 0, StatementCount = 1, Line = line, Offset = offset, PrefixLength = prefixLength };
 
             var plan = await ReadPlanAsync(text, analyze, commandTimeoutSeconds, maxRowBytes, ct);
             yield return new QueryBatch

@@ -13,5 +13,11 @@ namespace MDBNavigator.Providers.Abstractions.Queries
         public required int StatementCount { get; init; }
         // 1-based line of the statement in the script.
         public required int Line { get; init; }
+        // Where the statement's text starts in the script: a 0-based index, in UTF-16 code units (what a .NET string counts in).
+        public required int Offset { get; init; }
+        // How many characters the provider put in front of the statement's text before sending it (EXPLAIN ...); 0 for a
+        // plain run. The database counts them in an error's position, so IDatabaseErrorDescriber takes them off again.
+        // The provider only puts ASCII there, so characters and UTF-16 units are the same number.
+        public int PrefixLength { get; init; }
     }
 }

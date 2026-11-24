@@ -116,6 +116,23 @@ namespace MDBNavigator.API.Tests
         }
 
         [Fact]
+        public async Task An_error_in_an_explained_statement_points_into_the_statement()
+        {
+            var (session, _, _) = await _fixture.NewUserAsync();
+            using var signedIn = session;
+            var connectionId = await session.ConnectAsync();
+            await using var hub = await session.ListenAsync();
+            // The leading line break and spaces are not part of the statement's text; the EXPLAIN put in front is
+            // not part of the script. Both must be taken out of PostgreSQL's position.
+            var sql = "\n  select * from no_such_table";
+
+            var run = await session.RunAsync(connectionId, sql, hub, plan: "Estimate");
+
+            Assert.Equal("Failed", Status(run));
+            Assert.Equal(sql.IndexOf("no_such_table", StringComparison.Ordinal), run.Finished.GetProperty("errorOffset").GetInt32());
+        }
+
+        [Fact]
         public async Task An_unknown_plan_value_is_refused()
         {
             var (session, _, _) = await _fixture.NewUserAsync();

@@ -14,8 +14,9 @@ namespace MDBNavigator.Providers.PostgreSQL
         public const string SeveralStatementsMessage = "Explain works on one statement at a time. Select the statement you want to explain.";
         public const string AlreadyExplainMessage = "This is already an EXPLAIN statement. Remove EXPLAIN to see its plan here, or use Run.";
 
-        // Text: the statement to send. Line: the statement's line in the script, for StatementStarted.
-        public static (string Text, int Line) Build(string script, bool analyze)
+        // Text: the statement to send. Line: the statement's line in the script, for StatementStarted. Offset: where the
+        // statement's own text starts in the script. PrefixLength: how many characters of Text come before it.
+        public static (string Text, int Line, int Offset, int PrefixLength) Build(string script, bool analyze)
         {
             var statements = PostgresScriptSplitter.Split(script);
             if (statements.Count == 0)
@@ -36,7 +37,8 @@ namespace MDBNavigator.Providers.PostgreSQL
             // The line break is on purpose: the statement's text may start with a -- comment, which would otherwise
             // swallow the rest of the line. The splitter has already dropped the ending semicolon.
             var options = analyze ? "ANALYZE, BUFFERS, FORMAT JSON" : "FORMAT JSON";
-            return ($"EXPLAIN ({options})\n{statement.Text}", statement.Line);
+            var prefix = $"EXPLAIN ({options})\n";
+            return (prefix + statement.Text, statement.Line, statement.Offset, prefix.Length);
         }
     }
 }

@@ -3,9 +3,10 @@ namespace MDBNavigator.Providers.PostgreSQL
     // One statement of a script.
     // Text: as written, from its first character to just before its ending semicolon, trimmed. Comments stay in.
     // Line: 1-based line, in the script, of its first character that is neither white space nor comment.
+    // Offset: 0-based index in the script of Text's first character, so script.Substring(Offset, Text.Length) == Text.
     // LeadingWords: its first four bare words, upper-cased (fewer when it has fewer).
     // HasDataChangingWord: INSERT, UPDATE, DELETE or MERGE appears in it as a bare word.
-    public sealed record ScriptStatement(string Text, int Line, IReadOnlyList<string> LeadingWords, bool HasDataChangingWord);
+    public sealed record ScriptStatement(string Text, int Line, int Offset, IReadOnlyList<string> LeadingWords, bool HasDataChangingWord);
 
     // Splits a script into its statements at the semicolons, so the provider can run them one by one: one
     // statement per round trip lets each result set have its own row limit, lets a stopped result leave the
@@ -53,7 +54,7 @@ namespace MDBNavigator.Providers.PostgreSQL
                 if (firstLine != 0)
                 {
                     var text = script.Substring(textStart, end - textStart).TrimEnd();
-                    statements.Add(new ScriptStatement(text, firstLine, leadingWords.ToArray(), hasDataChangingWord));
+                    statements.Add(new ScriptStatement(text, firstLine, textStart, leadingWords.ToArray(), hasDataChangingWord));
                 }
                 textStart = -1;
                 firstLine = 0;

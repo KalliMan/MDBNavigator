@@ -15,6 +15,8 @@ namespace MDBNavigator.API.Tests
 
         public QueryTests(AppFixture fixture) => _fixture = fixture;
 
+        private static int ErrorOffset(QueryRun run) => run.Finished.GetProperty("errorOffset").GetInt32();
+
         [Fact]
         public async Task A_select_streams_its_rows_and_finishes()
         {
@@ -28,8 +30,9 @@ namespace MDBNavigator.API.Tests
             Assert.Equal("Completed", run.Finished.GetProperty("status").GetString());
             Assert.Equal(2, run.Finished.GetProperty("rowCount").GetInt32());
             Assert.Equal(JsonValueKind.Null, run.Finished.GetProperty("error").ValueKind);
+            Assert.Equal(JsonValueKind.Null, run.Finished.GetProperty("errorOffset").ValueKind);
 
-            var fields = run.Batches[0].GetProperty("fields").EnumerateArray().ToArray();
+            var fields =run.Batches[0].GetProperty("fields").EnumerateArray().ToArray();
             Assert.Equal(["id", "name"], fields.Select(field => field.GetProperty("fieldName").GetString()));
             Assert.Equal(["Number", "Text"], fields.Select(field => field.GetProperty("category").GetString()));
 
@@ -80,6 +83,85 @@ namespace MDBNavigator.API.Tests
 
             Assert.Equal("Failed", run.Finished.GetProperty("status").GetString());
             Assert.StartsWith("Statement 2 of 2", run.Finished.GetProperty("error").GetString());
+        }
+
+        [Fact]
+        public async Task An_error_says_where_it_is()
+        {
+            var (session, _, _) = await _fixture.NewUserAsync();
+            using var signedIn = session;
+            var connectionId = await session.ConnectAsync();
+            await using var hub = await session.ListenAsync();
+            var sql = "select * from no_such_table";
+
+            var run = await session.RunAsync(connectionId, sql, hub);
+
+            Assert.Equal("Failed", run.Finished.GetProperty("status").GetString());
+            Assert.Equal(sql.IndexOf("no_such_table", StringComparison.Ordinal), ErrorOffset(run));
+        }
+
+        [Fact]
+        public async Task The_place_counts_from_the_start_of_the_script()
+        {
+            var (session, _, _) = await _fixture.NewUserAsync();
+            using var signedIn = session;
+            var connectionId = await session.ConnectAsync();
+            await using var hub = await session.ListenAsync();
+            var sql = "select 1;\n-- second\nselect * from no_such_table;";
+
+            var run = await session.RunAsync(connectionId, sql, hub);
+
+            Assert.Equal("Failed", run.Finished.GetProperty("status").GetString());
+            Assert.StartsWith("Statement 2 of 2 (line 3)", run.Finished.GetProperty("error").GetString());
+            Assert.Equal(sql.IndexOf("no_such_table", StringComparison.Ordinal), ErrorOffset(run));
+        }
+
+        [Fact]
+        public async Task The_place_is_right_after_characters_a_string_counts_twice()
+        {
+            var (session, _, _) = await _fixture.NewUserAsync();
+            using var signedIn = session;
+            var connectionId = await session.ConnectAsync();
+            await using var hub = await session.ListenAsync();
+            // PostgreSQL counts the emoji as one character, a .NET string as two.
+            var sql = "select '😀', 'жълт' from no_such_table";
+
+            var run = await session.RunAsync(connectionId, sql, hub);
+
+            Assert.Equal("Failed", run.Finished.GetProperty("status").GetString());
+            Assert.Equal(sql.IndexOf("no_such_table", StringComparison.Ordinal), ErrorOffset(run));
+        }
+
+        [Fact]
+        public async Task An_error_without_a_place_has_no_offset()
+        {
+            var (session, _, _) = await _fixture.NewUserAsync();
+            using var signedIn = session;
+            var connectionId = await session.ConnectAsync();
+            await using var hub = await session.ListenAsync();
+
+            var run = await session.RunAsync(connectionId, "select 1/0", hub);
+
+            Assert.Equal("Failed", run.Finished.GetProperty("status").GetString());
+            Assert.Equal(JsonValueKind.Null, run.Finished.GetProperty("errorOffset").ValueKind);
+        }
+
+        [Fact]
+        public async Task An_error_inside_a_function_shows_its_query_and_context()
+        {
+            var (session, _, _) = await _fixture.NewUserAsync();
+            using var signedIn = session;
+            var connectionId = await session.ConnectAsync();
+            await using var hub = await session.ListenAsync();
+
+            var run = await session.RunAsync(connectionId, "do $$ begin perform * from no_such_table; end $$", hub);
+
+            Assert.Equal("Failed", run.Finished.GetProperty("status").GetString());
+            var error = run.Finished.GetProperty("error").GetString();
+            Assert.Contains("\nQUERY: ", error);
+            Assert.Contains("\nCONTEXT: PL/pgSQL function inline_code_block line 1 at PERFORM", error);
+            // The place is in the function's own query, not in the user's text.
+            Assert.Equal(JsonValueKind.Null, run.Finished.GetProperty("errorOffset").ValueKind);
         }
 
         [Fact]

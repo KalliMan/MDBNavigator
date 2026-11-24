@@ -120,12 +120,12 @@ What users expect from any SQL tool. The UI refresh comes first, so the grid wor
 | **1.4a** UI polish: visible defects | The tree shows short, calm column types; tab arrows only when the tabs don't fit; the editor starts at 40 % of the height; numbers are right-aligned and dates and times are written as PostgreSQL writes them; the connect dialog's wording and button order. Plan: [plans/1.4a-ui-fixes.md](plans/1.4a-ui-fixes.md). | M |
 | **1.4b** UI polish: form controls | One style for inputs, selects, checkboxes, buttons and notices, used by the connect dialog, the account page and the sign-in pages. The connect dialog is tighter (Host and Port on one row), and the account page has the top bar. Plan: [plans/1.4b-form-controls.md](plans/1.4b-form-controls.md). | M |
 | **1.4c** UI polish: surfaces and identity | Light theme tones that can be told apart, the tab's server and database first in the status bar, and empty states: no query open (with a New query button), no results yet, statements without rows, and an Error tab for a failed statement. Plan: [plans/1.4c-surfaces-empty-states.md](plans/1.4c-surfaces-empty-states.md). | S–M |
+| **1.5** Error position | The place PostgreSQL reports for a failed statement is marked in the editor, and the Error tab (from 1.4c) names the line and column, shows the line and jumps to it. Errors inside a function show PostgreSQL's `QUERY` and `CONTEXT` lines. Plan: [plans/1.5-error-position.md](plans/1.5-error-position.md). | S–M |
 
 ### Later
 
 | Feature | Size | Notes |
 |---|---|---|
-| Error panel and error position | S–M | Long errors get their own panel. PostgreSQL reports where a query failed, so that spot is marked in the editor. |
 | Messages panel | S–M | Per statement: rows affected, notices and timing. |
 | Query history | S–M | Per connection. |
 | Saved queries / snippets | S–M | |

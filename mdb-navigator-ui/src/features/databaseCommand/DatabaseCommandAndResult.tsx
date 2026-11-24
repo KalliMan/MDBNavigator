@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import DatabaseCommand from './DatabaseCommand';
 import { DatabaseCommandResultView } from './DatabaseCommandResultView';
 import HorisontalSidebar from '../../ui/sidebar/HorisontalSidebar';
@@ -20,6 +20,9 @@ interface Props {
 export default function DatabaseCommandAndResult({ databaseCommandQuery, target, onTargetChange }: Props) {
   const { command, isExecuting, error, status, stats, hubStatus, resultSets } = useDatabaseCommandSelector(databaseCommandQuery.id);
   const { databaseServerConnections } = useDatabaseServerConnectContext();
+
+  // Set by the editor once it is mounted: puts the cursor on the failed run's mark. The Error tab's button calls it.
+  const goToErrorRef = useRef<(() => void) | null>(null);
 
   // The tab of the result strip the user clicked last; null until then.
   const [pickedTabId, setPickedTabId] = useState<string | null>(null);
@@ -63,7 +66,7 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery, target,
     <div className="flex h-full flex-col">
       <HorisontalSidebar>
         <div className="h-full">
-          <DatabaseCommand databaseCommandQuery={databaseCommandQuery} target={target} onTargetChange={onTargetChange} />
+          <DatabaseCommand databaseCommandQuery={databaseCommandQuery} target={target} onTargetChange={onTargetChange} goToErrorRef={goToErrorRef} />
         </div>
       </HorisontalSidebar>
       {/* min-h-0: the result grid scrolls itself instead of growing the page */}
@@ -74,6 +77,7 @@ export default function DatabaseCommandAndResult({ databaseCommandQuery, target,
           onActiveTabChange={setPickedTabId}
           onSelectionChange={handleSelectionChange}
           executingLabel={runningLabel}
+          onGoToError={() => goToErrorRef.current?.()}
         />
       </div>
       <DatabaseCommandStatusBar 

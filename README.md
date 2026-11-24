@@ -34,7 +34,7 @@ A database client that runs in the browser: connect to a database server, browse
 - Saved connections, optionally with a remembered password, encrypted on the server and never sent back to the browser.
 - Each server has its own color, so it is clear where a query runs; a query tab can switch to another server or database.
 - Accounts with email and password, optionally Google, Microsoft and GitHub.
-- Light and dark theme, and clear errors with PostgreSQL's `DETAIL` and `HINT`.
+- Light and dark theme, and clear errors: PostgreSQL's `DETAIL`, `HINT` and `CONTEXT`, and the place of the error marked in the editor.
 
 **Supported servers:** PostgreSQL. The provider layer is pluggable; MS SQL Server is planned.
 

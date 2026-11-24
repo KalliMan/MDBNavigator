@@ -30,7 +30,12 @@ export default function useDatabaseCommandContext(){
   }
 
   // plan: ask for the plan of one statement (Explain, Explain Analyze) instead of running the script.
-  async function executeDatabaseSQLCommand(cmdQuery: DatabaseSQLCommandQuery, plan: PlanMode | null = null) {
+  // startsAt: where cmdQuery.cmdQuery starts in the editor (Explain on a selection); the whole editor starts at 1, 1.
+  async function executeDatabaseSQLCommand(
+    cmdQuery: DatabaseSQLCommandQuery,
+    plan: PlanMode | null = null,
+    startsAt: { line: number; column: number } = { line: 1, column: 1 }
+  ) {
     // A tab runs one query at a time: a still running previous run is stopped on the server.
     const previous = context!.state.commands.find(c => c.id === cmdQuery.id);
     if (previous?.isExecuting && previous.executionId) {
@@ -45,6 +50,7 @@ export default function useDatabaseCommandContext(){
         executionId,
         ranOn: { connectionId: cmdQuery.connectionId, databaseName: cmdQuery.databaseName },
         plan,
+        source: { text: cmdQuery.cmdQuery, line: startsAt.line, column: startsAt.column },
       }
     });
 

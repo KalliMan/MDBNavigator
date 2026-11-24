@@ -111,6 +111,18 @@ body.is-resizing-row * {
   user-select: none !important;
 }
 
+/* The place the database reported for a failed run: in the editor (DatabaseCommand.tsx) and in the Error tab's
+   line (ResultError.tsx). Filled, so it can be told from the wavy line of the editor's own syntax check. */
+.run-error-mark {
+  background-color: var(--danger-soft);
+  border-bottom: 2px solid var(--danger);
+}
+/* The bar beside the line number of that line. */
+.run-error-gutter {
+  border-left: 3px solid var(--danger);
+  margin-left: 3px;
+}
+
 @layer components {
 
   /* Rounded scrollbar thumb without arrow buttons (Chromium/Safari). */

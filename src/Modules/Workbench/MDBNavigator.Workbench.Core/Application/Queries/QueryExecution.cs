@@ -57,6 +57,7 @@ namespace MDBNavigator.Workbench.Application.Queries
             var stats = new QueryStreamStats();
             var status = CommandExecutionStatus.Completed;
             string? error = null;
+            int? errorOffset = null;
             StatementStarted? current = null;
             // What the server refused, if anything; a mistake in the SQL is not counted.
             ViolationKind? violation = null;
@@ -147,6 +148,11 @@ namespace MDBNavigator.Workbench.Application.Queries
                 status = CommandExecutionStatus.Failed;
                 // The provider's describer adds the server's detail/hint (e.g. which objects block a DROP).
                 error = AtStatement(_errorDescriber?.Describe(ex) ?? ex.Message, current);
+                // Only while a statement was running; the describer answers null for anything but a database error with a place.
+                if (current is not null)
+                {
+                    errorOffset = _errorDescriber?.OffsetInScript(ex, command.CmdQuery, current);
+                }
                 violation = ToViolation(ex);
             }
             catch (Exception ex)
@@ -175,7 +181,8 @@ namespace MDBNavigator.Workbench.Application.Queries
                 RecordsAffected = stats.RecordsAffected,
                 ElapsedMs = stopwatch.ElapsedMilliseconds,
                 Truncated = stats.Truncated,
-                Error = error
+                Error = error,
+                ErrorOffset = errorOffset
             }, command.SessionId);
         }
 
