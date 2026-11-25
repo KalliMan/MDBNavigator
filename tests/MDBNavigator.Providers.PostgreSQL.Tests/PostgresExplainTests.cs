@@ -86,5 +86,44 @@ namespace MDBNavigator.Providers.PostgreSQL.Tests
 
             Assert.Equal(PostgresExplain.AlreadyExplainMessage, ex.Message);
         }
+
+        [Theory]
+        [InlineData("create or replace procedure p() language plpgsql as $$ begin end $$")]
+        [InlineData("create function f() returns int language sql as 'select 1'")]
+        [InlineData("create index i on t (a)")]
+        [InlineData("alter table t add column b int")]
+        [InlineData("drop table t")]
+        [InlineData("set search_path = public")]
+        [InlineData("call p()")]
+        [InlineData("vacuum t")]
+        public void A_statement_explain_cant_take_is_refused(string script)
+        {
+            var ex = Assert.Throws<InvalidScriptException>(() => PostgresExplain.Build(script, analyze: false));
+
+            Assert.Equal(PostgresExplain.NotExplainableMessage, ex.Message);
+        }
+
+        [Theory]
+        [InlineData("select 1")]
+        [InlineData("(select 1)")]
+        [InlineData("with x as (select 1) select * from x")]
+        [InlineData("table t")]
+        [InlineData("values (1), (2)")]
+        [InlineData("insert into t values (1)")]
+        [InlineData("update t set a = 1")]
+        [InlineData("delete from t")]
+        [InlineData("merge into t using s on t.a = s.a when matched then delete")]
+        [InlineData("execute q(1)")]
+        [InlineData("declare c cursor for select 1")]
+        [InlineData("create table t2 as select * from t")]
+        [InlineData("create temp table t2 as select * from t")]
+        [InlineData("create unlogged table t2 as select * from t")]
+        [InlineData("create materialized view v as select * from t")]
+        public void A_statement_explain_can_take_is_built(string script)
+        {
+            var (text, _, _, _) = PostgresExplain.Build(script, analyze: false);
+
+            Assert.EndsWith(script, text);
+        }
     }
 }
